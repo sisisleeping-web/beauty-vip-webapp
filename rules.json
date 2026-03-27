@@ -1,0 +1,34 @@
+{
+  "birthday_offer": {
+    "name": "壽星優惠",
+    "discount_rate": 0.1,
+    "once_per_month": true,
+    "stackable": false
+  },
+  "vip_tiers": [
+    {
+      "name": "一般會員",
+      "cashback_rate": 0.02,
+      "points_rate": 0.02,
+      "upgrade_gift": 0
+    },
+    {
+      "name": "S級美咖",
+      "cashback_rate": 0.03,
+      "points_rate": 0.03,
+      "upgrade_gift": 300
+    },
+    {
+      "name": "P級美咖",
+      "cashback_rate": 0.05,
+      "points_rate": 0.05,
+      "upgrade_gift": 500
+    },
+    {
+      "name": "A級美咖",
+      "cashback_rate": 0.08,
+      "points_rate": 0.08,
+      "upgrade_gift": 1200
+    }
+  ]
+}

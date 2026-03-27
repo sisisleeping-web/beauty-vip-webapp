@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h3>報表查詢（店家可用）</h3>
+  <form method="get">
+    <label>月份</label>
+    <input type="month" name="month" value="{{ month }}">
+    <button type="submit">查詢</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>日明細（{{ month }}）</h3>
+  <table>
+    <tr><th>日期</th><th>分店</th><th>客戶</th><th>生日</th><th>原始金額</th><th>實收金額</th><th>壽星折扣</th><th>操作</th></tr>
+    {% for r in detail_rows %}
+    <tr>
+      <td>{{ r.txn_date }}</td><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td>
+      <td>{{ '%.2f'|format(r.amount) }}</td><td>{{ '%.2f'|format(r.final_amount) }}</td>
+      <td>{{ '是' if r.birthday_discount_applied else '否' }}</td>
+      <td>
+        <button type="button" onclick="deleteTxn({{ r.id }})" style="color: red; border: 1px solid red; background: none; border-radius: 4px; padding: 2px 6px; font-size: 12px; cursor: pointer;">刪除</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <h3>月消費（{{ month }}）</h3>
+  <table>
+    <tr><th>分店</th><th>客戶</th><th>生日</th><th>月累計</th></tr>
+    {% for r in monthly_by_customer %}
+    <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td>{{ '%.2f'|format(r.month_total) }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <h3>年消費（{{ month[:4] }}）</h3>
+  <table>
+    <tr><th>分店</th><th>客戶</th><th>生日</th><th>年累計</th></tr>
+    {% for r in yearly_by_customer %}
+    <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td>{{ '%.2f'|format(r.year_total) }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+<script>
+function deleteTxn(id) {
+  if (confirm("確定要刪除這筆消費紀錄嗎？明細與累計都會受影響喔！")) {
+    fetch(`/api/transactions/${id}/delete`, { method: "POST" })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "ok") {
+          location.reload();
+        } else {
+          alert("刪除失敗");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("刪除發生錯誤");
+      });
+  }
+}
+</script>
+{% endblock %}

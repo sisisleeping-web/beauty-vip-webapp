@@ -1,0 +1,1240 @@
+t=2026-03-27T14:51:00+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:51:00+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:51:00+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:51:00+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:51:00+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:51:00+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:51:01+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:51:01+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:51:01+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:01+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=7fd5af0c60aa err="reconnecting session closed"
+t=2026-03-27T14:51:01+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000425980}} restart:false}"
+t=2026-03-27T14:51:01+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:01+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:51:01+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:01+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:51:11+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:51:11+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:51:11+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:51:11+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:51:11+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:51:11+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:51:11+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:51:11+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:51:11+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:11+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=00e46c38ebef err="reconnecting session closed"
+t=2026-03-27T14:51:11+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:51:11+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000338320}} restart:false}"
+t=2026-03-27T14:51:11+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:11+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:11+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:51:21+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:51:21+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:51:21+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:51:21+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:51:21+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:51:21+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:51:21+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:51:21+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:51:22+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:22+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=10bbfbb2fb57 err="reconnecting session closed"
+t=2026-03-27T14:51:22+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000638400}} restart:false}"
+t=2026-03-27T14:51:22+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:22+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:51:22+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:22+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:51:32+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:51:32+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:51:32+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:51:32+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:51:32+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:51:32+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:51:32+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:51:32+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:51:32+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:32+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=0b6f6fdc1386 err="reconnecting session closed"
+t=2026-03-27T14:51:32+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:51:32+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400069e110}} restart:false}"
+t=2026-03-27T14:51:32+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:32+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:32+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:51:42+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:51:42+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:51:42+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:51:42+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:51:42+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:51:42+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:51:42+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:51:42+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:51:42+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:42+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=1ac2fc7823fb err="reconnecting session closed"
+t=2026-03-27T14:51:42+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:51:42+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000322820}} restart:false}"
+t=2026-03-27T14:51:42+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:42+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:53+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:51:53+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:51:53+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:51:53+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:51:53+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:51:53+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:51:53+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:51:53+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:51:53+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:53+0800 lvl=info msg="update available" obj=updater
+t=2026-03-27T14:51:53+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=9b2b8ea22091 err="reconnecting session closed"
+t=2026-03-27T14:51:53+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000706840}} restart:false}"
+t=2026-03-27T14:51:53+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:51:53+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:51:53+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:03+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:52:03+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:52:03+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:52:03+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:52:03+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:52:03+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:52:03+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:52:03+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:52:04+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:04+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=a9c7491f2ec5 err="reconnecting session closed"
+t=2026-03-27T14:52:04+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:52:04+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400046d650}} restart:false}"
+t=2026-03-27T14:52:04+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:04+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:14+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:52:14+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:52:14+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:52:14+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:52:14+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:52:14+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:52:14+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:52:14+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:52:14+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:14+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=adafd14aa162 err="reconnecting session closed"
+t=2026-03-27T14:52:14+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:52:14+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000684b20}} restart:false}"
+t=2026-03-27T14:52:14+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:14+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:24+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:52:24+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:52:24+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:52:24+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:52:24+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:52:24+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:52:24+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:52:24+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:52:24+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:24+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=bebe5de4b023 err="reconnecting session closed"
+t=2026-03-27T14:52:24+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400013e450}} restart:false}"
+t=2026-03-27T14:52:24+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:24+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:52:24+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:34+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:52:34+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:52:34+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:52:34+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:52:34+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:52:34+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:52:35+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:52:35+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:52:35+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:35+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=d957ee6882c1 err="reconnecting session closed"
+t=2026-03-27T14:52:35+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400004b010}} restart:false}"
+t=2026-03-27T14:52:35+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:35+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:52:35+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:45+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:52:45+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:52:45+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:52:45+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:52:45+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:52:45+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:52:45+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:52:45+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:52:45+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:45+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=4c36818cc8a5 err="reconnecting session closed"
+t=2026-03-27T14:52:45+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:52:45+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400029ef70}} restart:false}"
+t=2026-03-27T14:52:45+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:45+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:55+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:52:55+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:52:55+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:52:55+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:52:55+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:52:55+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:52:55+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:52:55+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:52:56+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:56+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140004edc90}} restart:false}"
+t=2026-03-27T14:52:56+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:56+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=6e0b452e9882 err="reconnecting session closed"
+t=2026-03-27T14:52:56+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:52:56+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:52:56+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:53:06+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:53:06+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:53:06+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:53:06+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:53:06+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:53:06+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:53:06+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:53:06+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:53:06+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:06+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400061e0b0}} restart:false}"
+t=2026-03-27T14:53:06+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:06+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=794fd451e384 err="reconnecting session closed"
+t=2026-03-27T14:53:06+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:53:06+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:06+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:53:16+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:53:16+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:53:16+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:53:16+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:53:16+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:53:16+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:53:16+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:53:16+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:53:16+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:16+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400004b730}} restart:false}"
+t=2026-03-27T14:53:16+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:16+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=7c8258d6b33e err="reconnecting session closed"
+t=2026-03-27T14:53:16+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:53:16+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:16+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:53:26+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:53:26+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:53:26+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:53:26+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:53:26+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:53:26+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:53:27+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:53:27+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:53:27+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:27+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=6df94571c3b7 err="reconnecting session closed"
+t=2026-03-27T14:53:27+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:53:27+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400004a740}} restart:false}"
+t=2026-03-27T14:53:27+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:27+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:27+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:53:37+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:53:37+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:53:37+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:53:37+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:53:37+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:53:37+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:53:37+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:53:37+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:53:37+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:37+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=0918199c58cd err="reconnecting session closed"
+t=2026-03-27T14:53:37+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:53:37+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000591f50}} restart:false}"
+t=2026-03-27T14:53:37+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:37+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:37+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:53:47+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:53:47+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:53:47+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:53:47+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:53:47+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:53:47+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:53:48+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:53:48+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:53:48+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:48+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=f8949f36688d err="reconnecting session closed"
+t=2026-03-27T14:53:48+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:53:48+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000493720}} restart:false}"
+t=2026-03-27T14:53:48+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:48+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:48+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:53:58+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:53:58+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:53:58+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:53:58+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:53:58+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:53:58+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:53:58+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:53:58+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:53:58+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:58+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=1b2a27426b31 err="reconnecting session closed"
+t=2026-03-27T14:53:58+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:53:58+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140004935a0}} restart:false}"
+t=2026-03-27T14:53:58+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:58+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:53:58+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:54:08+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:54:08+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:54:08+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:54:08+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:54:08+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:54:08+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:54:09+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:54:09+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:54:09+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:09+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=074facde7a80 err="reconnecting session closed"
+t=2026-03-27T14:54:09+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400032e000}} restart:false}"
+t=2026-03-27T14:54:09+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:09+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:54:09+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:19+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:54:19+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:54:19+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:54:19+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:54:19+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:54:19+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:54:19+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:54:19+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:54:19+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:19+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=aa4143086bcc err="reconnecting session closed"
+t=2026-03-27T14:54:19+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:54:19+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140007386b0}} restart:false}"
+t=2026-03-27T14:54:19+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:19+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:29+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:54:29+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:54:29+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:54:29+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:54:29+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:54:29+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:54:29+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:54:29+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:54:29+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:29+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=9ba8f5a37a8a err="reconnecting session closed"
+t=2026-03-27T14:54:29+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400070c120}} restart:false}"
+t=2026-03-27T14:54:29+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:29+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:54:29+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:29+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:54:40+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:54:40+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:54:40+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:54:40+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:54:40+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:54:40+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:54:40+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:54:40+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:54:40+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:40+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=ad4695ad7d86 err="reconnecting session closed"
+t=2026-03-27T14:54:40+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:54:40+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000404b40}} restart:false}"
+t=2026-03-27T14:54:40+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:40+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:50+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:54:50+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:54:50+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:54:50+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:54:50+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:54:50+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:54:50+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:54:50+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:54:50+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:50+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=aa15154a8d81 err="reconnecting session closed"
+t=2026-03-27T14:54:50+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:54:50+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400030eb70}} restart:false}"
+t=2026-03-27T14:54:50+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:54:50+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:00+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:55:00+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:55:00+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:55:00+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:55:00+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:55:00+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:55:01+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:55:01+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:55:01+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:01+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=a97c9ee5dd78 err="reconnecting session closed"
+t=2026-03-27T14:55:01+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:55:01+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400004aed0}} restart:false}"
+t=2026-03-27T14:55:01+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:01+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:01+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:55:11+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:55:11+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:55:11+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:55:11+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:55:11+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:55:11+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:55:11+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:55:11+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:55:11+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:11+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=3d83240f2153 err="reconnecting session closed"
+t=2026-03-27T14:55:11+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:55:11+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140004eaea0}} restart:false}"
+t=2026-03-27T14:55:11+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:11+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:21+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:55:21+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:55:21+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:55:21+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:55:21+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:55:21+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:55:21+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:55:21+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:55:22+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:22+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=d508df8b7138 err="reconnecting session closed"
+t=2026-03-27T14:55:22+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000305810}} restart:false}"
+t=2026-03-27T14:55:22+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:22+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:55:22+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:32+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:55:32+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:55:32+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:55:32+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:55:32+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:55:32+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:55:32+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:55:32+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:55:32+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:32+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=4caa72b78d5e err="reconnecting session closed"
+t=2026-03-27T14:55:32+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:55:32+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140003187c0}} restart:false}"
+t=2026-03-27T14:55:32+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:32+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:42+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:55:42+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:55:42+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:55:42+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:55:42+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:55:42+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:55:42+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:55:42+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:55:42+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:42+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=5c6bf9519d37 err="reconnecting session closed"
+t=2026-03-27T14:55:42+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:55:42+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000606830}} restart:false}"
+t=2026-03-27T14:55:42+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:42+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:53+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:55:53+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:55:53+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:55:53+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:55:53+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:55:53+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:55:53+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:55:53+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:55:53+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:53+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=df55837da4fb err="reconnecting session closed"
+t=2026-03-27T14:55:53+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:55:53+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400004a4c0}} restart:false}"
+t=2026-03-27T14:55:53+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:53+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:55:53+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:56:03+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:56:03+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:56:03+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:56:03+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:56:03+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:56:03+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:56:03+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:56:03+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:56:03+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:03+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=6f424cf8b453 err="reconnecting session closed"
+t=2026-03-27T14:56:03+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:56:03+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000187540}} restart:false}"
+t=2026-03-27T14:56:03+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:03+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:03+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:56:13+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:56:13+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:56:13+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:56:13+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:56:14+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:56:14+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:56:14+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:56:14+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:56:14+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:14+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=6c4b519c84e2 err="reconnecting session closed"
+t=2026-03-27T14:56:14+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:56:14+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140004befa0}} restart:false}"
+t=2026-03-27T14:56:14+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:14+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:14+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:56:24+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:56:24+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:56:24+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:56:24+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:56:24+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:56:24+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:56:24+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:56:24+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:56:24+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:24+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=fec35ebf403a err="reconnecting session closed"
+t=2026-03-27T14:56:24+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400032e270}} restart:false}"
+t=2026-03-27T14:56:24+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:24+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:56:24+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:24+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:56:34+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:56:34+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:56:34+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:56:34+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:56:34+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:56:34+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:56:35+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:56:35+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:56:35+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:35+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=00b755410f12 err="reconnecting session closed"
+t=2026-03-27T14:56:35+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:56:35+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000338180}} restart:false}"
+t=2026-03-27T14:56:35+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:35+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:45+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:56:45+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:56:45+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:56:45+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:56:45+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:56:45+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:56:45+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:56:45+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:56:45+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:45+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=0bce776b4400 err="reconnecting session closed"
+t=2026-03-27T14:56:45+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:56:45+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140005b4a60}} restart:false}"
+t=2026-03-27T14:56:45+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:45+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:45+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:56:55+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:56:55+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:56:55+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:56:55+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:56:55+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:56:55+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:56:55+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:56:55+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:56:56+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:56+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=0a41990914d7 err="reconnecting session closed"
+t=2026-03-27T14:56:56+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140006111a0}} restart:false}"
+t=2026-03-27T14:56:56+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:56:56+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:56:56+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:56:56+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:06+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:57:06+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:57:06+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:57:06+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:57:06+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:57:06+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:57:06+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:57:06+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:57:06+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:06+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=99133b3357e3 err="reconnecting session closed"
+t=2026-03-27T14:57:06+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:57:06+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140007ac040}} restart:false}"
+t=2026-03-27T14:57:06+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:06+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:16+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:57:16+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:57:16+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:57:16+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:57:16+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:57:16+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:57:16+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:57:16+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:57:16+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:16+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=9932c5ae26d7 err="reconnecting session closed"
+t=2026-03-27T14:57:16+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400026d3a0}} restart:false}"
+t=2026-03-27T14:57:16+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:16+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:57:16+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:57:16+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:26+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:57:26+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:57:26+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:57:26+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:57:26+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:57:26+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:57:27+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:57:27+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:57:27+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:27+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=a9c7484a361e err="reconnecting session closed"
+t=2026-03-27T14:57:27+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:57:27+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400050c1d0}} restart:false}"
+t=2026-03-27T14:57:27+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:27+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:37+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:57:37+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:57:37+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:57:37+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:57:37+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:57:37+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:57:37+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:57:37+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:57:37+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:37+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=ac65ca73d7e9 err="reconnecting session closed"
+t=2026-03-27T14:57:37+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:57:37+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400073e610}} restart:false}"
+t=2026-03-27T14:57:37+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:37+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:37+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:57:47+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:57:47+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:57:47+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:57:47+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:57:47+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:57:47+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:57:48+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:57:48+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:57:48+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:48+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=ba7c9811e70b err="reconnecting session closed"
+t=2026-03-27T14:57:48+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:57:48+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140005a2010}} restart:false}"
+t=2026-03-27T14:57:48+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:48+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:58+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:57:58+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:57:58+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:57:58+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:57:58+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:57:58+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:57:58+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:57:58+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:57:58+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:58+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=3ba3161be9a9 err="reconnecting session closed"
+t=2026-03-27T14:57:58+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000186230}} restart:false}"
+t=2026-03-27T14:57:58+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:57:58+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:57:58+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:08+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:58:08+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:58:08+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:58:08+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:58:08+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:58:08+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:58:08+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:58:08+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:58:08+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:08+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=4cda93b5f78c err="reconnecting session closed"
+t=2026-03-27T14:58:08+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:58:08+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140003042c0}} restart:false}"
+t=2026-03-27T14:58:08+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:08+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:08+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:58:19+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:58:19+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:58:19+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:58:19+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:58:19+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:58:19+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:58:19+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:58:19+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:58:19+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:19+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=481534e1fdda err="reconnecting session closed"
+t=2026-03-27T14:58:19+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:58:19+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400039e2f0}} restart:false}"
+t=2026-03-27T14:58:19+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:19+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:19+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:58:29+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:58:29+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:58:29+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:58:29+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:58:29+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:58:29+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:58:29+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:58:29+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:58:29+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:29+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=5b80ce7c0eef err="reconnecting session closed"
+t=2026-03-27T14:58:29+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:58:29+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000630000}} restart:false}"
+t=2026-03-27T14:58:29+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:29+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:29+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:58:39+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:58:39+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:58:39+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:58:39+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:58:39+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:58:39+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:58:40+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:58:40+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:58:40+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:40+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=7bbd7ff75dce err="reconnecting session closed"
+t=2026-03-27T14:58:40+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:58:40+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400004b890}} restart:false}"
+t=2026-03-27T14:58:40+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:40+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:40+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:58:50+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:58:50+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:58:50+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:58:50+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:58:50+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:58:50+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:58:50+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:58:50+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:58:50+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:50+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=080e072309de err="reconnecting session closed"
+t=2026-03-27T14:58:50+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:58:50+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400013e1c0}} restart:false}"
+t=2026-03-27T14:58:50+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:50+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:58:50+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:59:00+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:59:00+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:59:00+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:59:00+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:59:00+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:59:00+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:59:01+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:59:01+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:59:01+0800 lvl=info msg="update available" obj=updater
+t=2026-03-27T14:59:01+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:01+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=064b03bf5939 err="reconnecting session closed"
+t=2026-03-27T14:59:01+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:59:01+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140004a5be0}} restart:false}"
+t=2026-03-27T14:59:01+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:01+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:11+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:59:11+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:59:11+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:59:11+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:59:11+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:59:11+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:59:11+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:59:11+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:59:11+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:11+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=175a14eaa197 err="reconnecting session closed"
+t=2026-03-27T14:59:11+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:59:11+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000684230}} restart:false}"
+t=2026-03-27T14:59:11+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:11+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:21+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:59:21+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:59:21+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:59:21+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:59:21+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:59:21+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:59:21+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:59:21+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:59:22+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:22+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=16ef5164f0e2 err="reconnecting session closed"
+t=2026-03-27T14:59:22+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140003c25b0}} restart:false}"
+t=2026-03-27T14:59:22+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:22+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:59:22+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:22+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:59:32+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:59:32+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:59:32+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:59:32+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:59:32+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:59:32+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:59:32+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:59:32+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:59:32+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:32+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=aa23558ec3b4 err="reconnecting session closed"
+t=2026-03-27T14:59:32+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:59:32+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000313060}} restart:false}"
+t=2026-03-27T14:59:32+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:32+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:42+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:59:42+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:59:42+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:59:42+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:59:42+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:59:42+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:59:43+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:59:43+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:59:43+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:43+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=aaf46e2b01b2 err="reconnecting session closed"
+t=2026-03-27T14:59:43+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400070a9d0}} restart:false}"
+t=2026-03-27T14:59:43+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:43+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:59:43+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:43+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T14:59:53+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T14:59:53+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T14:59:53+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T14:59:53+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T14:59:53+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T14:59:53+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T14:59:53+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T14:59:53+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T14:59:53+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:53+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=bac379541f54 err="reconnecting session closed"
+t=2026-03-27T14:59:53+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T14:59:53+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000187f40}} restart:false}"
+t=2026-03-27T14:59:53+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:53+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T14:59:53+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:00:03+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:00:03+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:00:03+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:00:03+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:00:03+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:00:03+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:00:03+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:00:03+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:00:04+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:04+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=b9e075d22e12 err="reconnecting session closed"
+t=2026-03-27T15:00:04+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400061b0e0}} restart:false}"
+t=2026-03-27T15:00:04+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:04+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:00:04+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:14+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:00:14+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:00:14+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:00:14+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:00:14+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:00:14+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:00:14+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:00:14+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:00:14+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:14+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=44a1c3fcb7ed err="reconnecting session closed"
+t=2026-03-27T15:00:14+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:00:14+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000606240}} restart:false}"
+t=2026-03-27T15:00:14+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:14+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:24+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:00:24+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:00:24+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:00:24+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:00:24+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:00:24+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:00:24+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:00:24+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:00:24+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:24+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=4498be9ec6dc err="reconnecting session closed"
+t=2026-03-27T15:00:24+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400004a7e0}} restart:false}"
+t=2026-03-27T15:00:24+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:24+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:00:24+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:34+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:00:34+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:00:34+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:00:34+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:00:34+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:00:34+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:00:35+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:00:35+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:00:35+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:35+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=333f531c9772 err="reconnecting session closed"
+t=2026-03-27T15:00:35+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:00:35+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000689870}} restart:false}"
+t=2026-03-27T15:00:35+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:35+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:35+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:00:45+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:00:45+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:00:45+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:00:45+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:00:45+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:00:45+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:00:45+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:00:45+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:00:45+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:45+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=542dd845c1de err="reconnecting session closed"
+t=2026-03-27T15:00:45+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400004ad10}} restart:false}"
+t=2026-03-27T15:00:45+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:45+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:00:45+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:55+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:00:55+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:00:55+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:00:55+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:00:55+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:00:55+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:00:56+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:00:56+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:00:56+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:56+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=437263e0921f err="reconnecting session closed"
+t=2026-03-27T15:00:56+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:00:56+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140006149b0}} restart:false}"
+t=2026-03-27T15:00:56+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:56+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:00:56+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:01:06+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:01:06+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:01:06+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:01:06+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:01:06+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:01:06+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:01:06+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:01:06+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:01:06+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:06+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=e05a190cd6b7 err="reconnecting session closed"
+t=2026-03-27T15:01:06+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000304ff0}} restart:false}"
+t=2026-03-27T15:01:06+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:06+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:01:06+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:06+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:01:16+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:01:16+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:01:16+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:01:16+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:01:16+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:01:16+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:01:16+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:01:16+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:01:17+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:17+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=d7a7b687a5ed err="reconnecting session closed"
+t=2026-03-27T15:01:17+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:01:17+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000688690}} restart:false}"
+t=2026-03-27T15:01:17+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:17+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:27+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:01:27+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:01:27+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:01:27+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:01:27+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:01:27+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:01:27+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:01:27+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:01:27+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:27+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=ee9226b3e90d err="reconnecting session closed"
+t=2026-03-27T15:01:27+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:01:27+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400059c000}} restart:false}"
+t=2026-03-27T15:01:27+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:27+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:27+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:01:37+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:01:37+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:01:37+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:01:37+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:01:37+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:01:37+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:01:37+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:01:37+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:01:37+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:37+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=e67db74eb8fc err="reconnecting session closed"
+t=2026-03-27T15:01:37+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:01:37+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140001867a0}} restart:false}"
+t=2026-03-27T15:01:37+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:37+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:37+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:01:48+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:01:48+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:01:48+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:01:48+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:01:48+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:01:48+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:01:48+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:01:48+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:01:48+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:48+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=7a6c817798f4 err="reconnecting session closed"
+t=2026-03-27T15:01:48+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140003a35b0}} restart:false}"
+t=2026-03-27T15:01:48+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:48+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:01:48+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:01:48+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:58+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:01:58+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:01:58+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:01:58+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:01:58+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:01:58+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:01:58+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:01:58+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:01:58+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:58+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=1a9f0bf468ec err="reconnecting session closed"
+t=2026-03-27T15:01:58+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:01:58+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400004bc90}} restart:false}"
+t=2026-03-27T15:01:58+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:58+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:01:58+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:02:08+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:02:08+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:02:08+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:02:08+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:02:08+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:02:08+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:02:09+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:02:09+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:02:09+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:09+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=158a9d9078ed err="reconnecting session closed"
+t=2026-03-27T15:02:09+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400032e6d0}} restart:false}"
+t=2026-03-27T15:02:09+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:09+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:02:09+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:19+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:02:19+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:02:19+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:02:19+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:02:19+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:02:19+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:02:19+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:02:19+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:02:19+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:19+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=a8f117ba7c17 err="reconnecting session closed"
+t=2026-03-27T15:02:19+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140005a2b60}} restart:false}"
+t=2026-03-27T15:02:19+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:19+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:02:19+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:19+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:02:29+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:02:29+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:02:29+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:02:29+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:02:29+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:02:29+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:02:30+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:02:30+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:02:30+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:30+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=993623568b51 err="reconnecting session closed"
+t=2026-03-27T15:02:30+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:02:30+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140006103c0}} restart:false}"
+t=2026-03-27T15:02:30+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:30+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:30+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:02:40+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:02:40+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:02:40+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:02:40+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:02:40+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:02:40+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:02:40+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:02:40+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:02:40+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:40+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=bc97595f8025 err="reconnecting session closed"
+t=2026-03-27T15:02:40+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140003189c0}} restart:false}"
+t=2026-03-27T15:02:40+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:40+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:02:40+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:50+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:02:50+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:02:50+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:02:50+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:02:50+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:02:50+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:02:50+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:02:50+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:02:50+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:50+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140004a5e80}} restart:false}"
+t=2026-03-27T15:02:50+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:50+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=a9206efd90ac err="reconnecting session closed"
+t=2026-03-27T15:02:50+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:02:50+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:02:50+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:03:01+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:03:01+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:03:01+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:03:01+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:03:01+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:03:01+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:03:01+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:03:01+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:03:01+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:01+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=4c2365270a54 err="reconnecting session closed"
+t=2026-03-27T15:03:01+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:03:01+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400032e020}} restart:false}"
+t=2026-03-27T15:03:01+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:01+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:01+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:03:11+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:03:11+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:03:11+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:03:11+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:03:11+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:03:11+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:03:11+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:03:11+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:03:11+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:11+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=3c8874c11a32 err="reconnecting session closed"
+t=2026-03-27T15:03:11+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140001871e0}} restart:false}"
+t=2026-03-27T15:03:11+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:11+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:03:11+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:21+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:03:21+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:03:21+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:03:21+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:03:21+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:03:21+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:03:22+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:03:22+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:03:22+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:22+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=3b590b3e6b61 err="reconnecting session closed"
+t=2026-03-27T15:03:22+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:03:22+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400034a710}} restart:false}"
+t=2026-03-27T15:03:22+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:22+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:22+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:03:32+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:03:32+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:03:32+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:03:32+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:03:32+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:03:32+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:03:32+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:03:32+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:03:32+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:32+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=47fdd0683259 err="reconnecting session closed"
+t=2026-03-27T15:03:32+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140006117d0}} restart:false}"
+t=2026-03-27T15:03:32+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:32+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:03:32+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:42+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:03:42+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:03:42+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:03:42+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:03:42+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:03:42+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:03:42+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:03:42+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:03:42+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:42+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=4ccc600c82c0 err="reconnecting session closed"
+t=2026-03-27T15:03:42+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140005b19a0}} restart:false}"
+t=2026-03-27T15:03:42+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:42+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:03:42+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:53+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:03:53+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:03:53+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:03:53+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:03:53+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:03:53+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:03:53+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:03:53+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:03:53+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:53+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=d5aad82f534f err="reconnecting session closed"
+t=2026-03-27T15:03:53+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:03:53+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400037e450}} restart:false}"
+t=2026-03-27T15:03:53+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:03:53+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:03+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:04:03+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:04:03+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:04:03+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:04:03+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:04:03+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:04:03+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:04:03+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:04:03+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:03+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=d75961b1a23a err="reconnecting session closed"
+t=2026-03-27T15:04:03+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:04:03+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400029cdc0}} restart:false}"
+t=2026-03-27T15:04:03+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:03+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:03+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:04:13+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:04:13+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:04:13+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:04:13+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:04:13+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:04:13+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:04:14+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:04:14+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:04:14+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:14+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=0643f14db3c5 err="reconnecting session closed"
+t=2026-03-27T15:04:14+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:04:14+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140004a4690}} restart:false}"
+t=2026-03-27T15:04:14+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:14+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:24+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:04:24+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:04:24+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:04:24+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:04:24+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:04:24+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:04:25+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:04:25+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:04:25+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:25+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=e5afaf79429d err="reconnecting session closed"
+t=2026-03-27T15:04:25+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:04:25+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000136c70}} restart:false}"
+t=2026-03-27T15:04:25+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:25+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:25+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:04:35+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:04:35+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:04:35+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:04:35+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:04:35+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:04:35+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:04:35+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:04:35+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:04:35+0800 lvl=info msg="update available" obj=updater
+t=2026-03-27T15:04:36+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:36+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=78e63c834595 err="reconnecting session closed"
+t=2026-03-27T15:04:36+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:04:36+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000186810}} restart:false}"
+t=2026-03-27T15:04:36+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:36+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:46+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:04:46+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:04:46+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:04:46+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:04:46+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:04:46+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:04:46+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:04:46+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:04:46+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:46+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=94f4bba6f461 err="reconnecting session closed"
+t=2026-03-27T15:04:46+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:04:46+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400013fda0}} restart:false}"
+t=2026-03-27T15:04:46+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:46+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:46+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:04:56+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:04:56+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:04:56+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:04:56+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:04:56+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:04:56+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:04:56+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:04:56+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:04:56+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:56+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=849b4d4845af err="reconnecting session closed"
+t=2026-03-27T15:04:56+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400004bd20}} restart:false}"
+t=2026-03-27T15:04:56+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:56+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:04:56+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:04:56+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:05:06+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:05:06+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:05:06+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:05:06+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:05:06+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:05:06+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:05:07+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:05:07+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:05:07+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:05:07+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=88c80be5543e err="reconnecting session closed"
+t=2026-03-27T15:05:07+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400032e040}} restart:false}"
+t=2026-03-27T15:05:07+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:05:07+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:05:07+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:05:07+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:05:17+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:05:17+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:05:17+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:05:17+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:05:17+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:05:17+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:05:17+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:05:17+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:05:17+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:05:17+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=13f495f054da err="reconnecting session closed"
+t=2026-03-27T15:05:17+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:05:17+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x1400032e760}} restart:false}"
+t=2026-03-27T15:05:17+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:05:17+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:05:27+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:05:27+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:05:27+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:05:27+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:05:27+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:05:27+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:05:28+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:05:28+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:05:28+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:05:28+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=349b198a64ac err="reconnecting session closed"
+t=2026-03-27T15:05:28+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:05:28+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x14000187e20}} restart:false}"
+t=2026-03-27T15:05:28+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:05:28+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:05:28+0800 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-03-27T15:05:38+0800 lvl=info msg="no configuration paths supplied"
+t=2026-03-27T15:05:38+0800 lvl=info msg="using configuration at default config path" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml"
+t=2026-03-27T15:05:38+0800 lvl=info msg="open config file" path="/Users/openclaw/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-03-27T15:05:38+0800 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-03-27T15:05:38+0800 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-03-27T15:05:38+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4041 allow_hosts=[]
+t=2026-03-27T15:05:38+0800 lvl=info msg="client session established" obj=tunnels.session
+t=2026-03-27T15:05:38+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-03-27T15:05:38+0800 lvl=eror msg="session closing" obj=tunnels.session err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:05:38+0800 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=278e99b5fcb5 err="reconnecting session closed"
+t=2026-03-27T15:05:38+0800 lvl=info msg="no more state changes" obj=tunnels.session
+t=2026-03-27T15:05:38+0800 lvl=info msg="received stop request" obj=app stopReq="{err:{Inner:{Inner:0x140006aa530}} restart:false}"
+t=2026-03-27T15:05:38+0800 lvl=eror msg="terminating with error" obj=app err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-03-27T15:05:38+0800 lvl=crit msg="command failed" err="failed to start tunnel: The endpoint 'https://duckiest-overrigidly-ahmed.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"

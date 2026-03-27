@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h3>美容師快速輸入 {% for s in stores %}{% if selected_store==s.id %}- {{s.name}}{% endif %}{% endfor %}</h3>
+  {% if error %}
+  <p style="color: red; font-weight: bold; background: #ffe6e6; padding: 8px; border-radius: 4px;">{{ error }}</p>
+  {% endif %}
+  {% if not selected_store %}
+  <p style="color: red;">請先從首頁選擇分店！</p>
+  {% else %}
+  <form method="post">
+    <input type="hidden" name="store_id" value="{{ selected_store }}">
+
+    <div style="position: relative;">
+      <label>姓名</label>
+      <input type="text" name="name" id="name" required autocomplete="off">
+      <div id="name-autocomplete-list" style="position: absolute; border: 1px solid #ccc; background: white; z-index: 99; max-height: 200px; overflow-y: auto; display: none; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 4px; top: 100%;"></div>
+    </div>
+
+    <div style="position: relative;">
+      <label>手機號碼</label>
+      <input type="text" name="phone" id="phone" autocomplete="off" placeholder="選填">
+      <div id="phone-autocomplete-list" style="position: absolute; border: 1px solid #ccc; background: white; z-index: 99; max-height: 200px; overflow-y: auto; display: none; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 4px; top: 100%;"></div>
+    </div>
+
+    <label>生日</label>
+    <input type="date" name="birthday" id="birthday" required>
+
+    <label>本日消費金額</label>
+    <input type="number" name="amount" min="1" step="1" required>
+
+    <label>消費日期（預設今天）</label>
+    <input type="date" name="txn_date">
+
+    <div style="margin-top:12px;"><button type="submit">送出</button></div>
+  </form>
+  {% endif %}
+</div>
+
+{% if result %}
+<div class="card">
+  <h3 class="ok">已完成入帳</h3>
+  <p>顧客：{{ result.name }}</p>
+  <p>原始金額：{{ '%.2f'|format(result.amount) }}</p>
+  <p>實收金額：{{ '%.2f'|format(result.final_amount) }}</p>
+  <p>壽星折扣：{{ '有（9折）' if result.birthday_discount_applied else '無' }}</p>
+  <p>本月累計：{{ '%.2f'|format(result.monthly_total) }}</p>
+  <p>目前等級：{{ result.tier.name }}</p>
+  <p>本筆回饋金：{{ '%.2f'|format(result.cashback) }}</p>
+  <p>本筆點數：{{ result.points }}</p>
+</div>
+{% endif %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const nameInput = document.getElementById("name");
+  const phoneInput = document.getElementById("phone");
+  const birthdayInput = document.getElementById("birthday");
+  const nameAutoList = document.getElementById("name-autocomplete-list");
+  const phoneAutoList = document.getElementById("phone-autocomplete-list");
+
+  let timeoutId = null;
+
+  function renderList(data, listContainer) {
+    listContainer.innerHTML = "";
+    if (!data.customers || data.customers.length === 0) {
+      listContainer.style.display = "none";
+      return;
+    }
+    listContainer.style.display = "block";
+    
+    data.customers.forEach(c => {
+      const div = document.createElement("div");
+      div.style.padding = "10px";
+      div.style.cursor = "pointer";
+      div.style.borderBottom = "1px solid #eee";
+      div.innerHTML = `<strong>${c.name}</strong> ${c.phone ? '<span style="color:#666;">' + c.phone + '</span>' : ''} <span style="font-size: 0.8em; color: gray;">[生日: ${c.birthday}]</span>`;
+      
+      div.onmouseover = () => div.style.backgroundColor = "#f5f5f5";
+      div.onmouseout = () => div.style.backgroundColor = "#fff";
+      
+      div.onclick = () => {
+        nameInput.value = c.name;
+        phoneInput.value = c.phone || "";
+        birthdayInput.value = c.birthday;
+        nameAutoList.style.display = "none";
+        phoneAutoList.style.display = "none";
+      };
+      listContainer.appendChild(div);
+    });
+  }
+
+  function handleInput(e, listContainer) {
+    clearTimeout(timeoutId);
+    const query = e.target.value.trim();
+    if (!query) {
+      listContainer.style.display = "none";
+      return;
+    }
+    timeoutId = setTimeout(() => {
+      fetch(`/api/customers/search?q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => renderList(data, listContainer))
+        .catch(err => console.error(err));
+    }, 300);
+  }
+
+  nameInput.addEventListener("input", e => handleInput(e, nameAutoList));
+  phoneInput.addEventListener("input", e => handleInput(e, phoneAutoList));
+
+  document.addEventListener("click", e => {
+    if (e.target !== nameInput && !nameAutoList.contains(e.target)) {
+      nameAutoList.style.display = "none";
+    }
+    if (e.target !== phoneInput && !phoneAutoList.contains(e.target)) {
+      phoneAutoList.style.display = "none";
+    }
+  });
+});
+</script>
+{% endblock %}
