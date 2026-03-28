@@ -13,12 +13,13 @@
       <th>顧客姓名</th>
       <th>手機號碼</th>
       <th>生日</th>
+      <th>所屬分店</th>
       <th>建檔日期</th>
       <th>操作</th>
     </tr>
     {% for c in customers %}
     <tr>
-      <form method="post" action="/api/customers/{{ c.id }}/update" style="margin: 0;">
+      <form method="post" action="/api/customers/{{ c.id }}/update" style="margin: 0; display: inline;">
         <td>{{ c.name }}</td>
         <td>
           <input type="text" name="phone" value="{{ c.phone }}" style="width: 120px; margin:0; padding:4px;">
@@ -26,11 +27,15 @@
         <td>
           <input type="date" name="birthday" value="{{ c.birthday }}" style="margin:0; padding:4px;">
         </td>
-        <td>{{ c.created_at[:10] }}</td>
+        <td style="font-size: 0.9em; color: #555;">{{ c.stores or "無記錄" }}</td>
+        <td style="font-size: 0.9em;">{{ c.created_at[:10] }}</td>
         <td>
-          <button type="submit" style="margin:0; padding:4px 8px;">儲存</button>
-        </td>
+          <button type="submit" style="margin:0; padding:4px 8px; cursor: pointer; background: #e7f3ff; border: 1px solid #b3d7ff; border-radius: 4px;">儲存</button>
       </form>
+      <form method="post" action="/api/customers/{{ c.id }}/delete" style="margin: 0; display: inline;" onsubmit="return confirm('確定要刪除此顧客及其所有消費紀錄嗎？此動作無法復原。');">
+          <button type="submit" style="margin:0; padding:4px 8px; cursor: pointer; color: #d93025; background: #fce8e6; border: 1px solid #fad2cf; border-radius: 4px;">刪除</button>
+      </form>
+        </td>
     </tr>
     {% endfor %}
   </table>

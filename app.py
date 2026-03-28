@@ -415,14 +415,33 @@ def manager_dashboard():
 def contacts():
     db = get_db()
     query = request.args.get("q", "").strip()
+    
+    # Base query joining customers with their visited stores
+    sql = """
+        SELECT c.*, GROUP_CONCAT(DISTINCT s.name) as stores
+        FROM customers c
+        LEFT JOIN transactions t ON c.id = t.customer_id
+        LEFT JOIN stores s ON t.store_id = s.id
+    """
+    params = []
     if query:
-        customers = db.execute(
-            "SELECT * FROM customers WHERE name LIKE ? OR phone LIKE ? ORDER BY name",
-            (f"%{query}%", f"%{query}%")
-        ).fetchall()
-    else:
-        customers = db.execute("SELECT * FROM customers ORDER BY name").fetchall()
+        sql += " WHERE c.name LIKE ? OR c.phone LIKE ?"
+        params.extend([f"%{query}%", f"%{query}%"])
+    
+    sql += " GROUP BY c.id ORDER BY c.name"
+    customers = db.execute(sql, params).fetchall()
+    
     return render_template("contacts.html", customers=customers, query=query)
+
+
+@app.route("/api/customers/<int:customer_id>/delete", methods=["POST"])
+def delete_customer(customer_id):
+    db = get_db()
+    # Delete transactions first due to foreign key (if not CASCADE)
+    db.execute("DELETE FROM transactions WHERE customer_id=?", (customer_id,))
+    db.execute("DELETE FROM customers WHERE id=?", (customer_id,))
+    db.commit()
+    return redirect(url_for("contacts"))
 
 
 @app.route("/api/customers/<int:customer_id>/update", methods=["POST"])
