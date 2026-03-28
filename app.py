@@ -235,6 +235,14 @@ def _tier_name_from_totals(max_single: float, year_total: float) -> str:
     return "一般會員"
 
 
+def has_column(db: sqlite3.Connection, table: str, column: str) -> bool:
+    try:
+        rows = db.execute(f"PRAGMA table_info({table})").fetchall()
+        return any(str(r[1]) == column for r in rows)
+    except Exception:
+        return False
+
+
 def get_customer_tier_map(db: sqlite3.Connection, year: str) -> dict[int, str]:
     rows = db.execute(
         """
@@ -519,14 +527,21 @@ def report():
         where.append("substr(c.birthday,6,2) = ?")
         params.append(birthday_month.zfill(2))
 
+    coins_earned_expr = "t.coins_earned" if has_column(db, 'transactions', 'coins_earned') else "0"
+    coins_redeemed_expr = "t.coins_redeemed" if has_column(db, 'transactions', 'coins_redeemed') else "0"
+    entry_mode_expr = "t.entry_mode" if has_column(db, 'transactions', 'entry_mode') else "'normal'"
+    recharge_plan_expr = "t.recharge_plan" if has_column(db, 'transactions', 'recharge_plan') else "NULL"
+    recharge_amount_expr = "t.recharge_amount" if has_column(db, 'transactions', 'recharge_amount') else "NULL"
+
     sql = f"""
         SELECT t.id, t.txn_date, t.customer_id, s.id AS store_id, s.name AS store_name,
                c.name AS customer_name, c.birthday,
                t.amount, t.final_amount, t.birthday_discount_applied,
-               COALESCE(t.coins_earned, 0) AS coins_earned,
-               COALESCE(t.coins_redeemed, 0) AS coins_redeemed,
-               COALESCE(t.entry_mode, 'normal') AS entry_mode,
-               t.recharge_plan, t.recharge_amount
+               {coins_earned_expr} AS coins_earned,
+               {coins_redeemed_expr} AS coins_redeemed,
+               {entry_mode_expr} AS entry_mode,
+               {recharge_plan_expr} AS recharge_plan,
+               {recharge_amount_expr} AS recharge_amount
         FROM transactions t
         JOIN customers c ON c.id = t.customer_id
         JOIN stores s ON s.id = t.store_id
