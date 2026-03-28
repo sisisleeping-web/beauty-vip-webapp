@@ -1,43 +1,105 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="card">
-  <h3>主管儀表板（僅主管查看）</h3>
-  <p><a href="/manager/logout">登出主管頁</a></p>
-  <form method="get">
-    <label>月份</label>
-    <input type="month" name="month" value="{{ month }}">
-    <button type="submit">查詢</button>
+  <h3>🔐 主管儀表板</h3>
+  <p style="margin:0 0 12px;"><a href="/manager/logout" style="color:#dc2626; font-size:0.9rem;">登出主管頁</a></p>
+  <form method="get" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+    <div>
+      <label>月份</label>
+      <input type="month" name="month" value="{{ month }}" style="max-width:180px;">
+    </div>
+    <div>
+      <label>篩選分店（明細用）</label>
+      <select name="store_id" style="max-width:160px;">
+        <option value="">全部分店</option>
+        {% for s in stores %}
+        <option value="{{ s.id }}" {% if filters.store_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="align-self:flex-end;">
+      <button type="submit" style="background:linear-gradient(135deg,#6c3fc5,#a855f7);color:#fff;">🔍 查詢</button>
+    </div>
   </form>
 </div>
 
+<!-- Store Revenue Summary -->
 <div class="card">
-  <h3>各分店營收統計</h3>
+  <h3>🏪 各分店營收統計</h3>
   <div class="table-wrap"><table>
-    <tr><th>分店</th><th>{{ month }} 月營收</th><th>{{ month[:4] }} 年營收</th></tr>
+    <thead>
+      <tr>
+        <th>分店</th>
+        <th style="text-align:right;">{{ month }} 月營收</th>
+        <th style="text-align:right;">{{ month[:4] }} 年營收</th>
+      </tr>
+    </thead>
+    <tbody>
     {% for r in store_stats %}
     <tr>
-      <td>{{ r.store_name }}</td>
-      <td>{{ '%.2f'|format(r.month_revenue or 0) }}</td>
-      <td>{{ '%.2f'|format(r.year_revenue or 0) }}</td>
+      <td><strong>{{ r.store_name }}</strong></td>
+      <td style="text-align:right; font-size:1.1rem; font-weight:700; color:#6c3fc5;">
+        {{ '%.0f'|format(r.month_revenue or 0) }}
+      </td>
+      <td style="text-align:right; font-size:1.1rem; font-weight:700; color:#0e7fa8;">
+        {{ '%.0f'|format(r.year_revenue or 0) }}
+      </td>
     </tr>
     {% endfor %}
+    {% if store_stats %}
+    <tr style="background:#f0ebff; font-weight:700;">
+      <td>🔢 合計</td>
+      <td style="text-align:right; color:#6c3fc5;">
+        {{ '%.0f'|format(store_stats|sum(attribute='month_revenue') or 0) }}
+      </td>
+      <td style="text-align:right; color:#0e7fa8;">
+        {{ '%.0f'|format(store_stats|sum(attribute='year_revenue') or 0) }}
+      </td>
+    </tr>
+    {% endif %}
+    </tbody>
   </table></div>
 </div>
 
+<!-- Customer Detail - filterable by store -->
 <div class="card">
-  <h3>顧客消費與美咖幣明細</h3>
+  <h3>👤 顧客消費與美咖幣明細
+    {% if filters.store_id %}
+      <span style="background:#ede9fe;color:#6c3fc5;font-size:0.8rem;padding:2px 10px;border-radius:12px;font-weight:500;margin-left:8px;">
+        {% for s in stores %}{% if s.id == filters.store_id %}{{ s.name }}{% endif %}{% endfor %}
+      </span>
+    {% else %}
+      <span style="background:#f3f4f6;color:#666;font-size:0.8rem;padding:2px 10px;border-radius:12px;font-weight:500;margin-left:8px;">全部分店</span>
+    {% endif %}
+  </h3>
+  <p style="font-size:0.85rem; color:#888; margin:0 0 8px;">共 {{ customer_stats|length }} 位顧客</p>
   <div class="table-wrap"><table>
-    <tr><th>顧客</th><th>手機號碼</th><th>生日</th><th>{{ month }} 月消費</th><th>{{ month[:4] }} 年消費</th><th>累計美咖幣</th></tr>
+    <thead>
+      <tr>
+        <th>顧客姓名</th>
+        <th>手機號碼</th>
+        <th>生日</th>
+        <th>所屬分店</th>
+        <th style="text-align:right;">{{ month }} 月消費</th>
+        <th style="text-align:right;">{{ month[:4] }} 年消費</th>
+        <th style="text-align:right;">累計美咖幣</th>
+      </tr>
+    </thead>
+    <tbody>
     {% for c in customer_stats %}
     <tr>
-      <td>{{ c.name }}</td>
-      <td>{{ c.phone }}</td>
+      <td><strong>{{ c.name }}</strong></td>
+      <td>{{ c.phone or '-' }}</td>
       <td>{{ c.birthday }}</td>
-      <td>{{ '%.2f'|format(c.month_spend or 0) }}</td>
-      <td>{{ '%.2f'|format(c.year_spend or 0) }}</td>
-      <td style="color: #d88100; font-weight: bold;">{{ '%.2f'|format(c.total_cashback or 0) }}</td>
+      <td style="font-size:0.9em; color:#555;">{{ c.stores or '-' }}</td>
+      <td style="text-align:right; font-weight:600;">{{ '%.0f'|format(c.month_spend or 0) }}</td>
+      <td style="text-align:right; font-weight:600; color:#0e7fa8;">{{ '%.0f'|format(c.year_spend or 0) }}</td>
+      <td style="text-align:right; color:#d97706; font-weight:700; font-size:1.05rem;">
+        🪙 {{ '%.0f'|format(c.total_cashback or 0) }}
+      </td>
     </tr>
     {% endfor %}
+    </tbody>
   </table></div>
 </div>
 {% endblock %}

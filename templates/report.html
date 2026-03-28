@@ -1,45 +1,69 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="card">
-  <h3>報表查詢（店家可用）</h3>
-  <form method="get">
-    <label>月份</label>
-    <input type="month" name="month" value="{{ month }}">
-    <label>年份（VIP分級計算）</label>
-    <input type="text" name="year" value="{{ filters.year }}" placeholder="2026">
-    <label>分店</label>
-    <select name="store_id">
-      <option value="">全部</option>
-      {% for s in stores %}
-      <option value="{{ s.id }}" {% if filters.store_id==s.id %}selected{% endif %}>{{ s.name }}</option>
-      {% endfor %}
-    </select>
-    <label>客戶關鍵字</label>
-    <input type="text" name="q" value="{{ filters.q }}" placeholder="姓名">
-    <label>日期區間</label>
-    <input type="date" name="start_date" value="{{ filters.start_date }}"> ～
-    <input type="date" name="end_date" value="{{ filters.end_date }}">
-    <label>生日月份</label>
-    <input type="number" min="1" max="12" name="birthday_month" value="{{ filters.birthday_month }}">
-    <label>VIP等級</label>
-    <select name="vip_tier">
-      <option value="">全部</option>
-      {% for t in ['一般會員','S級美咖','P級美咖','A級美咖'] %}
-      <option value="{{ t }}" {% if filters.vip_tier==t %}selected{% endif %}>{{ t }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">查詢</button>
+  <h3>📊 報表查詢</h3>
+  <form method="get" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px 16px; align-items: end; margin-top: 10px;">
+    <div>
+      <label>月份</label>
+      <input type="month" name="month" value="{{ month }}">
+    </div>
+    <div>
+      <label>年份（VIP分級計算）</label>
+      <input type="text" name="year" value="{{ filters.year }}" placeholder="2026">
+    </div>
+    <div>
+      <label>分店</label>
+      <select name="store_id">
+        <option value="">全部</option>
+        {% for s in stores %}
+        <option value="{{ s.id }}" {% if filters.store_id==s.id %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>客戶關鍵字</label>
+      <input type="text" name="q" value="{{ filters.q }}" placeholder="姓名">
+    </div>
+    <div>
+      <label>開始日期</label>
+      <input type="date" name="start_date" value="{{ filters.start_date }}">
+    </div>
+    <div>
+      <label>結束日期</label>
+      <input type="date" name="end_date" value="{{ filters.end_date }}">
+    </div>
+    <div>
+      <label>生日月份（1-12）</label>
+      <input type="number" min="1" max="12" name="birthday_month" value="{{ filters.birthday_month }}" placeholder="例: 3">
+    </div>
+    <div>
+      <label>VIP等級</label>
+      <select name="vip_tier">
+        <option value="">全部</option>
+        {% for t in ['一般會員','S級美咖','P級美咖','A級美咖'] %}
+        <option value="{{ t }}" {% if filters.vip_tier==t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex; gap:8px; align-items:flex-end; padding-top: 4px;">
+      <button type="submit" style="background:linear-gradient(135deg,#6c3fc5,#a855f7);color:#fff;flex:1;">🔍 查詢</button>
+      <a href="/report"><button type="button" style="background:#f3f4f6;color:#555;border:1px solid #ddd;">清除</button></a>
+    </div>
   </form>
 </div>
 
 <div class="card">
-  <h3>日明細（{{ month }}）</h3>
+  <h3>📋 日明細（{{ month }}）</h3>
+  <p style="font-size:0.85rem; color:#888; margin:0 0 8px;">共 {{ detail_rows|length }} 筆</p>
   <div class="table-wrap"><table id="detail-table">
-    <tr>
-      <th>日期</th><th>分店</th><th>客戶</th><th>生日</th><th>VIP</th>
-      <th>原始金額</th><th>實收金額</th><th>壽星折扣</th>
-      <th>獲得點數</th><th>模式</th><th>操作</th>
-    </tr>
+    <thead>
+      <tr>
+        <th>日期</th><th>分店</th><th>客戶</th><th>生日</th><th>VIP等級</th>
+        <th>原始金額</th><th>實收金額</th><th>壽星折扣</th>
+        <th>獲得點數</th><th>模式</th><th style="min-width:100px;">操作</th>
+      </tr>
+    </thead>
+    <tbody>
     {% for r in detail_rows %}
     <tr id="row-{{ r.id }}">
       <!-- View mode cells -->
@@ -47,74 +71,87 @@
       <td class="view-cell">{{ r.store_name }}</td>
       <td class="view-cell">{{ r.customer_name }}</td>
       <td class="view-cell">{{ r.birthday }}</td>
-      <td class="view-cell">{{ r.vip_tier }}</td>
-      <td class="view-cell">{{ '%.2f'|format(r.amount) }}</td>
-      <td class="view-cell">{{ '%.2f'|format(r.final_amount) }}</td>
-      <td class="view-cell">{{ '是' if r.birthday_discount_applied else '否' }}</td>
-      <td class="view-cell" style="color:#e06c00;font-weight:bold;">
+      <td class="view-cell">
+        <span style="
+          display:inline-block; padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700;
+          {% if r.vip_tier == 'A級美咖' %}background:#fef3c7;color:#92400e;
+          {% elif r.vip_tier == 'P級美咖' %}background:#ede9fe;color:#5b21b6;
+          {% elif r.vip_tier == 'S級美咖' %}background:#d1fae5;color:#065f46;
+          {% else %}background:#f3f4f6;color:#555;{% endif %}
+        ">{{ r.vip_tier }}</span>
+      </td>
+      <td class="view-cell" style="text-align:right;">{{ '%.0f'|format(r.amount) }}</td>
+      <td class="view-cell" style="text-align:right; font-weight:600;">{{ '%.0f'|format(r.final_amount) }}</td>
+      <td class="view-cell" style="text-align:center;">{{ '有折扣' if r.birthday_discount_applied else '-' }}</td>
+      <td class="view-cell" style="color:#7c3aed;font-weight:700; text-align:right;">
         {% if r.entry_mode == 'birthday_recharge' %}
           +{{ r.coins_earned }}🎂
         {% elif r.entry_mode == 'coin_deduct' %}
           -{{ r.coins_redeemed }}🔻
         {% else %}
-          +{{ r.coins_earned }}
+          {% if r.coins_earned > 0 %}+{{ r.coins_earned }}{% else %}0{% endif %}
         {% endif %}
       </td>
       <td class="view-cell">
-        {% if r.entry_mode == 'birthday_recharge' %}壽星充值
-        {% elif r.entry_mode == 'coin_deduct' %}點數扣除
+        {% if r.entry_mode == 'birthday_recharge' %}<span style="color:#d97706;">壽星充值</span>
+        {% elif r.entry_mode == 'coin_deduct' %}<span style="color:#dc2626;">點數扣除</span>
         {% else %}一般消費{% endif %}
       </td>
-      <td class="view-cell">
+      <td class="view-cell" style="white-space:nowrap;">
         <button type="button" onclick="startEdit({{ r.id }}, '{{ r.txn_date }}', '{{ r.store_id }}', '{{ r.customer_name|replace("'", "\\'") }}', '{{ r.birthday }}', {{ r.amount }}, {{ r.final_amount }})"
-          style="border:1px solid #2d6cdf;color:#2d6cdf;background:none;border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;">修改</button>
+          style="background:#ede9fe;color:#6c3fc5;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;margin-right:4px;">✏️ 修改</button>
         <button type="button" onclick="deleteTxn({{ r.id }})"
-          style="color:red;border:1px solid red;background:none;border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;">刪除</button>
+          style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;">🗑️ 刪除</button>
       </td>
 
       <!-- Edit mode cells (hidden by default) -->
       <td class="edit-cell" style="display:none;" colspan="11">
-        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:6px 0;">
-          <div><label style="font-size:12px;">日期</label><br><input type="date" id="e-date-{{ r.id }}" value="{{ r.txn_date }}" style="width:130px;"></div>
-          <div><label style="font-size:12px;">分店</label><br>
-            <select id="e-store-{{ r.id }}" style="width:100px;">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:8px 0;">
+          <div><label style="font-size:12px;margin:0;">日期</label><br><input type="date" id="e-date-{{ r.id }}" value="{{ r.txn_date }}" style="width:140px;max-width:none;"></div>
+          <div><label style="font-size:12px;margin:0;">分店</label><br>
+            <select id="e-store-{{ r.id }}" style="width:110px;max-width:none;">
               {% for s in stores %}<option value="{{ s.id }}" {% if s.id==r.store_id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
             </select>
           </div>
-          <div><label style="font-size:12px;">姓名</label><br><input type="text" id="e-name-{{ r.id }}" value="{{ r.customer_name }}" style="width:100px;"></div>
-          <div><label style="font-size:12px;">生日</label><br><input type="date" id="e-birthday-{{ r.id }}" value="{{ r.birthday }}" style="width:130px;"></div>
-          <div><label style="font-size:12px;">原始金額</label><br><input type="number" id="e-amount-{{ r.id }}" value="{{ r.amount }}" style="width:90px;" min="0"></div>
-          <div><label style="font-size:12px;">實收金額</label><br><input type="number" id="e-cash-{{ r.id }}" value="{{ r.final_amount }}" style="width:90px;" min="0"></div>
-          <div style="display:flex;gap:6px;">
+          <div><label style="font-size:12px;margin:0;">姓名</label><br><input type="text" id="e-name-{{ r.id }}" value="{{ r.customer_name }}" style="width:110px;max-width:none;"></div>
+          <div><label style="font-size:12px;margin:0;">生日</label><br><input type="date" id="e-birthday-{{ r.id }}" value="{{ r.birthday }}" style="width:140px;max-width:none;"></div>
+          <div><label style="font-size:12px;margin:0;">原始金額</label><br><input type="number" id="e-amount-{{ r.id }}" value="{{ r.amount }}" style="width:100px;max-width:none;" min="0"></div>
+          <div><label style="font-size:12px;margin:0;">實收金額</label><br><input type="number" id="e-cash-{{ r.id }}" value="{{ r.final_amount }}" style="width:100px;max-width:none;" min="0"></div>
+          <div style="display:flex;gap:6px;align-items:flex-end;">
             <button type="button" onclick="saveEdit({{ r.id }})"
-              style="background:#2d6cdf;color:#fff;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;">儲存</button>
+              style="background:#6c3fc5;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;">💾 儲存</button>
             <button type="button" onclick="cancelEdit({{ r.id }})"
-              style="background:#aaa;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;">取消</button>
+              style="background:#aaa;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;">取消</button>
           </div>
         </div>
       </td>
     </tr>
     {% endfor %}
+    </tbody>
   </table></div>
 </div>
 
 <div class="card">
-  <h3>月消費（{{ month }}）</h3>
+  <h3>📅 月消費彙總（{{ month }}）</h3>
   <div class="table-wrap"><table>
-    <tr><th>分店</th><th>客戶</th><th>生日</th><th>月累計</th></tr>
+    <thead><tr><th>分店</th><th>客戶</th><th>生日</th><th style="text-align:right;">月累計金額</th></tr></thead>
+    <tbody>
     {% for r in monthly_by_customer %}
-    <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td>{{ '%.2f'|format(r.month_total) }}</td></tr>
+    <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td style="text-align:right; font-weight:600;">{{ '%.0f'|format(r.month_total) }}</td></tr>
     {% endfor %}
+    </tbody>
   </table></div>
 </div>
 
 <div class="card">
-  <h3>年消費（{{ month[:4] }}）</h3>
+  <h3>📆 年消費彙總（{{ month[:4] }} 年）</h3>
   <div class="table-wrap"><table>
-    <tr><th>分店</th><th>客戶</th><th>生日</th><th>年累計</th></tr>
+    <thead><tr><th>分店</th><th>客戶</th><th>生日</th><th style="text-align:right;">年累計金額</th></tr></thead>
+    <tbody>
     {% for r in yearly_by_customer %}
-    <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td>{{ '%.2f'|format(r.year_total) }}</td></tr>
+    <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td style="text-align:right; font-weight:600;">{{ '%.0f'|format(r.year_total) }}</td></tr>
     {% endfor %}
+    </tbody>
   </table></div>
 </div>
 
@@ -171,7 +208,7 @@ function saveEdit(id) {
 }
 
 function deleteTxn(id) {
-  if (confirm("確定要刪除這筆消費紀錄嗎？明細與累計都會受影響喔！")) {
+  if (confirm("確定要刪除這筆消費紀錄嗎？\n\n明細與累計都會受影響，此動作無法復原！")) {
     fetch(`/api/transactions/${id}/delete`, { method: "POST" })
       .then(res => res.json())
       .then(data => {

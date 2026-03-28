@@ -3,66 +3,194 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>美容店消費系統</title>
+  <title>美咖美容 VIP 管理系統</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     /* === Base === */
     *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; margin: 16px; color: #222; max-width: 960px; }
-    h2 { font-size: 1.2rem; margin-bottom: 8px; }
+    body {
+      font-family: 'Noto Sans TC', '微軟正黑體', Arial, sans-serif;
+      margin: 0;
+      color: #1a1a2e;
+      background: #f4f6fb;
+      min-height: 100vh;
+    }
+
+    /* === Header Bar === */
+    .site-header {
+      background: linear-gradient(135deg, #6c3fc5 0%, #a855f7 60%, #ec4899 100%);
+      color: #fff;
+      padding: 0 20px;
+      box-shadow: 0 4px 18px rgba(108,63,197,0.25);
+    }
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 60px;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 0;
+    }
+    .site-logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .site-logo span.badge {
+      background: rgba(255,255,255,0.25);
+      font-size: 0.7rem;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+      letter-spacing: 0;
+    }
 
     /* === Nav === */
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
     nav a { text-decoration: none; }
-    nav a button, nav button { cursor: pointer; }
+    nav a .nav-btn {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      border: 1.5px solid rgba(255,255,255,0.35);
+      border-radius: 8px;
+      padding: 7px 16px;
+      font-size: 15px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.18s, border-color 0.18s, transform 0.1s;
+      white-space: nowrap;
+    }
+    nav a .nav-btn:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: rgba(255,255,255,0.7);
+      transform: translateY(-1px);
+    }
+    .nav-btn-reload {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.8);
+      border: 1.5px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 15px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+    .nav-btn-reload:hover { background: rgba(255,255,255,0.18); }
+
+    /* === Main Content === */
+    .main-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+
+    h2 { font-size: 1.35rem; margin-bottom: 10px; color: #1a1a2e; }
+    h3 { font-size: 1.15rem; margin: 0 0 12px; color: #2d1b69; font-weight: 700; }
+    h4 { font-size: 1rem; margin: 0 0 8px; color: #444; }
 
     /* === Cards === */
-    .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin: 14px 0;
+      box-shadow: 0 2px 12px rgba(108,63,197,0.08);
+      border: 1px solid #ede9ff;
+    }
 
     /* === Forms === */
-    label { display: block; margin-top: 10px; }
+    label { display: block; margin-top: 10px; font-size: 0.88rem; color: #555; font-weight: 500; }
     input, select, textarea {
-      padding: 10px 8px;
-      margin-top: 6px;
+      padding: 10px 12px;
+      margin-top: 5px;
       width: 100%;
-      max-width: 400px;
-      font-size: 16px; /* prevent iOS auto-zoom */
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      max-width: 420px;
+      font-size: 16px;
+      border: 1.5px solid #d4c9f0;
+      border-radius: 8px;
+      font-family: inherit;
+      background: #fafaf9;
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #a855f7;
+      box-shadow: 0 0 0 3px rgba(168,85,247,0.12);
     }
     button {
-      padding: 10px 16px;
+      padding: 10px 20px;
       font-size: 15px;
+      font-family: inherit;
+      font-weight: 600;
       cursor: pointer;
-      min-height: 44px; /* touch target */
+      border-radius: 8px;
+      border: none;
+      min-height: 42px;
+      transition: opacity 0.18s, transform 0.1s;
     }
+    button:hover { opacity: 0.88; transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
 
     /* === Tables === */
     .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; min-width: 480px; }
-    th, td { border: 1px solid #ddd; padding: 8px 10px; white-space: nowrap; }
-    th { background: #f7f7f7; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; min-width: 480px; font-size: 14px; }
+    th, td { border: 1px solid #e8e4f3; padding: 9px 12px; white-space: nowrap; }
+    th { background: linear-gradient(135deg, #f0ebff 0%, #f8f4ff 100%); color: #4a2d8c; font-weight: 700; }
+    tr:nth-child(even) td { background: #fdfbff; }
+    tr:hover td { background: #f5f0ff; }
 
     /* === Misc === */
     .ok { color: #0a7a2d; }
+    .badge-vip {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
 
     /* === Mobile tweaks === */
     @media (max-width: 600px) {
-      body { margin: 10px; }
+      .main-content { padding: 12px 10px 30px; }
       input, select, textarea { max-width: 100%; }
-      .card { padding: 12px; }
+      .card { padding: 14px 14px; }
     }
   </style>
 </head>
 <body>
-  <h2>美容店會員與消費系統（v0.1）</h2>
-  <nav>
-    <a href="/" style="text-decoration: none;"><button type="button" style="cursor:pointer;">回首頁</button></a>
-    <button type="button" onclick="location.reload()" style="cursor:pointer; margin-right: 12px;">重新整理</button>
-    <a href="/report">報表查詢</a>
-    <a href="/contacts">通訊名單</a>
-    <a href="/manager">主管儀表板</a>
-    <a href="/review">資料審核</a>
-  </nav>
-  {% block content %}{% endblock %}
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="site-logo">
+        💄 美咖美容 VIP 管理系統
+        <span class="badge">v{{ version if version is defined else '1.1' }}</span>
+      </div>
+      <nav>
+        <a href="/"><button type="button" class="nav-btn">🏠 首頁</button></a>
+        <button type="button" class="nav-btn-reload" onclick="location.reload()">🔄 重新整理</button>
+        <a href="/report"><button type="button" class="nav-btn">📊 報表查詢</button></a>
+        <a href="/contacts"><button type="button" class="nav-btn">👥 通訊名單</button></a>
+        <a href="/manager"><button type="button" class="nav-btn">🔐 主管儀表板</button></a>
+        <a href="/review"><button type="button" class="nav-btn">🔍 資料審核</button></a>
+      </nav>
+    </div>
+  </header>
+  <div class="main-content">
+    {% block content %}{% endblock %}
+  </div>
 </body>
 </html>

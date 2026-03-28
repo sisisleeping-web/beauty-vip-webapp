@@ -1,12 +1,62 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card">
-  <h3>系統入口 <span style="background:#2d6cdf;color:#fff;font-size:12px;padding:2px 8px;border-radius:12px;vertical-align:middle;">v{{ version }}</span></h3>
-  <p>請選擇要進入的頁面：</p>
-  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;">
-    <a href="/entry?store=store_a"><button type="button">斗六店</button></a>
-    <a href="/entry?store=store_b"><button type="button">虎尾店</button></a>
-    <a href="/manager"><button type="button">管理（主管頁）</button></a>
-  </div>
+<div style="text-align:center; padding: 40px 20px 20px;">
+  <div style="font-size: 3.5rem; margin-bottom: 12px;">💄</div>
+  <h2 style="font-size: 1.8rem; font-weight: 700; color: #2d1b69; margin-bottom: 6px;">美咖美容 VIP 管理系統</h2>
+  <p style="color: #666; font-size: 1rem; margin-bottom: 32px;">請選擇要進入的功能頁面</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; max-width: 760px; margin: 0 auto 40px;">
+
+  <a href="/entry?store=store_a" style="text-decoration:none;">
+    <div style="background: linear-gradient(135deg,#6c3fc5,#a855f7); color:#fff; border-radius:16px; padding:28px 20px; text-align:center; box-shadow:0 6px 20px rgba(108,63,197,0.3); transition:transform 0.18s, box-shadow 0.18s; cursor:pointer;"
+         onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(108,63,197,0.4)'"
+         onmouseout="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(108,63,197,0.3)'">
+      <div style="font-size:2.2rem; margin-bottom:10px;">🏪</div>
+      <div style="font-size:1.2rem; font-weight:700; margin-bottom:4px;">斗六店</div>
+      <div style="font-size:0.85rem; opacity:0.85;">點擊進入消費登錄</div>
+    </div>
+  </a>
+
+  <a href="/entry?store=store_b" style="text-decoration:none;">
+    <div style="background: linear-gradient(135deg,#ec4899,#f97316); color:#fff; border-radius:16px; padding:28px 20px; text-align:center; box-shadow:0 6px 20px rgba(236,72,153,0.3); transition:transform 0.18s, box-shadow 0.18s; cursor:pointer;"
+         onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(236,72,153,0.4)'"
+         onmouseout="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(236,72,153,0.3)'">
+      <div style="font-size:2.2rem; margin-bottom:10px;">🏪</div>
+      <div style="font-size:1.2rem; font-weight:700; margin-bottom:4px;">虎尾店</div>
+      <div style="font-size:0.85rem; opacity:0.85;">點擊進入消費登錄</div>
+    </div>
+  </a>
+
+  <a href="/report" style="text-decoration:none;">
+    <div style="background: linear-gradient(135deg,#0ea5e9,#06b6d4); color:#fff; border-radius:16px; padding:28px 20px; text-align:center; box-shadow:0 6px 20px rgba(14,165,233,0.3); transition:transform 0.18s, box-shadow 0.18s; cursor:pointer;"
+         onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(14,165,233,0.4)'"
+         onmouseout="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(14,165,233,0.3)'">
+      <div style="font-size:2.2rem; margin-bottom:10px;">📊</div>
+      <div style="font-size:1.2rem; font-weight:700; margin-bottom:4px;">報表查詢</div>
+      <div style="font-size:0.85rem; opacity:0.85;">消費明細與統計</div>
+    </div>
+  </a>
+
+  <a href="/contacts" style="text-decoration:none;">
+    <div style="background: linear-gradient(135deg,#10b981,#059669); color:#fff; border-radius:16px; padding:28px 20px; text-align:center; box-shadow:0 6px 20px rgba(16,185,129,0.3); transition:transform 0.18s, box-shadow 0.18s; cursor:pointer;"
+         onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(16,185,129,0.4)'"
+         onmouseout="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(16,185,129,0.3)'">
+      <div style="font-size:2.2rem; margin-bottom:10px;">👥</div>
+      <div style="font-size:1.2rem; font-weight:700; margin-bottom:4px;">通訊名單</div>
+      <div style="font-size:0.85rem; opacity:0.85;">顧客資料管理</div>
+    </div>
+  </a>
+
+  <a href="/manager" style="text-decoration:none;">
+    <div style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-radius:16px; padding:28px 20px; text-align:center; box-shadow:0 6px 20px rgba(99,102,241,0.3); transition:transform 0.18s, box-shadow 0.18s; cursor:pointer;"
+         onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(99,102,241,0.4)'"
+         onmouseout="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(99,102,241,0.3)'">
+      <div style="font-size:2.2rem; margin-bottom:10px;">🔐</div>
+      <div style="font-size:1.2rem; font-weight:700; margin-bottom:4px;">主管儀表板</div>
+      <div style="font-size:0.85rem; opacity:0.85;">整體營收與明細</div>
+    </div>
+  </a>
+
 </div>
 {% endblock %}

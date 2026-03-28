@@ -707,6 +707,9 @@ def manager_dashboard():
     db = get_db()
     month = request.args.get("month", date.today().strftime("%Y-%m"))
     year = month[:4]
+    store_id_filter = request.args.get("store_id", "").strip()
+
+    stores = db.execute("SELECT id, name FROM stores ORDER BY name").fetchall()
 
     store_stats = db.execute(
         """
@@ -721,22 +724,40 @@ def manager_dashboard():
         (month, year),
     ).fetchall()
 
+    # Customer stats with optional store filter
+    cust_where = ""
+    cust_params: list[Any] = [month, year]
+    if store_id_filter:
+        cust_where = "AND t.store_id = ?"
+        cust_params.append(store_id_filter)
+
     customer_stats = db.execute(
-        """
+        f"""
         SELECT c.name, c.phone, c.birthday, c.coin_balance,
+               GROUP_CONCAT(DISTINCT s.name) AS stores,
                SUM(CASE WHEN t.month_key = ? THEN t.final_amount ELSE 0 END) AS month_spend,
                SUM(CASE WHEN substr(t.txn_date,1,4) = ? THEN t.final_amount ELSE 0 END) AS year_spend,
                SUM(t.cashback) AS total_cashback
         FROM customers c
-        LEFT JOIN transactions t ON c.id = t.customer_id
+        LEFT JOIN transactions t ON c.id = t.customer_id {cust_where}
+        LEFT JOIN stores s ON t.store_id = s.id
         GROUP BY c.id, c.name, c.phone, c.birthday
         HAVING year_spend > 0 OR month_spend > 0
         ORDER BY year_spend DESC
         """,
-        (month, year),
+        cust_params,
     ).fetchall()
 
-    return render_template("manager.html", month=month, store_stats=store_stats, customer_stats=customer_stats)
+    filters = {"store_id": store_id_filter}
+
+    return render_template(
+        "manager.html",
+        month=month,
+        store_stats=store_stats,
+        customer_stats=customer_stats,
+        stores=stores,
+        filters=filters,
+    )
 
 
 @app.route("/contacts")
@@ -820,6 +841,7 @@ def delete_customer(customer_id):
 @app.route("/api/customers/<int:customer_id>/update", methods=["POST"])
 def update_customer(customer_id):
     db = get_db()
+    name = request.form.get("name", "").strip()
     phone = request.form.get("phone", "").strip()
     birthday = request.form.get("birthday", "").strip()
     try:
@@ -828,8 +850,21 @@ def update_customer(customer_id):
     except ValueError:
         return "生日格式錯誤，請使用 YYYY-MM-DD", 400
 
-    db.execute("UPDATE customers SET phone=?, birthday=? WHERE id=?", (phone, birthday, customer_id))
-    db.commit()
+    updates = []
+    params: list[Any] = []
+    if name:
+        updates.append("name=?")
+        params.append(name)
+    if phone is not None:
+        updates.append("phone=?")
+        params.append(phone)
+    if birthday:
+        updates.append("birthday=?")
+        params.append(birthday)
+    if updates:
+        params.append(customer_id)
+        db.execute(f"UPDATE customers SET {', '.join(updates)} WHERE id=?", params)
+        db.commit()
     return redirect(url_for("contacts"))
 
 
@@ -952,6 +987,60 @@ def review_mark(item_type, item_key):
     )
     db.commit()
     return redirect(request.referrer or url_for("review_page"))
+
+
+@app.route("/admin/backfill_coins")
+def admin_backfill_coins():
+    """One-time route to back-fill coins_earned for historical transactions.
+    Only accessible when manager is logged in.
+    """
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
+
+    db = get_db()
+    rules = load_rules()
+
+    # Fetch normal transactions that have coins_earned == 0 and final_amount > 0
+    rows = db.execute(
+        """
+        SELECT t.id, t.final_amount, t.customer_id, t.txn_date,
+               c.birthday
+        FROM transactions t
+        JOIN customers c ON c.id = t.customer_id
+        WHERE t.entry_mode = 'normal' AND t.coins_earned = 0 AND t.final_amount > 0
+        """
+    ).fetchall()
+
+    updated = 0
+    for r in rows:
+        year_str = r["txn_date"][:4]
+        year_total = float(
+            db.execute(
+                "SELECT COALESCE(SUM(final_amount),0) AS t FROM transactions WHERE customer_id=? AND substr(txn_date,1,4)=? AND id < ?",
+                (r["customer_id"], year_str, r["id"]),
+            ).fetchone()["t"] or 0
+        )
+        max_single = float(
+            db.execute(
+                "SELECT COALESCE(MAX(final_amount),0) AS m FROM transactions WHERE customer_id=? AND id < ?",
+                (r["customer_id"], r["id"]),
+            ).fetchone()["m"] or 0
+        )
+        tier = calc_tier(max_single, year_total, rules)
+        coins = int(float(r["final_amount"]) * tier.points_rate)
+        if coins > 0:
+            db.execute(
+                "UPDATE transactions SET coins_earned=? WHERE id=?",
+                (coins, r["id"]),
+            )
+            db.execute(
+                "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
+                (coins, r["customer_id"]),
+            )
+            updated += 1
+
+    db.commit()
+    return f"<p>補填完成，共更新 {updated} 筆交易的 coins_earned。</p><p><a href='/report'>回報表查詢</a> | <a href='/manager'>回主管頁</a></p>"
 
 
 if __name__ == "__main__":
