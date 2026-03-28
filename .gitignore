@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+build/
+dist/
+*.egg-info/
+
+# Databases
+data/*.db
+data/*.db-*
+data/*.sqlite3
+
+# Logs
+*.log
+runtime.err.log
+
+# OS
+.DS_Store
+Thumbs.db

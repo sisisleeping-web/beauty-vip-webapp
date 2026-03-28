@@ -8,7 +8,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, g, redirect, render_template, request, session, url_for
+from flask import Flask, g, redirect, render_template, request, session, url_for, send_file
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "data" / "beauty_vip.db"
@@ -784,6 +784,22 @@ def manager_dashboard():
         customer_stats=customer_stats,
         stores=stores,
         filters=filters,
+    )
+
+
+@app.route("/manager/backup")
+def manager_backup():
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
+
+    now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"beauty_vip_backup_{now_str}.db"
+
+    return send_file(
+        DB_PATH,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/x-sqlite3"
     )
 
 

@@ -2,7 +2,12 @@
 {% block content %}
 <div class="card">
   <h3>🔐 主管儀表板</h3>
-  <p style="margin:0 0 12px;"><a href="/manager/logout" style="color:#dc2626; font-size:0.9rem;">登出主管頁</a></p>
+  <div style="margin:0 0 16px; display:flex; gap:16px; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px;">
+    <a href="/manager/logout" style="color:#dc2626; font-size:0.9rem; text-decoration:none;">🚪 登出主管頁</a>
+    <a href="/manager/backup" style="background:#059669; color:#fff; padding:6px 14px; border-radius:8px; font-size:0.85rem; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:6px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+      📥 下載最新雲端備份 (.db)
+    </a>
+  </div>
   <form method="get" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
     <div>
       <label>月份</label>
