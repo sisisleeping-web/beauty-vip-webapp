@@ -14,9 +14,18 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "data" / "beauty_vip.db"
 RULES_PATH = BASE_DIR / "rules.json"
 
+APP_VERSION = "1.1.0"
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("APP_SECRET_KEY", "beauty-vip-demo")
 MANAGER_PIN = os.getenv("MANAGER_PIN", "1225")
+
+# Birthday recharge campaign plans
+BIRTHDAY_RECHARGE_PLANS = [
+    {"amount": 10000, "coins": 500},
+    {"amount": 20000, "coins": 1000},
+    {"amount": 30000, "coins": 1500},
+]
 
 
 @dataclass
@@ -75,6 +84,7 @@ def init_db() -> None:
             phone TEXT DEFAULT "",
             birthday TEXT NOT NULL,
             created_at TEXT NOT NULL,
+            coin_balance INTEGER NOT NULL DEFAULT 0,
             UNIQUE(name, birthday)
         );
 
@@ -89,6 +99,11 @@ def init_db() -> None:
             final_amount REAL NOT NULL,
             cashback REAL NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL,
+            coins_earned INTEGER NOT NULL DEFAULT 0,
+            coins_redeemed INTEGER NOT NULL DEFAULT 0,
+            recharge_plan TEXT DEFAULT NULL,
+            recharge_amount REAL DEFAULT NULL,
+            entry_mode TEXT NOT NULL DEFAULT 'normal',
             FOREIGN KEY(customer_id) REFERENCES customers(id),
             FOREIGN KEY(store_id) REFERENCES stores(id)
         );
@@ -105,14 +120,24 @@ def init_db() -> None:
         """
     )
 
+    # Migrate existing DBs
+    for col, typedef in [
+        ("coin_balance", "INTEGER NOT NULL DEFAULT 0"),
+        ("coins_earned", "INTEGER NOT NULL DEFAULT 0"),
+        ("coins_redeemed", "INTEGER NOT NULL DEFAULT 0"),
+        ("recharge_plan", "TEXT DEFAULT NULL"),
+        ("recharge_amount", "REAL DEFAULT NULL"),
+        ("entry_mode", "TEXT NOT NULL DEFAULT 'normal'"),
+    ]:
+        try:
+            table = "customers" if col == "coin_balance" else "transactions"
+            cur.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typedef}")
+        except Exception:
+            pass
+
     stores = [("store_a", "斗六店"), ("store_b", "虎尾店")]
     cur.executemany("INSERT OR IGNORE INTO stores(id, name) VALUES(?, ?)", stores)
     cur.executemany("UPDATE stores SET name=? WHERE id=?", [("斗六店", "store_a"), ("虎尾店", "store_b")])
-
-    cur.executescript(
-        """
-        """
-    )
 
     conn.commit()
     conn.close()
@@ -127,7 +152,6 @@ def is_birthday_month(birthday_str: str, txn_day: date) -> bool:
 
 
 def birthday_discount_used_this_month(db: sqlite3.Connection, customer_id: int, month_key: str) -> bool:
-    """Return True if this customer already received a birthday discount this month."""
     row = db.execute(
         "SELECT COUNT(*) AS cnt FROM transactions WHERE customer_id=? AND month_key=? AND birthday_discount_applied=1",
         (customer_id, month_key),
@@ -143,7 +167,7 @@ def calc_tier(single_amount: float, annual_amount: float, rules: dict[str, Any])
         tier_name = "P級美咖"
     elif single_amount >= 8000 or annual_amount >= 15000:
         tier_name = "S級美咖"
-    
+
     for t in rules["vip_tiers"]:
         if t["name"] == tier_name:
             return TierRule(
@@ -161,7 +185,7 @@ def get_or_create_customer(db: sqlite3.Connection, name: str, birthday: str, pho
         "SELECT id FROM customers WHERE name=? AND birthday=?", (name, birthday)
     ).fetchone()
     if row:
-        if phone:  # update phone if provided
+        if phone:
             db.execute("UPDATE customers SET phone=? WHERE id=?", (phone, row["id"]))
         return int(row["id"])
     now = datetime.now().isoformat(timespec="seconds")
@@ -196,6 +220,11 @@ def customer_month_total(db: sqlite3.Connection, customer_id: int, month_key: st
     return float(row["total"] or 0)
 
 
+def get_customer_coin_balance(db: sqlite3.Connection, customer_id: int) -> int:
+    row = db.execute("SELECT coin_balance FROM customers WHERE id=?", (customer_id,)).fetchone()
+    return int(row["coin_balance"] or 0) if row else 0
+
+
 def _tier_name_from_totals(max_single: float, year_total: float) -> str:
     if max_single >= 30000 or year_total >= 60000:
         return "A級美咖"
@@ -223,7 +252,7 @@ def get_customer_tier_map(db: sqlite3.Connection, year: str) -> dict[int, str]:
 
 @app.route("/")
 def index():
-    return render_template("home.html")
+    return render_template("home.html", version=APP_VERSION)
 
 
 @app.route("/api/customers/search")
@@ -231,14 +260,13 @@ def search_customers():
     query = request.args.get("q", "").strip()
     if not query:
         return {"customers": []}
-    
+
     db = get_db()
-    # Search by name or phone
     rows = db.execute(
-        "SELECT id, name, phone, birthday FROM customers WHERE name LIKE ? OR phone LIKE ? LIMIT 10",
+        "SELECT id, name, phone, birthday, coin_balance FROM customers WHERE name LIKE ? OR phone LIKE ? LIMIT 10",
         (f"%{query}%", f"%{query}%")
     ).fetchall()
-    
+
     return {"customers": [dict(r) for r in rows]}
 
 
@@ -251,85 +279,210 @@ def entry():
     selected_store = (request.args.get("store") or "").strip()
     result = None
     error_message = None
+
     if request.method == "POST":
         store_id = request.form.get("store_id", "").strip()
         selected_store = store_id
+        entry_mode = request.form.get("entry_mode", "normal").strip()  # normal | coin_deduct | birthday_recharge
         name = request.form.get("name", "").strip()
         phone = request.form.get("phone", "").strip()
         birthday = request.form.get("birthday", "").strip()
-        try:
-            amount = float(request.form.get("amount", "0") or 0)
-        except ValueError:
-            amount = 0.0
         try:
             txn_day = parse_date_or_today(request.form.get("txn_date", ""))
         except ValueError:
             txn_day = date.today()
 
-        if store_id and name and birthday and amount > 0:
-            if amount < 1000:
-                error_message = "消費金額未達1000元，無法建檔！請確認金額。"
+        # ── Birthday Recharge Mode ────────────────────────────────────────────
+        if entry_mode == "birthday_recharge":
+            recharge_plan_str = request.form.get("recharge_plan", "").strip()
+            if not (store_id and name and birthday and recharge_plan_str):
+                error_message = "請填寫完整資料及選擇充值方案！"
+            else:
+                plan_amount = None
+                plan_coins = None
+                for p in BIRTHDAY_RECHARGE_PLANS:
+                    if str(p["amount"]) == recharge_plan_str:
+                        plan_amount = p["amount"]
+                        plan_coins = p["coins"]
+                        break
+                if plan_amount is None:
+                    error_message = "無效的充值方案，請重新選擇。"
+                else:
+                    # Verify customer is in birthday month
+                    in_bday_month = is_birthday_month(birthday, txn_day)
+                    if not in_bday_month:
+                        error_message = "此顧客本月非生日月份，不符合壽星充值活動資格！"
+                    else:
+                        customer_id = get_or_create_customer(db, name, birthday, phone)
+                        month_key = current_month_key(txn_day)
+                        now_str = datetime.now().isoformat(timespec="seconds")
+                        # Record as a recharge transaction (amount=0 consumption, coins_earned=plan_coins)
+                        db.execute(
+                            """
+                            INSERT INTO transactions(
+                                customer_id, store_id, txn_date, month_key, amount,
+                                birthday_discount_applied, final_amount, cashback, created_at,
+                                coins_earned, coins_redeemed, recharge_plan, recharge_amount, entry_mode
+                            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            """,
+                            (
+                                customer_id, store_id, txn_day.isoformat(), month_key,
+                                0, 0, 0, 0, now_str,
+                                plan_coins, 0, recharge_plan_str, plan_amount, "birthday_recharge",
+                            ),
+                        )
+                        # Credit coins to customer
+                        db.execute(
+                            "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
+                            (plan_coins, customer_id),
+                        )
+                        db.commit()
+                        coin_balance = get_customer_coin_balance(db, customer_id)
+                        result = {
+                            "mode": "birthday_recharge",
+                            "name": name,
+                            "recharge_amount": plan_amount,
+                            "coins_earned": plan_coins,
+                            "coin_balance": coin_balance,
+                        }
+
+        # ── Coin Deduct Mode ─────────────────────────────────────────────────
+        elif entry_mode == "coin_deduct":
+            try:
+                coins_to_deduct = int(request.form.get("coins_deduct", "0") or 0)
+            except ValueError:
+                coins_to_deduct = 0
+
+            if not (store_id and name and birthday):
+                error_message = "請填寫完整顧客資料！"
+            elif coins_to_deduct <= 0:
+                error_message = "扣點數量必須大於 0！"
             else:
                 customer_id = get_or_create_customer(db, name, birthday, phone)
-                month_key = current_month_key(txn_day)
-                year_str = txn_day.strftime("%Y")
-    
-                birthday_discount_rate = float(rules["birthday_offer"]["discount_rate"])
-                once_per_month = bool(rules["birthday_offer"].get("once_per_month", True))
-                in_birthday_month = is_birthday_month(birthday, txn_day)
-                already_used = once_per_month and birthday_discount_used_this_month(db, customer_id, month_key)
-                discount_applied = in_birthday_month and not already_used
-                final_amount = amount * (1 - birthday_discount_rate) if discount_applied else amount
-    
-                year_total_so_far = customer_year_total(db, customer_id, year_str)
-                past_max_single = get_past_max_single(db, customer_id)
-                
-                # 回饋金與點數使用「本次消費前」的等級計算
-                tier_before = calc_tier(past_max_single, year_total_so_far, rules)
-                cashback = round(final_amount * tier_before.cashback_rate, 2)
-                points = int(final_amount * tier_before.points_rate)
+                current_coins = get_customer_coin_balance(db, customer_id)
+                if coins_to_deduct > current_coins:
+                    error_message = f"點數不足！目前餘額：{current_coins} 點，欲扣：{coins_to_deduct} 點。"
+                else:
+                    month_key = current_month_key(txn_day)
+                    now_str = datetime.now().isoformat(timespec="seconds")
+                    db.execute(
+                        """
+                        INSERT INTO transactions(
+                            customer_id, store_id, txn_date, month_key, amount,
+                            birthday_discount_applied, final_amount, cashback, created_at,
+                            coins_earned, coins_redeemed, entry_mode
+                        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+                        """,
+                        (
+                            customer_id, store_id, txn_day.isoformat(), month_key,
+                            0, 0, 0, 0, now_str,
+                            0, coins_to_deduct, "coin_deduct",
+                        ),
+                    )
+                    db.execute(
+                        "UPDATE customers SET coin_balance = coin_balance - ? WHERE id=?",
+                        (coins_to_deduct, customer_id),
+                    )
+                    db.commit()
+                    coin_balance = get_customer_coin_balance(db, customer_id)
+                    result = {
+                        "mode": "coin_deduct",
+                        "name": name,
+                        "coins_redeemed": coins_to_deduct,
+                        "coin_balance": coin_balance,
+                    }
 
-                db.execute(
-                    """
-                    INSERT INTO transactions(
-                        customer_id, store_id, txn_date, month_key, amount,
-                        birthday_discount_applied, final_amount, cashback, created_at
-                    ) VALUES(?,?,?,?,?,?,?,?,?)
-                    """,
-                    (
-                        customer_id,
-                        store_id,
-                        txn_day.isoformat(),
-                        month_key,
-                        amount,
-                        1 if discount_applied else 0,
-                        round(final_amount, 2),
-                        cashback,
-                        datetime.now().isoformat(timespec="seconds"),
-                    ),
-                )
-                db.commit()
-    
-                monthly_total = customer_month_total(db, customer_id, month_key)
-                
-                # 計算「本次消費後」的新等級（供前台顯示）
-                new_max_single = max(past_max_single, final_amount)
-                new_year_total = year_total_so_far + final_amount
-                tier_after = calc_tier(new_max_single, new_year_total, rules)
-    
-                result = {
-                "name": name,
-                "store_id": store_id,
-                "amount": amount,
-                "final_amount": round(final_amount, 2),
-                "birthday_discount_applied": discount_applied,
-                "monthly_total": round(monthly_total, 2),
-                "tier": tier_after,
-                "cashback": cashback,
-                "points": points,
-            }
+        # ── Normal Mode ──────────────────────────────────────────────────────
+        else:
+            try:
+                amount = float(request.form.get("amount", "0") or 0)
+            except ValueError:
+                amount = 0.0
 
-    return render_template("entry.html", stores=stores, result=result, selected_store=selected_store, error=error_message)
+            if store_id and name and birthday and amount > 0:
+                if amount < 1000:
+                    error_message = "消費金額未達1000元，無法建檔！請確認金額。"
+                else:
+                    customer_id = get_or_create_customer(db, name, birthday, phone)
+                    month_key = current_month_key(txn_day)
+                    year_str = txn_day.strftime("%Y")
+
+                    birthday_discount_rate = float(rules["birthday_offer"]["discount_rate"])
+                    once_per_month = bool(rules["birthday_offer"].get("once_per_month", True))
+                    in_birthday_month = is_birthday_month(birthday, txn_day)
+                    already_used = once_per_month and birthday_discount_used_this_month(db, customer_id, month_key)
+                    discount_applied = in_birthday_month and not already_used
+                    final_amount = amount * (1 - birthday_discount_rate) if discount_applied else amount
+
+                    year_total_so_far = customer_year_total(db, customer_id, year_str)
+                    past_max_single = get_past_max_single(db, customer_id)
+
+                    tier_before = calc_tier(past_max_single, year_total_so_far, rules)
+                    cashback = round(final_amount * tier_before.cashback_rate, 2)
+                    points = int(final_amount * tier_before.points_rate)
+
+                    # Coins earned = same as points for now
+                    coins_earned = points
+
+                    db.execute(
+                        """
+                        INSERT INTO transactions(
+                            customer_id, store_id, txn_date, month_key, amount,
+                            birthday_discount_applied, final_amount, cashback, created_at,
+                            coins_earned, entry_mode
+                        ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+                        """,
+                        (
+                            customer_id,
+                            store_id,
+                            txn_day.isoformat(),
+                            month_key,
+                            amount,
+                            1 if discount_applied else 0,
+                            round(final_amount, 2),
+                            cashback,
+                            datetime.now().isoformat(timespec="seconds"),
+                            coins_earned,
+                            "normal",
+                        ),
+                    )
+                    # Update coin balance
+                    if coins_earned > 0:
+                        db.execute(
+                            "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
+                            (coins_earned, customer_id),
+                        )
+                    db.commit()
+
+                    monthly_total = customer_month_total(db, customer_id, month_key)
+                    new_max_single = max(past_max_single, final_amount)
+                    new_year_total = year_total_so_far + final_amount
+                    tier_after = calc_tier(new_max_single, new_year_total, rules)
+                    coin_balance = get_customer_coin_balance(db, customer_id)
+
+                    result = {
+                        "mode": "normal",
+                        "name": name,
+                        "store_id": store_id,
+                        "amount": amount,
+                        "final_amount": round(final_amount, 2),
+                        "birthday_discount_applied": discount_applied,
+                        "monthly_total": round(monthly_total, 2),
+                        "tier": tier_after,
+                        "cashback": cashback,
+                        "points": points,
+                        "coins_earned": coins_earned,
+                        "coin_balance": coin_balance,
+                    }
+
+    return render_template(
+        "entry.html",
+        stores=stores,
+        result=result,
+        selected_store=selected_store,
+        error=error_message,
+        birthday_recharge_plans=BIRTHDAY_RECHARGE_PLANS,
+    )
 
 
 @app.route("/report")
@@ -347,7 +500,6 @@ def report():
     where = ["1=1"]
     params: list[Any] = []
 
-    # month filter (default)
     where.append("t.month_key = ?")
     params.append(month)
 
@@ -370,7 +522,11 @@ def report():
     sql = f"""
         SELECT t.id, t.txn_date, t.customer_id, s.id AS store_id, s.name AS store_name,
                c.name AS customer_name, c.birthday,
-               t.amount, t.final_amount, t.birthday_discount_applied
+               t.amount, t.final_amount, t.birthday_discount_applied,
+               COALESCE(t.coins_earned, 0) AS coins_earned,
+               COALESCE(t.coins_redeemed, 0) AS coins_redeemed,
+               COALESCE(t.entry_mode, 'normal') AS entry_mode,
+               t.recharge_plan, t.recharge_amount
         FROM transactions t
         JOIN customers c ON c.id = t.customer_id
         JOIN stores s ON s.id = t.store_id
@@ -439,6 +595,72 @@ def report():
     )
 
 
+@app.route("/api/transactions/<int:txn_id>/update", methods=["POST"])
+def update_transaction(txn_id):
+    db = get_db()
+    txn = db.execute(
+        "SELECT t.id, t.customer_id FROM transactions t WHERE t.id=?",
+        (txn_id,),
+    ).fetchone()
+    if not txn:
+        return {"status": "error", "message": "transaction not found"}, 404
+
+    name = (request.form.get("name") or "").strip()
+    birthday = (request.form.get("birthday") or "").strip()
+    store_id = (request.form.get("store_id") or "").strip()
+    txn_date = (request.form.get("txn_date") or "").strip()
+    amount_s = (request.form.get("amount") or "").strip()
+    cash_received_s = (request.form.get("cash_received") or "").strip()
+
+    if not name or not birthday or not store_id or not txn_date or not amount_s:
+        return {"status": "error", "message": "missing required fields"}, 400
+
+    try:
+        datetime.strptime(birthday, "%Y-%m-%d")
+        d = datetime.strptime(txn_date, "%Y-%m-%d").date()
+        amount = float(amount_s)
+    except Exception:
+        return {"status": "error", "message": "invalid date/amount format"}, 400
+
+    if amount < 0:
+        return {"status": "error", "message": "amount must be >= 0"}, 400
+
+    cash_received = None
+    if cash_received_s:
+        try:
+            cash_received = float(cash_received_s)
+        except ValueError:
+            pass
+
+    db.execute(
+        "UPDATE customers SET name=?, birthday=? WHERE id=?",
+        (name, birthday, int(txn["customer_id"])),
+    )
+
+    month_key = current_month_key(d)
+
+    if cash_received is not None:
+        db.execute(
+            """
+            UPDATE transactions
+            SET store_id=?, txn_date=?, month_key=?, amount=?, final_amount=?
+            WHERE id=?
+            """,
+            (store_id, d.isoformat(), month_key, amount, cash_received, txn_id),
+        )
+    else:
+        db.execute(
+            """
+            UPDATE transactions
+            SET store_id=?, txn_date=?, month_key=?, amount=?, final_amount=?
+            WHERE id=?
+            """,
+            (store_id, d.isoformat(), month_key, amount, amount, txn_id),
+        )
+    db.commit()
+    return {"status": "ok"}
+
+
 @app.route("/api/transactions/<int:txn_id>/delete", methods=["POST"])
 def delete_transaction(txn_id):
     db = get_db()
@@ -486,7 +708,7 @@ def manager_dashboard():
 
     customer_stats = db.execute(
         """
-        SELECT c.name, c.phone, c.birthday,
+        SELECT c.name, c.phone, c.birthday, c.coin_balance,
                SUM(CASE WHEN t.month_key = ? THEN t.final_amount ELSE 0 END) AS month_spend,
                SUM(CASE WHEN substr(t.txn_date,1,4) = ? THEN t.final_amount ELSE 0 END) AS year_spend,
                SUM(t.cashback) AS total_cashback
@@ -514,7 +736,7 @@ def contacts():
     last_to = request.args.get("last_to", "").strip()
 
     sql = """
-        SELECT c.id, c.name, c.phone, c.birthday, c.created_at,
+        SELECT c.id, c.name, c.phone, c.birthday, c.created_at, c.coin_balance,
                GROUP_CONCAT(DISTINCT s.name) AS stores,
                COALESCE(SUM(t.final_amount),0) AS total_spend,
                MAX(t.txn_date) AS last_txn_date,
@@ -574,7 +796,6 @@ def contacts():
 @app.route("/api/customers/<int:customer_id>/delete", methods=["POST"])
 def delete_customer(customer_id):
     db = get_db()
-    # Delete transactions first due to foreign key (if not CASCADE)
     db.execute("DELETE FROM transactions WHERE customer_id=?", (customer_id,))
     db.execute("DELETE FROM customers WHERE id=?", (customer_id,))
     db.commit()
@@ -591,7 +812,7 @@ def update_customer(customer_id):
             datetime.strptime(birthday, "%Y-%m-%d")
     except ValueError:
         return "生日格式錯誤，請使用 YYYY-MM-DD", 400
-        
+
     db.execute("UPDATE customers SET phone=?, birthday=? WHERE id=?", (phone, birthday, customer_id))
     db.commit()
     return redirect(url_for("contacts"))
@@ -620,7 +841,6 @@ def review_page():
     store_filter = request.args.get("store_id", "").strip()
     status_filter = request.args.get("status", "").strip()
 
-    # Section A: suspicious birthday rows
     placeholders = ",".join("?" * len(SUSPICIOUS_BIRTHDAYS))
     sql_a = f"""
         SELECT c.id, c.name, c.phone, c.birthday, c.created_at,
@@ -648,7 +868,6 @@ def review_page():
             continue
         suspicious_rows.append(d)
 
-    # Section B: same-name multi-birthday
     sql_b = """
         SELECT name, GROUP_CONCAT(id) AS ids, GROUP_CONCAT(birthday) AS birthdays,
                COUNT(DISTINCT birthday) AS bday_count,
@@ -670,7 +889,6 @@ def review_page():
         d["review_status"] = _get_review_flag(db, "multi_birthday", item_key)
         if status_filter and d["review_status"] != status_filter:
             continue
-        # Build per-customer sub-rows for each id/birthday combo
         ids = (d["ids"] or "").split(",")
         bdays = (d["birthdays"] or "").split(",")
         phones = (d["phones"] or "").split(",")

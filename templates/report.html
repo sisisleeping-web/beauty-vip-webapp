@@ -34,16 +34,64 @@
 
 <div class="card">
   <h3>日明細（{{ month }}）</h3>
-  <div class="table-wrap"><table>
-    <tr><th>日期</th><th>分店</th><th>客戶</th><th>生日</th><th>VIP</th><th>原始金額</th><th>實收金額</th><th>壽星折扣</th><th>操作</th></tr>
-    {% for r in detail_rows %}
+  <div class="table-wrap"><table id="detail-table">
     <tr>
-      <td>{{ r.txn_date }}</td><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td>
-      <td>{{ r.vip_tier }}</td>
-      <td>{{ '%.2f'|format(r.amount) }}</td><td>{{ '%.2f'|format(r.final_amount) }}</td>
-      <td>{{ '是' if r.birthday_discount_applied else '否' }}</td>
-      <td>
-        <button type="button" onclick="deleteTxn({{ r.id }})" style="color: red; border: 1px solid red; background: none; border-radius: 4px; padding: 2px 6px; font-size: 12px; cursor: pointer;">刪除</button>
+      <th>日期</th><th>分店</th><th>客戶</th><th>生日</th><th>VIP</th>
+      <th>原始金額</th><th>實收金額</th><th>壽星折扣</th>
+      <th>獲得點數</th><th>模式</th><th>操作</th>
+    </tr>
+    {% for r in detail_rows %}
+    <tr id="row-{{ r.id }}">
+      <!-- View mode cells -->
+      <td class="view-cell">{{ r.txn_date }}</td>
+      <td class="view-cell">{{ r.store_name }}</td>
+      <td class="view-cell">{{ r.customer_name }}</td>
+      <td class="view-cell">{{ r.birthday }}</td>
+      <td class="view-cell">{{ r.vip_tier }}</td>
+      <td class="view-cell">{{ '%.2f'|format(r.amount) }}</td>
+      <td class="view-cell">{{ '%.2f'|format(r.final_amount) }}</td>
+      <td class="view-cell">{{ '是' if r.birthday_discount_applied else '否' }}</td>
+      <td class="view-cell" style="color:#e06c00;font-weight:bold;">
+        {% if r.entry_mode == 'birthday_recharge' %}
+          +{{ r.coins_earned }}🎂
+        {% elif r.entry_mode == 'coin_deduct' %}
+          -{{ r.coins_redeemed }}🔻
+        {% else %}
+          +{{ r.coins_earned }}
+        {% endif %}
+      </td>
+      <td class="view-cell">
+        {% if r.entry_mode == 'birthday_recharge' %}壽星充值
+        {% elif r.entry_mode == 'coin_deduct' %}點數扣除
+        {% else %}一般消費{% endif %}
+      </td>
+      <td class="view-cell">
+        <button type="button" onclick="startEdit({{ r.id }}, '{{ r.txn_date }}', '{{ r.store_id }}', '{{ r.customer_name|replace("'", "\\'") }}', '{{ r.birthday }}', {{ r.amount }}, {{ r.final_amount }})"
+          style="border:1px solid #2d6cdf;color:#2d6cdf;background:none;border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;">修改</button>
+        <button type="button" onclick="deleteTxn({{ r.id }})"
+          style="color:red;border:1px solid red;background:none;border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;">刪除</button>
+      </td>
+
+      <!-- Edit mode cells (hidden by default) -->
+      <td class="edit-cell" style="display:none;" colspan="11">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:6px 0;">
+          <div><label style="font-size:12px;">日期</label><br><input type="date" id="e-date-{{ r.id }}" value="{{ r.txn_date }}" style="width:130px;"></div>
+          <div><label style="font-size:12px;">分店</label><br>
+            <select id="e-store-{{ r.id }}" style="width:100px;">
+              {% for s in stores %}<option value="{{ s.id }}" {% if s.id==r.store_id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div><label style="font-size:12px;">姓名</label><br><input type="text" id="e-name-{{ r.id }}" value="{{ r.customer_name }}" style="width:100px;"></div>
+          <div><label style="font-size:12px;">生日</label><br><input type="date" id="e-birthday-{{ r.id }}" value="{{ r.birthday }}" style="width:130px;"></div>
+          <div><label style="font-size:12px;">原始金額</label><br><input type="number" id="e-amount-{{ r.id }}" value="{{ r.amount }}" style="width:90px;" min="0"></div>
+          <div><label style="font-size:12px;">實收金額</label><br><input type="number" id="e-cash-{{ r.id }}" value="{{ r.final_amount }}" style="width:90px;" min="0"></div>
+          <div style="display:flex;gap:6px;">
+            <button type="button" onclick="saveEdit({{ r.id }})"
+              style="background:#2d6cdf;color:#fff;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;">儲存</button>
+            <button type="button" onclick="cancelEdit({{ r.id }})"
+              style="background:#aaa;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;">取消</button>
+          </div>
+        </div>
       </td>
     </tr>
     {% endfor %}
@@ -69,7 +117,59 @@
     {% endfor %}
   </table></div>
 </div>
+
+<style>
+#detail-table tr.editing .view-cell { display: none; }
+#detail-table tr.editing .edit-cell { display: table-cell !important; }
+</style>
+
 <script>
+function startEdit(id, txnDate, storeId, name, birthday, amount, cashReceived) {
+  const row = document.getElementById('row-' + id);
+  row.classList.add('editing');
+}
+
+function cancelEdit(id) {
+  const row = document.getElementById('row-' + id);
+  row.classList.remove('editing');
+}
+
+function saveEdit(id) {
+  const txnDate = document.getElementById('e-date-' + id).value.trim();
+  const storeId = document.getElementById('e-store-' + id).value.trim();
+  const name = document.getElementById('e-name-' + id).value.trim();
+  const birthday = document.getElementById('e-birthday-' + id).value.trim();
+  const amount = document.getElementById('e-amount-' + id).value.trim();
+  const cashReceived = document.getElementById('e-cash-' + id).value.trim();
+
+  if (!txnDate || !storeId || !name || !birthday || amount === '') {
+    alert('請填寫完整資料！');
+    return;
+  }
+
+  const form = new FormData();
+  form.append('txn_date', txnDate);
+  form.append('store_id', storeId);
+  form.append('name', name);
+  form.append('birthday', birthday);
+  form.append('amount', amount);
+  form.append('cash_received', cashReceived);
+
+  fetch(`/api/transactions/${id}/update`, { method: 'POST', body: form })
+    .then(res => res.json().then(data => ({ ok: res.ok, data })))
+    .then(({ ok, data }) => {
+      if (ok && data.status === 'ok') {
+        location.reload();
+      } else {
+        alert('修改失敗：' + (data.message || 'unknown'));
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('修改發生錯誤');
+    });
+}
+
 function deleteTxn(id) {
   if (confirm("確定要刪除這筆消費紀錄嗎？明細與累計都會受影響喔！")) {
     fetch(`/api/transactions/${id}/delete`, { method: "POST" })

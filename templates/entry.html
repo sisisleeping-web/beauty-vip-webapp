@@ -8,9 +8,22 @@
   {% if not selected_store %}
   <p style="color: red;">請先從首頁選擇分店！</p>
   {% else %}
-  <form method="post">
-    <input type="hidden" name="store_id" value="{{ selected_store }}">
 
+  <!-- 模式切換 Tab -->
+  <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #2d6cdf;">
+    <button type="button" id="tab-normal" onclick="switchMode('normal')"
+      style="padding:8px 16px;border:none;border-radius:4px 4px 0 0;cursor:pointer;font-size:14px;">一般消費</button>
+    <button type="button" id="tab-coin_deduct" onclick="switchMode('coin_deduct')"
+      style="padding:8px 16px;border:none;border-radius:4px 4px 0 0;cursor:pointer;font-size:14px;">點數扣除</button>
+    <button type="button" id="tab-birthday_recharge" onclick="switchMode('birthday_recharge')"
+      style="padding:8px 16px;border:none;border-radius:4px 4px 0 0;cursor:pointer;font-size:14px;">🎂 壽星充值</button>
+  </div>
+
+  <form method="post" id="entry-form">
+    <input type="hidden" name="store_id" value="{{ selected_store }}">
+    <input type="hidden" name="entry_mode" id="entry_mode_field" value="normal">
+
+    <!-- 共用欄位 -->
     <div style="position: relative;">
       <label>姓名</label>
       <input type="text" name="name" id="name" required autocomplete="off">
@@ -26,32 +39,93 @@
     <label>生日</label>
     <input type="date" name="birthday" id="birthday" required>
 
-    <label>本日消費金額</label>
-    <input type="number" name="amount" min="1" step="1" required>
-
     <label>消費日期（預設今天）</label>
     <input type="date" name="txn_date">
 
-    <div style="margin-top:12px;"><button type="submit">送出</button></div>
+    <!-- 一般消費欄位 -->
+    <div id="section-normal">
+      <label>本日消費金額（元）</label>
+      <input type="number" name="amount" id="amount" min="1" step="1">
+    </div>
+
+    <!-- 點數扣除欄位 -->
+    <div id="section-coin_deduct" style="display:none;">
+      <label>扣除點數（點）</label>
+      <input type="number" name="coins_deduct" id="coins_deduct" min="1" step="1" placeholder="請輸入要扣除的點數">
+      <p style="color:#666;font-size:13px;">※ 純點數扣除，不記入消費金額</p>
+    </div>
+
+    <!-- 壽星充值欄位 -->
+    <div id="section-birthday_recharge" style="display:none;">
+      <label>壽星充值方案</label>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+        {% for plan in birthday_recharge_plans %}
+        <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;padding:8px;border:1px solid #ddd;border-radius:6px;">
+          <input type="radio" name="recharge_plan" value="{{ plan.amount }}">
+          <span>儲值 <strong>{{ '{:,}'.format(plan.amount) }}</strong> 元 → 贈 <strong style="color:#e06c00;">{{ plan.coins }}</strong> 點</span>
+        </label>
+        {% endfor %}
+      </div>
+      <p style="color:#888;font-size:13px;margin-top:8px;">※ 僅限當月壽星參加，無需消費即可辦理</p>
+    </div>
+
+    <div style="margin-top:12px;"><button type="submit" id="submit-btn">送出</button></div>
   </form>
   {% endif %}
 </div>
 
 {% if result %}
 <div class="card">
-  <h3 class="ok">已完成入帳</h3>
-  <p>顧客：{{ result.name }}</p>
-  <p>原始金額：{{ '%.2f'|format(result.amount) }}</p>
-  <p>實收金額：{{ '%.2f'|format(result.final_amount) }}</p>
-  <p>壽星折扣：{{ '有（9折）' if result.birthday_discount_applied else '無' }}</p>
-  <p>本月累計：{{ '%.2f'|format(result.monthly_total) }}</p>
-  <p>目前等級：{{ result.tier.name }}</p>
-  <p>本筆回饋金：{{ '%.2f'|format(result.cashback) }}</p>
-  <p>本筆點數：{{ result.points }}</p>
+  {% if result.mode == 'birthday_recharge' %}
+    <h3 class="ok">🎂 壽星充值完成</h3>
+    <p>顧客：{{ result.name }}</p>
+    <p>儲值金額：{{ '{:,.0f}'.format(result.recharge_amount) }} 元</p>
+    <p>獲得點數：<strong style="color:#e06c00;">{{ result.coins_earned }}</strong> 點</p>
+    <p>目前點數餘額：{{ result.coin_balance }} 點</p>
+  {% elif result.mode == 'coin_deduct' %}
+    <h3 class="ok">點數扣除完成</h3>
+    <p>顧客：{{ result.name }}</p>
+    <p>扣除點數：{{ result.coins_redeemed }} 點</p>
+    <p>剩餘點數：{{ result.coin_balance }} 點</p>
+  {% else %}
+    <h3 class="ok">已完成入帳</h3>
+    <p>顧客：{{ result.name }}</p>
+    <p>原始金額：{{ '%.2f'|format(result.amount) }}</p>
+    <p>實收金額：{{ '%.2f'|format(result.final_amount) }}</p>
+    <p>壽星折扣：{{ '有（9折）' if result.birthday_discount_applied else '無' }}</p>
+    <p>本月累計：{{ '%.2f'|format(result.monthly_total) }}</p>
+    <p>目前等級：{{ result.tier.name }}</p>
+    <p>本筆回饋金：{{ '%.2f'|format(result.cashback) }}</p>
+    <p>本筆點數：{{ result.points }}</p>
+    <p>本筆獲得硬幣：<strong style="color:#e06c00;">{{ result.coins_earned }}</strong> 點</p>
+    <p>目前點數餘額：{{ result.coin_balance }} 點</p>
+  {% endif %}
 </div>
 {% endif %}
+
 <script>
+const MODES = ['normal', 'coin_deduct', 'birthday_recharge'];
+
+function switchMode(mode) {
+  document.getElementById('entry_mode_field').value = mode;
+  MODES.forEach(m => {
+    const sec = document.getElementById('section-' + m);
+    const tab = document.getElementById('tab-' + m);
+    if (sec) sec.style.display = (m === mode) ? '' : 'none';
+    if (tab) {
+      tab.style.background = (m === mode) ? '#2d6cdf' : '#f0f0f0';
+      tab.style.color = (m === mode) ? '#fff' : '#333';
+      tab.style.fontWeight = (m === mode) ? 'bold' : 'normal';
+    }
+  });
+  // Update submit label
+  const labels = {normal: '送出', coin_deduct: '確認扣點', birthday_recharge: '確認充值'};
+  document.getElementById('submit-btn').textContent = labels[mode] || '送出';
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  switchMode('normal');
+
   const nameInput = document.getElementById("name");
   const phoneInput = document.getElementById("phone");
   const birthdayInput = document.getElementById("birthday");
@@ -67,17 +141,17 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     listContainer.style.display = "block";
-    
+
     data.customers.forEach(c => {
       const div = document.createElement("div");
       div.style.padding = "10px";
       div.style.cursor = "pointer";
       div.style.borderBottom = "1px solid #eee";
-      div.innerHTML = `<strong>${c.name}</strong> ${c.phone ? '<span style="color:#666;">' + c.phone + '</span>' : ''} <span style="font-size: 0.8em; color: gray;">[生日: ${c.birthday}]</span>`;
-      
+      div.innerHTML = `<strong>${c.name}</strong> ${c.phone ? '<span style="color:#666;">' + c.phone + '</span>' : ''} <span style="font-size: 0.8em; color: gray;">[生日: ${c.birthday}]</span> <span style="font-size:0.8em;color:#e06c00;">點數:${c.coin_balance||0}</span>`;
+
       div.onmouseover = () => div.style.backgroundColor = "#f5f5f5";
       div.onmouseout = () => div.style.backgroundColor = "#fff";
-      
+
       div.onclick = () => {
         nameInput.value = c.name;
         phoneInput.value = c.phone || "";
