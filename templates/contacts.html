@@ -3,7 +3,18 @@
 <div class="card">
   <h3>通訊名單</h3>
   <form method="get" action="/contacts" style="margin-bottom: 20px;">
-    <input type="text" name="q" placeholder="搜尋姓名或電話" value="{{ query }}">
+    <input type="text" name="q" placeholder="搜尋姓名或電話" value="{{ filters.q }}">
+    <select name="store_id">
+      <option value="">全部分店</option>
+      {% for s in stores %}
+      <option value="{{ s.id }}" {% if filters.store_id==s.id %}selected{% endif %}>{{ s.name }}</option>
+      {% endfor %}
+    </select>
+    <input type="number" min="1" max="12" name="birthday_month" placeholder="生日月" value="{{ filters.birthday_month }}" style="width:90px;">
+    <input type="number" name="min_spend" placeholder="最低消費" value="{{ filters.min_spend }}" style="width:110px;">
+    <input type="number" name="max_spend" placeholder="最高消費" value="{{ filters.max_spend }}" style="width:110px;">
+    <input type="date" name="last_from" value="{{ filters.last_from }}">
+    <input type="date" name="last_to" value="{{ filters.last_to }}">
     <button type="submit">查詢</button>
     <a href="/contacts"><button type="button">清除</button></a>
   </form>
@@ -14,6 +25,8 @@
       <th>手機號碼</th>
       <th>生日</th>
       <th>所屬分店</th>
+      <th>累計消費</th>
+      <th>最後消費日</th>
       <th>建檔日期</th>
       <th>操作</th>
     </tr>
@@ -28,6 +41,8 @@
           <input type="date" name="birthday" value="{{ c.birthday }}" style="margin:0; padding:4px;">
         </td>
         <td style="font-size: 0.9em; color: #555;">{{ c.stores or "無記錄" }}</td>
+        <td>{{ '%.0f'|format(c.total_spend or 0) }}</td>
+        <td>{{ c.last_txn_date or '-' }}</td>
         <td style="font-size: 0.9em;">{{ c.created_at[:10] }}</td>
         <td>
           <button type="submit" style="margin:0; padding:4px 8px; cursor: pointer; background: #e7f3ff; border: 1px solid #b3d7ff; border-radius: 4px;">儲存</button>

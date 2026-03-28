@@ -5,6 +5,29 @@
   <form method="get">
     <label>月份</label>
     <input type="month" name="month" value="{{ month }}">
+    <label>年份（VIP分級計算）</label>
+    <input type="text" name="year" value="{{ filters.year }}" placeholder="2026">
+    <label>分店</label>
+    <select name="store_id">
+      <option value="">全部</option>
+      {% for s in stores %}
+      <option value="{{ s.id }}" {% if filters.store_id==s.id %}selected{% endif %}>{{ s.name }}</option>
+      {% endfor %}
+    </select>
+    <label>客戶關鍵字</label>
+    <input type="text" name="q" value="{{ filters.q }}" placeholder="姓名">
+    <label>日期區間</label>
+    <input type="date" name="start_date" value="{{ filters.start_date }}"> ～
+    <input type="date" name="end_date" value="{{ filters.end_date }}">
+    <label>生日月份</label>
+    <input type="number" min="1" max="12" name="birthday_month" value="{{ filters.birthday_month }}">
+    <label>VIP等級</label>
+    <select name="vip_tier">
+      <option value="">全部</option>
+      {% for t in ['一般會員','S級美咖','P級美咖','A級美咖'] %}
+      <option value="{{ t }}" {% if filters.vip_tier==t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
     <button type="submit">查詢</button>
   </form>
 </div>
@@ -12,10 +35,11 @@
 <div class="card">
   <h3>日明細（{{ month }}）</h3>
   <table>
-    <tr><th>日期</th><th>分店</th><th>客戶</th><th>生日</th><th>原始金額</th><th>實收金額</th><th>壽星折扣</th><th>操作</th></tr>
+    <tr><th>日期</th><th>分店</th><th>客戶</th><th>生日</th><th>VIP</th><th>原始金額</th><th>實收金額</th><th>壽星折扣</th><th>操作</th></tr>
     {% for r in detail_rows %}
     <tr>
       <td>{{ r.txn_date }}</td><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td>
+      <td>{{ r.vip_tier }}</td>
       <td>{{ '%.2f'|format(r.amount) }}</td><td>{{ '%.2f'|format(r.final_amount) }}</td>
       <td>{{ '是' if r.birthday_discount_applied else '否' }}</td>
       <td>
