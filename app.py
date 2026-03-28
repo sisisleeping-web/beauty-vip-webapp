@@ -92,12 +92,27 @@ def init_db() -> None:
             FOREIGN KEY(customer_id) REFERENCES customers(id),
             FOREIGN KEY(store_id) REFERENCES stores(id)
         );
+
+        CREATE TABLE IF NOT EXISTS review_flags (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_type TEXT NOT NULL,
+            item_key TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'unreviewed',
+            note TEXT DEFAULT '',
+            updated_at TEXT NOT NULL,
+            UNIQUE(item_type, item_key)
+        );
         """
     )
 
     stores = [("store_a", "斗六店"), ("store_b", "虎尾店")]
     cur.executemany("INSERT OR IGNORE INTO stores(id, name) VALUES(?, ?)", stores)
     cur.executemany("UPDATE stores SET name=? WHERE id=?", [("斗六店", "store_a"), ("虎尾店", "store_b")])
+
+    cur.executescript(
+        """
+        """
+    )
 
     conn.commit()
     conn.close()
@@ -179,6 +194,31 @@ def customer_month_total(db: sqlite3.Connection, customer_id: int, month_key: st
         (customer_id, month_key),
     ).fetchone()
     return float(row["total"] or 0)
+
+
+def _tier_name_from_totals(max_single: float, year_total: float) -> str:
+    if max_single >= 30000 or year_total >= 60000:
+        return "A級美咖"
+    if max_single >= 12000 or year_total >= 24000:
+        return "P級美咖"
+    if max_single >= 8000 or year_total >= 15000:
+        return "S級美咖"
+    return "一般會員"
+
+
+def get_customer_tier_map(db: sqlite3.Connection, year: str) -> dict[int, str]:
+    rows = db.execute(
+        """
+        SELECT c.id AS customer_id,
+               COALESCE(MAX(t.final_amount),0) AS max_single,
+               COALESCE(SUM(CASE WHEN substr(t.txn_date,1,4)=? THEN t.final_amount ELSE 0 END),0) AS year_total
+        FROM customers c
+        LEFT JOIN transactions t ON t.customer_id = c.id
+        GROUP BY c.id
+        """,
+        (year,),
+    ).fetchall()
+    return {int(r["customer_id"]): _tier_name_from_totals(float(r["max_single"] or 0), float(r["year_total"] or 0)) for r in rows}
 
 
 @app.route("/")
@@ -296,19 +336,57 @@ def entry():
 def report():
     db = get_db()
     month = request.args.get("month", date.today().strftime("%Y-%m"))
+    year = request.args.get("year", month[:4])
+    store_id = request.args.get("store_id", "").strip()
+    q = request.args.get("q", "").strip()
+    start_date = request.args.get("start_date", "").strip()
+    end_date = request.args.get("end_date", "").strip()
+    birthday_month = request.args.get("birthday_month", "").strip()
+    vip_tier = request.args.get("vip_tier", "").strip()
 
-    detail_rows = db.execute(
-        """
-        SELECT t.id, t.txn_date, s.name AS store_name, c.name AS customer_name, c.birthday,
+    where = ["1=1"]
+    params: list[Any] = []
+
+    # month filter (default)
+    where.append("t.month_key = ?")
+    params.append(month)
+
+    if store_id:
+        where.append("t.store_id = ?")
+        params.append(store_id)
+    if q:
+        where.append("c.name LIKE ?")
+        params.append(f"%{q}%")
+    if start_date:
+        where.append("t.txn_date >= ?")
+        params.append(start_date)
+    if end_date:
+        where.append("t.txn_date <= ?")
+        params.append(end_date)
+    if birthday_month:
+        where.append("substr(c.birthday,6,2) = ?")
+        params.append(birthday_month.zfill(2))
+
+    sql = f"""
+        SELECT t.id, t.txn_date, t.customer_id, s.id AS store_id, s.name AS store_name,
+               c.name AS customer_name, c.birthday,
                t.amount, t.final_amount, t.birthday_discount_applied
         FROM transactions t
         JOIN customers c ON c.id = t.customer_id
         JOIN stores s ON s.id = t.store_id
-        WHERE t.month_key = ?
+        WHERE {' AND '.join(where)}
         ORDER BY t.txn_date DESC, s.name ASC, c.name ASC
-        """,
-        (month,),
-    ).fetchall()
+    """
+    detail_rows_raw = db.execute(sql, params).fetchall()
+
+    tier_map = get_customer_tier_map(db, year)
+    detail_rows = []
+    for r in detail_rows_raw:
+        d = dict(r)
+        d["vip_tier"] = tier_map.get(int(r["customer_id"]), "一般會員")
+        if vip_tier and d["vip_tier"] != vip_tier:
+            continue
+        detail_rows.append(d)
 
     monthly_by_customer = db.execute(
         """
@@ -324,7 +402,6 @@ def report():
         (month,),
     ).fetchall()
 
-    year = month[:4]
     yearly_by_customer = db.execute(
         """
         SELECT s.name AS store_name, c.name AS customer_name, c.birthday,
@@ -339,12 +416,26 @@ def report():
         (year,),
     ).fetchall()
 
+    stores = db.execute("SELECT id,name FROM stores ORDER BY name").fetchall()
+
+    filters = {
+        "store_id": store_id,
+        "q": q,
+        "start_date": start_date,
+        "end_date": end_date,
+        "birthday_month": birthday_month,
+        "vip_tier": vip_tier,
+        "year": year,
+    }
+
     return render_template(
         "report.html",
         month=month,
         detail_rows=detail_rows,
         monthly_by_customer=monthly_by_customer,
         yearly_by_customer=yearly_by_customer,
+        stores=stores,
+        filters=filters,
     )
 
 
@@ -415,23 +506,69 @@ def manager_dashboard():
 def contacts():
     db = get_db()
     query = request.args.get("q", "").strip()
-    
-    # Base query joining customers with their visited stores
+    store_id = request.args.get("store_id", "").strip()
+    birthday_month = request.args.get("birthday_month", "").strip()
+    min_spend = request.args.get("min_spend", "").strip()
+    max_spend = request.args.get("max_spend", "").strip()
+    last_from = request.args.get("last_from", "").strip()
+    last_to = request.args.get("last_to", "").strip()
+
     sql = """
-        SELECT c.*, GROUP_CONCAT(DISTINCT s.name) as stores
+        SELECT c.id, c.name, c.phone, c.birthday, c.created_at,
+               GROUP_CONCAT(DISTINCT s.name) AS stores,
+               COALESCE(SUM(t.final_amount),0) AS total_spend,
+               MAX(t.txn_date) AS last_txn_date,
+               GROUP_CONCAT(DISTINCT t.store_id) AS store_ids
         FROM customers c
         LEFT JOIN transactions t ON c.id = t.customer_id
         LEFT JOIN stores s ON t.store_id = s.id
+        WHERE 1=1
     """
-    params = []
+    params: list[Any] = []
     if query:
-        sql += " WHERE c.name LIKE ? OR c.phone LIKE ?"
+        sql += " AND (c.name LIKE ? OR c.phone LIKE ?)"
         params.extend([f"%{query}%", f"%{query}%"])
-    
-    sql += " GROUP BY c.id ORDER BY c.name"
+    if birthday_month:
+        sql += " AND substr(c.birthday,6,2)=?"
+        params.append(birthday_month.zfill(2))
+
+    sql += " GROUP BY c.id"
+
+    having = []
+    if store_id:
+        having.append("instr(COALESCE(store_ids,''), ?) > 0")
+        params.append(store_id)
+    if min_spend:
+        having.append("total_spend >= ?")
+        params.append(float(min_spend))
+    if max_spend:
+        having.append("total_spend <= ?")
+        params.append(float(max_spend))
+    if last_from:
+        having.append("COALESCE(last_txn_date,'') >= ?")
+        params.append(last_from)
+    if last_to:
+        having.append("COALESCE(last_txn_date,'') <= ?")
+        params.append(last_to)
+
+    if having:
+        sql += " HAVING " + " AND ".join(having)
+
+    sql += " ORDER BY c.name"
     customers = db.execute(sql, params).fetchall()
-    
-    return render_template("contacts.html", customers=customers, query=query)
+    stores = db.execute("SELECT id,name FROM stores ORDER BY name").fetchall()
+
+    filters = {
+        "q": query,
+        "store_id": store_id,
+        "birthday_month": birthday_month,
+        "min_spend": min_spend,
+        "max_spend": max_spend,
+        "last_from": last_from,
+        "last_to": last_to,
+    }
+
+    return render_template("contacts.html", customers=customers, query=query, stores=stores, filters=filters)
 
 
 @app.route("/api/customers/<int:customer_id>/delete", methods=["POST"])
@@ -458,6 +595,130 @@ def update_customer(customer_id):
     db.execute("UPDATE customers SET phone=?, birthday=? WHERE id=?", (phone, birthday, customer_id))
     db.commit()
     return redirect(url_for("contacts"))
+
+
+# ── Review page ──────────────────────────────────────────────────────────────
+
+SUSPICIOUS_BIRTHDAYS = ["2000-01-01", "1900-01-01", "1990-01-01", "2001-01-01"]
+
+
+def _get_review_flag(db: sqlite3.Connection, item_type: str, item_key: str) -> str:
+    row = db.execute(
+        "SELECT status FROM review_flags WHERE item_type=? AND item_key=?",
+        (item_type, item_key),
+    ).fetchone()
+    return row["status"] if row else "unreviewed"
+
+
+@app.route("/review")
+def review_page():
+    if not session.get("manager_authed"):
+        return render_template("manager_lock.html", error=None)
+
+    db = get_db()
+    name_q = request.args.get("q", "").strip()
+    store_filter = request.args.get("store_id", "").strip()
+    status_filter = request.args.get("status", "").strip()
+
+    # Section A: suspicious birthday rows
+    placeholders = ",".join("?" * len(SUSPICIOUS_BIRTHDAYS))
+    sql_a = f"""
+        SELECT c.id, c.name, c.phone, c.birthday, c.created_at,
+               GROUP_CONCAT(DISTINCT s.name) AS stores,
+               GROUP_CONCAT(DISTINCT t.store_id) AS store_ids
+        FROM customers c
+        LEFT JOIN transactions t ON c.id = t.customer_id
+        LEFT JOIN stores s ON t.store_id = s.id
+        WHERE c.birthday IN ({placeholders})
+        """
+    params_a: list[Any] = list(SUSPICIOUS_BIRTHDAYS)
+    if name_q:
+        sql_a += " AND c.name LIKE ?"
+        params_a.append(f"%{name_q}%")
+    sql_a += " GROUP BY c.id ORDER BY c.name"
+    suspicious_rows_raw = db.execute(sql_a, params_a).fetchall()
+
+    suspicious_rows = []
+    for r in suspicious_rows_raw:
+        d = dict(r)
+        if store_filter and store_filter not in (d.get("store_ids") or ""):
+            continue
+        d["review_status"] = _get_review_flag(db, "birthday_suspicious", str(d["id"]))
+        if status_filter and d["review_status"] != status_filter:
+            continue
+        suspicious_rows.append(d)
+
+    # Section B: same-name multi-birthday
+    sql_b = """
+        SELECT name, GROUP_CONCAT(id) AS ids, GROUP_CONCAT(birthday) AS birthdays,
+               COUNT(DISTINCT birthday) AS bday_count,
+               GROUP_CONCAT(phone) AS phones,
+               GROUP_CONCAT(created_at) AS created_ats
+        FROM customers
+        GROUP BY name
+        HAVING bday_count > 1
+        ORDER BY name
+    """
+    multi_bday_raw = db.execute(sql_b).fetchall()
+
+    multi_bday_rows = []
+    for r in multi_bday_raw:
+        d = dict(r)
+        if name_q and name_q not in d["name"]:
+            continue
+        item_key = f"multibd_{d['name']}"
+        d["review_status"] = _get_review_flag(db, "multi_birthday", item_key)
+        if status_filter and d["review_status"] != status_filter:
+            continue
+        # Build per-customer sub-rows for each id/birthday combo
+        ids = (d["ids"] or "").split(",")
+        bdays = (d["birthdays"] or "").split(",")
+        phones = (d["phones"] or "").split(",")
+        created = (d["created_ats"] or "").split(",")
+        d["members"] = [
+            {"id": ids[i], "birthday": bdays[i], "phone": phones[i] if i < len(phones) else "", "created_at": created[i] if i < len(created) else ""}
+            for i in range(len(ids))
+        ]
+        multi_bday_rows.append(d)
+
+    stores = db.execute("SELECT id, name FROM stores ORDER BY name").fetchall()
+    filters = {"q": name_q, "store_id": store_filter, "status": status_filter}
+
+    return render_template("review.html", suspicious_rows=suspicious_rows, multi_bday_rows=multi_bday_rows, stores=stores, filters=filters)
+
+
+@app.route("/review/update_birthday/<int:customer_id>", methods=["POST"])
+def review_update_birthday(customer_id):
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
+    db = get_db()
+    birthday = request.form.get("birthday", "").strip()
+    try:
+        if birthday:
+            datetime.strptime(birthday, "%Y-%m-%d")
+    except ValueError:
+        return "生日格式錯誤", 400
+    db.execute("UPDATE customers SET birthday=? WHERE id=?", (birthday, customer_id))
+    db.commit()
+    return redirect(request.referrer or url_for("review_page"))
+
+
+@app.route("/review/mark/<item_type>/<path:item_key>", methods=["POST"])
+def review_mark(item_type, item_key):
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
+    db = get_db()
+    status = request.form.get("status", "reviewed")
+    note = request.form.get("note", "")
+    now = datetime.now().isoformat(timespec="seconds")
+    db.execute(
+        """INSERT INTO review_flags(item_type, item_key, status, note, updated_at)
+           VALUES(?,?,?,?,?)
+           ON CONFLICT(item_type, item_key) DO UPDATE SET status=excluded.status, note=excluded.note, updated_at=excluded.updated_at""",
+        (item_type, item_key, status, note, now),
+    )
+    db.commit()
+    return redirect(request.referrer or url_for("review_page"))
 
 
 if __name__ == "__main__":

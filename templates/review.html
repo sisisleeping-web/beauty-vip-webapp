@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>資料審核頁面 🔍</h3>
+
+<div class="card">
+  <strong>篩選條件</strong>
+  <form method="get" action="/review" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-top:8px;">
+    <div>
+      <label style="margin:0;">姓名關鍵字</label>
+      <input type="text" name="q" value="{{ filters.q }}" placeholder="輸入姓名" style="width:140px;">
+    </div>
+    <div>
+      <label style="margin:0;">門市</label>
+      <select name="store_id">
+        <option value="">全部門市</option>
+        {% for s in stores %}
+        <option value="{{ s.id }}" {% if filters.store_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="margin:0;">狀態</label>
+      <select name="status">
+        <option value="">全部</option>
+        <option value="unreviewed" {% if filters.status == 'unreviewed' %}selected{% endif %}>未審核</option>
+        <option value="reviewed" {% if filters.status == 'reviewed' %}selected{% endif %}>已審核</option>
+      </select>
+    </div>
+    <button type="submit">套用篩選</button>
+    <a href="/review"><button type="button">清除</button></a>
+  </form>
+</div>
+
+<!-- Section A: Suspicious Birthdays -->
+<div class="card">
+  <h4>A. 可疑生日（預設值/佔位符）</h4>
+  <p style="color:#888;font-size:0.9em;">生日為常見預設值（如 2000-01-01）的客戶，共 <strong>{{ suspicious_rows|length }}</strong> 筆。</p>
+  {% if suspicious_rows %}
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>姓名</th><th>電話</th><th>生日</th><th>門市</th><th>建立時間</th><th>狀態</th><th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in suspicious_rows %}
+    <tr style="background: {% if r.review_status == 'reviewed' %}#f0fff4{% else %}#fff9f0{% endif %}">
+      <td>{{ r.id }}</td>
+      <td>{{ r.name }}</td>
+      <td>{{ r.phone or '-' }}</td>
+      <td><strong style="color:#c0392b;">{{ r.birthday }}</strong></td>
+      <td>{{ r.stores or '-' }}</td>
+      <td style="font-size:0.85em;">{{ r.created_at }}</td>
+      <td>
+        {% if r.review_status == 'reviewed' %}
+        <span style="color:#0a7a2d;">✅ 已審核</span>
+        {% else %}
+        <span style="color:#c0392b;">⚠️ 未審核</span>
+        {% endif %}
+      </td>
+      <td style="min-width:320px;">
+        <!-- Update birthday -->
+        <form method="post" action="/review/update_birthday/{{ r.id }}" style="display:inline-flex;gap:4px;align-items:center;">
+          <input type="date" name="birthday" value="{{ r.birthday }}" style="padding:4px;">
+          <button type="submit" style="background:#2980b9;color:white;border:none;padding:4px 8px;cursor:pointer;">儲存生日</button>
+        </form>
+        &nbsp;
+        <!-- Mark reviewed/unreviewed -->
+        {% if r.review_status != 'reviewed' %}
+        <form method="post" action="/review/mark/birthday_suspicious/{{ r.id }}" style="display:inline;">
+          <input type="hidden" name="status" value="reviewed">
+          <button type="submit" style="background:#27ae60;color:white;border:none;padding:4px 8px;cursor:pointer;">✔ 標記已審核</button>
+        </form>
+        {% else %}
+        <form method="post" action="/review/mark/birthday_suspicious/{{ r.id }}" style="display:inline;">
+          <input type="hidden" name="status" value="unreviewed">
+          <button type="submit" style="background:#7f8c8d;color:white;border:none;padding:4px 8px;cursor:pointer;">↩ 取消審核</button>
+        </form>
+        {% endif %}
+        &nbsp;
+        <!-- Merge: disabled, manual only -->
+        <button type="button" disabled title="合併需手動操作，請洽資料管理員" style="opacity:0.4;cursor:not-allowed;">合併（手動）</button>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#0a7a2d;">✅ 目前無可疑生日資料。</p>
+  {% endif %}
+</div>
+
+<!-- Section B: Same-name multi-birthday -->
+<div class="card">
+  <h4>B. 同名多生日候選人</h4>
+  <p style="color:#888;font-size:0.9em;">相同姓名但有多個不同生日的客戶組，共 <strong>{{ multi_bday_rows|length }}</strong> 組。</p>
+  {% if multi_bday_rows %}
+  {% for grp in multi_bday_rows %}
+  <div class="card" style="border-color:{% if grp.review_status == 'reviewed' %}#27ae60{% else %}#e67e22{% endif %};margin:8px 0;">
+    <strong>{{ grp.name }}</strong>（{{ grp.bday_count }} 個不同生日）
+    &nbsp;
+    {% if grp.review_status == 'reviewed' %}
+    <span style="color:#0a7a2d;">✅ 已審核</span>
+    {% else %}
+    <span style="color:#e67e22;">⚠️ 未審核</span>
+    {% endif %}
+    <table style="margin-top:8px;">
+      <thead>
+        <tr><th>ID</th><th>生日</th><th>電話</th><th>建立時間</th><th>修改生日</th></tr>
+      </thead>
+      <tbody>
+      {% for m in grp.members %}
+      <tr>
+        <td>{{ m.id }}</td>
+        <td>{{ m.birthday }}</td>
+        <td>{{ m.phone or '-' }}</td>
+        <td style="font-size:0.85em;">{{ m.created_at }}</td>
+        <td>
+          <form method="post" action="/review/update_birthday/{{ m.id }}" style="display:inline-flex;gap:4px;align-items:center;">
+            <input type="date" name="birthday" value="{{ m.birthday }}" style="padding:4px;">
+            <button type="submit" style="background:#2980b9;color:white;border:none;padding:4px 8px;cursor:pointer;">儲存</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+      {% if grp.review_status != 'reviewed' %}
+      <form method="post" action="/review/mark/multi_birthday/multibd_{{ grp.name }}">
+        <input type="hidden" name="status" value="reviewed">
+        <button type="submit" style="background:#27ae60;color:white;border:none;padding:6px 12px;cursor:pointer;">✔ 標記已審核</button>
+      </form>
+      {% else %}
+      <form method="post" action="/review/mark/multi_birthday/multibd_{{ grp.name }}">
+        <input type="hidden" name="status" value="unreviewed">
+        <button type="submit" style="background:#7f8c8d;color:white;border:none;padding:6px 12px;cursor:pointer;">↩ 取消審核</button>
+      </form>
+      {% endif %}
+      <button type="button" disabled title="合併需手動操作" style="opacity:0.4;cursor:not-allowed;">合併（手動）</button>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p style="color:#0a7a2d;">✅ 目前無同名多生日候選人。</p>
+  {% endif %}
+</div>
+{% endblock %}
