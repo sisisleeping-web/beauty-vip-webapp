@@ -36,7 +36,7 @@
   <h4>A. 可疑生日（預設值/佔位符）</h4>
   <p style="color:#888;font-size:0.9em;">生日為常見預設值（如 2000-01-01）的客戶，共 <strong>{{ suspicious_rows|length }}</strong> 筆。</p>
   {% if suspicious_rows %}
-  <table>
+  <div class="table-wrap"><table>
     <thead>
       <tr>
         <th>ID</th><th>姓名</th><th>電話</th><th>生日</th><th>門市</th><th>建立時間</th><th>狀態</th><th>操作</th>
@@ -84,7 +84,7 @@
     </tr>
     {% endfor %}
     </tbody>
-  </table>
+  </table></div>
   {% else %}
   <p style="color:#0a7a2d;">✅ 目前無可疑生日資料。</p>
   {% endif %}
@@ -124,7 +124,7 @@
       </tr>
       {% endfor %}
       </tbody>
-    </table>
+    </table></div>
     <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
       {% if grp.review_status != 'reviewed' %}
       <form method="post" action="/review/mark/multi_birthday/multibd_{{ grp.name }}">

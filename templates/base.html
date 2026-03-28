@@ -5,15 +5,52 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>美容店消費系統</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; color: #222; }
-    nav a { margin-right: 12px; }
+    /* === Base === */
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 16px; color: #222; max-width: 960px; }
+    h2 { font-size: 1.2rem; margin-bottom: 8px; }
+
+    /* === Nav === */
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+    nav a { text-decoration: none; }
+    nav a button, nav button { cursor: pointer; }
+
+    /* === Cards === */
     .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 12px 0; }
-    label { display:block; margin-top: 10px; }
-    input, select, button { padding: 8px; margin-top: 6px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-    th, td { border: 1px solid #ddd; padding: 8px; }
+
+    /* === Forms === */
+    label { display: block; margin-top: 10px; }
+    input, select, textarea {
+      padding: 10px 8px;
+      margin-top: 6px;
+      width: 100%;
+      max-width: 400px;
+      font-size: 16px; /* prevent iOS auto-zoom */
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 16px;
+      font-size: 15px;
+      cursor: pointer;
+      min-height: 44px; /* touch target */
+    }
+
+    /* === Tables === */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; min-width: 480px; }
+    th, td { border: 1px solid #ddd; padding: 8px 10px; white-space: nowrap; }
     th { background: #f7f7f7; }
+
+    /* === Misc === */
     .ok { color: #0a7a2d; }
+
+    /* === Mobile tweaks === */
+    @media (max-width: 600px) {
+      body { margin: 10px; }
+      input, select, textarea { max-width: 100%; }
+      .card { padding: 12px; }
+    }
   </style>
 </head>
 <body>

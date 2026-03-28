@@ -12,7 +12,7 @@
 
 <div class="card">
   <h3>各分店營收統計</h3>
-  <table>
+  <div class="table-wrap"><table>
     <tr><th>分店</th><th>{{ month }} 月營收</th><th>{{ month[:4] }} 年營收</th></tr>
     {% for r in store_stats %}
     <tr>
@@ -21,12 +21,12 @@
       <td>{{ '%.2f'|format(r.year_revenue or 0) }}</td>
     </tr>
     {% endfor %}
-  </table>
+  </table></div>
 </div>
 
 <div class="card">
   <h3>顧客消費與美咖幣明細</h3>
-  <table>
+  <div class="table-wrap"><table>
     <tr><th>顧客</th><th>手機號碼</th><th>生日</th><th>{{ month }} 月消費</th><th>{{ month[:4] }} 年消費</th><th>累計美咖幣</th></tr>
     {% for c in customer_stats %}
     <tr>
@@ -38,6 +38,6 @@
       <td style="color: #d88100; font-weight: bold;">{{ '%.2f'|format(c.total_cashback or 0) }}</td>
     </tr>
     {% endfor %}
-  </table>
+  </table></div>
 </div>
 {% endblock %}

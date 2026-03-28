@@ -34,7 +34,7 @@
 
 <div class="card">
   <h3>日明細（{{ month }}）</h3>
-  <table>
+  <div class="table-wrap"><table>
     <tr><th>日期</th><th>分店</th><th>客戶</th><th>生日</th><th>VIP</th><th>原始金額</th><th>實收金額</th><th>壽星折扣</th><th>操作</th></tr>
     {% for r in detail_rows %}
     <tr>
@@ -47,27 +47,27 @@
       </td>
     </tr>
     {% endfor %}
-  </table>
+  </table></div>
 </div>
 
 <div class="card">
   <h3>月消費（{{ month }}）</h3>
-  <table>
+  <div class="table-wrap"><table>
     <tr><th>分店</th><th>客戶</th><th>生日</th><th>月累計</th></tr>
     {% for r in monthly_by_customer %}
     <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td>{{ '%.2f'|format(r.month_total) }}</td></tr>
     {% endfor %}
-  </table>
+  </table></div>
 </div>
 
 <div class="card">
   <h3>年消費（{{ month[:4] }}）</h3>
-  <table>
+  <div class="table-wrap"><table>
     <tr><th>分店</th><th>客戶</th><th>生日</th><th>年累計</th></tr>
     {% for r in yearly_by_customer %}
     <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td>{{ '%.2f'|format(r.year_total) }}</td></tr>
     {% endfor %}
-  </table>
+  </table></div>
 </div>
 <script>
 function deleteTxn(id) {
