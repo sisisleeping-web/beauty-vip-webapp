@@ -411,6 +411,36 @@ def manager_dashboard():
     return render_template("manager.html", month=month, store_stats=store_stats, customer_stats=customer_stats)
 
 
+@app.route("/contacts")
+def contacts():
+    db = get_db()
+    query = request.args.get("q", "").strip()
+    if query:
+        customers = db.execute(
+            "SELECT * FROM customers WHERE name LIKE ? OR phone LIKE ? ORDER BY name",
+            (f"%{query}%", f"%{query}%")
+        ).fetchall()
+    else:
+        customers = db.execute("SELECT * FROM customers ORDER BY name").fetchall()
+    return render_template("contacts.html", customers=customers, query=query)
+
+
+@app.route("/api/customers/<int:customer_id>/update", methods=["POST"])
+def update_customer(customer_id):
+    db = get_db()
+    phone = request.form.get("phone", "").strip()
+    birthday = request.form.get("birthday", "").strip()
+    try:
+        if birthday:
+            datetime.strptime(birthday, "%Y-%m-%d")
+    except ValueError:
+        return "生日格式錯誤，請使用 YYYY-MM-DD", 400
+        
+    db.execute("UPDATE customers SET phone=?, birthday=? WHERE id=?", (phone, birthday, customer_id))
+    db.commit()
+    return redirect(url_for("contacts"))
+
+
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=5090, debug=False)

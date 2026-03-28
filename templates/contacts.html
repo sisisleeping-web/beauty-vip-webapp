@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h3>通訊名單</h3>
+  <form method="get" action="/contacts" style="margin-bottom: 20px;">
+    <input type="text" name="q" placeholder="搜尋姓名或電話" value="{{ query }}">
+    <button type="submit">查詢</button>
+    <a href="/contacts"><button type="button">清除</button></a>
+  </form>
+
+  <table>
+    <tr>
+      <th>顧客姓名</th>
+      <th>手機號碼</th>
+      <th>生日</th>
+      <th>建檔日期</th>
+      <th>操作</th>
+    </tr>
+    {% for c in customers %}
+    <tr>
+      <form method="post" action="/api/customers/{{ c.id }}/update" style="margin: 0;">
+        <td>{{ c.name }}</td>
+        <td>
+          <input type="text" name="phone" value="{{ c.phone }}" style="width: 120px; margin:0; padding:4px;">
+        </td>
+        <td>
+          <input type="date" name="birthday" value="{{ c.birthday }}" style="margin:0; padding:4px;">
+        </td>
+        <td>{{ c.created_at[:10] }}</td>
+        <td>
+          <button type="submit" style="margin:0; padding:4px 8px;">儲存</button>
+        </td>
+      </form>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if not customers %}
+    <p>目前沒有符合的資料。</p>
+  {% endif %}
+</div>
+{% endblock %}
