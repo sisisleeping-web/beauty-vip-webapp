@@ -613,65 +613,65 @@ def report():
 @app.route("/api/transactions/<int:txn_id>/update", methods=["POST"])
 def update_transaction(txn_id):
     db = get_db()
-    txn = db.execute(
-        "SELECT t.id, t.customer_id FROM transactions t WHERE t.id=?",
+    # 1. Fetch old transaction info to revert coins
+    old_txn = db.execute(
+        "SELECT customer_id, entry_mode, coins_earned, coins_redeemed FROM transactions WHERE id=?",
         (txn_id,),
     ).fetchone()
-    if not txn:
-        return {"status": "error", "message": "transaction not found"}, 404
+    if not old_txn:
+        return {"status": "error", "message": "original transaction not found"}, 404
 
-    name = (request.form.get("name") or "").strip()
-    birthday = (request.form.get("birthday") or "").strip()
-    store_id = (request.form.get("store_id") or "").strip()
-    txn_date = (request.form.get("txn_date") or "").strip()
-    amount_s = (request.form.get("amount") or "").strip()
-    cash_received_s = (request.form.get("cash_received") or "").strip()
+    old_mode = old_txn["entry_mode"] or "normal"
+    old_coins_earned = int(old_txn["coins_earned"] or 0)
+    old_coins_redeemed = int(old_txn["coins_redeemed"] or 0)
+    old_customer_id = int(old_txn["customer_id"])
 
-    if not name or not birthday or not store_id or not txn_date or not amount_s:
-        return {"status": "error", "message": "missing required fields"}, 400
+    # 2. Revert old coin balance impact
+    if old_mode in ("normal", "birthday_recharge") and old_coins_earned > 0:
+        db.execute("UPDATE customers SET coin_balance = coin_balance - ? WHERE id=?", (old_coins_earned, old_customer_id))
+    elif old_mode == "coin_deduct" and old_coins_redeemed > 0:
+        db.execute("UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?", (old_coins_redeemed, old_customer_id))
 
-    try:
-        datetime.strptime(birthday, "%Y-%m-%d")
-        d = datetime.strptime(txn_date, "%Y-%m-%d").date()
-        amount = float(amount_s)
-    except Exception:
-        return {"status": "error", "message": "invalid date/amount format"}, 400
-
-    if amount < 0:
-        return {"status": "error", "message": "amount must be >= 0"}, 400
-
-    cash_received = None
-    if cash_received_s:
-        try:
-            cash_received = float(cash_received_s)
-        except ValueError:
-            pass
-
+    # 3. Update customer basic info (if changed)
     db.execute(
         "UPDATE customers SET name=?, birthday=? WHERE id=?",
-        (name, birthday, int(txn["customer_id"])),
+        (name, birthday, old_customer_id),
     )
 
     month_key = current_month_key(d)
+    new_final_amount = cash_received if cash_received is not None else amount
+    new_coins_earned = 0
 
-    if cash_received is not None:
-        db.execute(
-            """
-            UPDATE transactions
-            SET store_id=?, txn_date=?, month_key=?, amount=?, final_amount=?
-            WHERE id=?
-            """,
-            (store_id, d.isoformat(), month_key, amount, cash_received, txn_id),
-        )
-    else:
-        db.execute(
-            """
-            UPDATE transactions
-            SET store_id=?, txn_date=?, month_key=?, amount=?, final_amount=?
-            WHERE id=?
-            """,
-            (store_id, d.isoformat(), month_key, amount, amount, txn_id),
-        )
+    # 4. Recalculate coins if it's a normal transaction
+    if old_mode == "normal":
+        rules = load_rules()
+        year_str = d.strftime("%Y")
+        # Calc tier based on totals *before* this transaction (using ID to stay consistent)
+        past_max_single = float(db.execute("SELECT COALESCE(MAX(final_amount),0) FROM transactions WHERE customer_id=? AND id < ?", (old_customer_id, txn_id)).fetchone()[0] or 0)
+        year_total_so_far = float(db.execute("SELECT COALESCE(SUM(final_amount),0) FROM transactions WHERE customer_id=? AND substr(txn_date,1,4)=? AND id < ?", (old_customer_id, year_str, txn_id)).fetchone()[0] or 0)
+        tier = calc_tier(past_max_single, year_total_so_far, rules)
+        new_coins_earned = int(new_final_amount * tier.points_rate)
+
+    # 5. Update transaction records
+    db.execute(
+        """
+        UPDATE transactions
+        SET store_id=?, txn_date=?, month_key=?, amount=?, final_amount=?, coins_earned=?
+        WHERE id=?
+        """,
+        (store_id, d.isoformat(), month_key, amount, new_final_amount, new_coins_earned, txn_id),
+    )
+
+    # 6. Apply new coin balance impact
+    if old_mode == "normal" and new_coins_earned > 0:
+        db.execute("UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?", (new_coins_earned, old_customer_id))
+    elif old_mode == "birthday_recharge":
+        # Keep old coins for recharge since it's plan-based, but we re-apply them
+        db.execute("UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?", (old_coins_earned, old_customer_id))
+    elif old_mode == "coin_deduct":
+        # Keep old coins for deduct
+        db.execute("UPDATE customers SET coin_balance = coin_balance - ? WHERE id=?", (old_coins_redeemed, old_customer_id))
+
     db.commit()
     return {"status": "ok"}
 
@@ -679,7 +679,34 @@ def update_transaction(txn_id):
 @app.route("/api/transactions/<int:txn_id>/delete", methods=["POST"])
 def delete_transaction(txn_id):
     db = get_db()
+    txn = db.execute(
+        "SELECT entry_mode, coins_earned, coins_redeemed, customer_id FROM transactions WHERE id=?",
+        (txn_id,),
+    ).fetchone()
+    if not txn:
+        return {"status": "error", "message": "transaction not found"}, 404
+
+    mode = txn["entry_mode"] or "normal"
+    coins_earned = int(txn["coins_earned"] or 0)
+    coins_redeemed = int(txn["coins_redeemed"] or 0)
+    customer_id = int(txn["customer_id"])
+
     db.execute("DELETE FROM transactions WHERE id=?", (txn_id,))
+
+    # Revert coin_balance impact
+    if mode in ("normal", "birthday_recharge") and coins_earned > 0:
+        # Coins were credited — take them back
+        db.execute(
+            "UPDATE customers SET coin_balance = coin_balance - ? WHERE id=?",
+            (coins_earned, customer_id),
+        )
+    elif mode == "coin_deduct" and coins_redeemed > 0:
+        # Coins were debited — give them back
+        db.execute(
+            "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
+            (coins_redeemed, customer_id),
+        )
+
     db.commit()
     return {"status": "ok"}
 
@@ -794,8 +821,8 @@ def contacts():
 
     having = []
     if store_id:
-        having.append("instr(COALESCE(store_ids,''), ?) > 0")
-        params.append(store_id)
+        having.append("instr(',' || COALESCE(store_ids,'') || ',', ?) > 0")
+        params.append(f",{store_id},")
     if min_spend:
         having.append("total_spend >= ?")
         params.append(float(min_spend))
