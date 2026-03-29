@@ -159,11 +159,14 @@ PA DB（雲端）→ 下載備份 → 本機（參考用）
 ### 快速腳本
 
 ```bash
-./scripts/deploy.sh          # 一鍵部署程式碼（不含 DB）
-python3 scripts/db_check.py  # 驗算本機 DB（或指定路徑）
-python3 scripts/db_backup.py # 備份本機 DB 到 data/backups/（本機副本用）
-# scripts/pa_migrate.py      # 上傳到 PA 執行的修復工具包
+./scripts/deploy.sh                     # 一鍵部署程式碼到 PA（不含 DB）
+python3 scripts/sync_from_cloud.py      # ★ 從雲端下載最新 DB 同步到本機
+python3 scripts/db_check.py             # 驗算本機 DB（或指定路徑）
+python3 scripts/db_backup.py            # 備份本機 DB 到 data/backups/
+# scripts/pa_migrate.py                 # 上傳到 PA 執行的修復工具包
 ```
+
+`sync_from_cloud.py` 流程：登入 → 下載 → 比對顧客數/交易筆數/消費總額 → **需輸入 y 確認** → 備份舊 DB → 覆蓋。
 
 ---
 
