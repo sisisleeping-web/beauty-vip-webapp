@@ -92,7 +92,6 @@
     <p>顧客：{{ result.name }}</p>
     <p>原始金額：{{ '%.2f'|format(result.amount) }}</p>
     <p>實收金額：{{ '%.2f'|format(result.final_amount) }}</p>
-    <p>壽星折扣：{{ '有（9折）' if result.birthday_discount_applied else '無' }}</p>
     <p>本月累計：{{ '%.2f'|format(result.monthly_total) }}</p>
     <p>目前等級：{{ result.tier.name }}</p>
     <p>本筆回饋金：{{ '%.2f'|format(result.cashback) }}</p>

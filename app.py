@@ -415,12 +415,8 @@ def entry():
                     month_key = current_month_key(txn_day)
                     year_str = txn_day.strftime("%Y")
 
-                    birthday_discount_rate = float(rules["birthday_offer"]["discount_rate"])
-                    once_per_month = bool(rules["birthday_offer"].get("once_per_month", True))
-                    in_birthday_month = is_birthday_month(birthday, txn_day)
-                    already_used = once_per_month and birthday_discount_used_this_month(db, customer_id, month_key)
-                    discount_applied = in_birthday_month and not already_used
-                    final_amount = amount * (1 - birthday_discount_rate) if discount_applied else amount
+                    discount_applied = False
+                    final_amount = amount
 
                     year_total_so_far = customer_year_total(db, customer_id, year_str)
                     past_max_single = get_past_max_single(db, customer_id)
@@ -613,6 +609,28 @@ def report():
 @app.route("/api/transactions/<int:txn_id>/update", methods=["POST"])
 def update_transaction(txn_id):
     db = get_db()
+
+    # Parse form data
+    name = request.form.get("name", "").strip()
+    birthday = request.form.get("birthday", "").strip()
+    store_id = request.form.get("store_id", "").strip()
+    try:
+        amount = float(request.form.get("amount", "0") or 0)
+    except ValueError:
+        amount = 0.0
+    try:
+        cash_received_raw = request.form.get("cash_received", "").strip()
+        cash_received: float | None = float(cash_received_raw) if cash_received_raw else None
+    except ValueError:
+        cash_received = None
+    try:
+        d = parse_date_or_today(request.form.get("txn_date", ""))
+    except ValueError:
+        d = date.today()
+
+    if not (name and birthday and store_id):
+        return {"status": "error", "message": "missing required fields"}, 400
+
     # 1. Fetch old transaction info to revert coins
     old_txn = db.execute(
         "SELECT customer_id, entry_mode, coins_earned, coins_redeemed FROM transactions WHERE id=?",
@@ -646,13 +664,12 @@ def update_transaction(txn_id):
     if old_mode == "normal":
         rules = load_rules()
         year_str = d.strftime("%Y")
-        # Calc tier based on totals *before* this transaction (using ID to stay consistent)
         past_max_single = float(db.execute("SELECT COALESCE(MAX(final_amount),0) FROM transactions WHERE customer_id=? AND id < ?", (old_customer_id, txn_id)).fetchone()[0] or 0)
         year_total_so_far = float(db.execute("SELECT COALESCE(SUM(final_amount),0) FROM transactions WHERE customer_id=? AND substr(txn_date,1,4)=? AND id < ?", (old_customer_id, year_str, txn_id)).fetchone()[0] or 0)
         tier = calc_tier(past_max_single, year_total_so_far, rules)
         new_coins_earned = int(new_final_amount * tier.points_rate)
 
-    # 5. Update transaction records
+    # 5. Update transaction record
     db.execute(
         """
         UPDATE transactions
@@ -666,10 +683,8 @@ def update_transaction(txn_id):
     if old_mode == "normal" and new_coins_earned > 0:
         db.execute("UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?", (new_coins_earned, old_customer_id))
     elif old_mode == "birthday_recharge":
-        # Keep old coins for recharge since it's plan-based, but we re-apply them
         db.execute("UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?", (old_coins_earned, old_customer_id))
     elif old_mode == "coin_deduct":
-        # Keep old coins for deduct
         db.execute("UPDATE customers SET coin_balance = coin_balance - ? WHERE id=?", (old_coins_redeemed, old_customer_id))
 
     db.commit()
