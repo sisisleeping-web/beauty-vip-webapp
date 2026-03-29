@@ -115,24 +115,54 @@ beauty-vip-webapp/
 
 ## 部署架構
 
-**PythonAnywhere**
+### PythonAnywhere（生產環境）
+
 - 用戶：sisisleeping
 - WSGI：/var/www/sisisleeping_pythonanywhere_com_wsgi.py
 - DB 路徑（PA）：~/beauty-vip-webapp/data/beauty_vip.db
 - Reload 方式：`touch /var/www/sisisleeping_pythonanywhere_com_wsgi.py`
 
-**部署流程**
+### 部署流程（程式碼）
+
 1. 本機：`git push origin main`
 2. PA Bash console：`cd ~/beauty-vip-webapp && git pull --ff-only && touch /var/www/sisisleeping_pythonanywhere_com_wsgi.py`
 
-**DB 注意**：DB 為 gitignored，本機修改不會自動同步 PA。
-資料結構異動需上傳 migration script 到 PA 執行。
+---
 
-**快速腳本**
+## ⚠️ 資料主權：雲端 DB 為唯一真相來源
+
+```text
+【鐵則】PA 上的 beauty_vip.db = 生產資料 = 唯一正確來源
+         本機 data/beauty_vip.db = 參考副本，可能過期
+```
+
+### 正確資料流向
+
+```text
+PA DB（雲端）→ 下載備份 → 本機（參考用）
+                ↑
+          美容師從網頁輸入資料
+```
+
+### 取得最新資料到本機
+
+1. 登入 <https://sisisleeping.pythonanywhere.com/manager>
+2. 點「備份下載」→ 下載 `beauty_vip_backup_YYYYMMDD_HHMMSS.db`
+3. 覆蓋到本機 `data/beauty_vip.db`
+
+### 資料修復原則
+
+- 任何 DB 資料修復腳本必須在 **PA 上執行**，不是本機
+- 流程：撰寫腳本 → 上傳到 PA → PA console 執行 → 驗算 → 刪腳本
+- 永遠不要把本機 DB 推覆蓋 PA DB
+
+### 快速腳本
+
 ```bash
-./scripts/deploy.sh          # 一鍵部署（需機器有 CDP 可用的 PA 瀏覽器 session）
-python3 scripts/db_check.py  # 本機資料完整性驗算
-python3 scripts/db_backup.py # 本機 DB 備份到 data/backups/
+./scripts/deploy.sh          # 一鍵部署程式碼（不含 DB）
+python3 scripts/db_check.py  # 驗算本機 DB（或指定路徑）
+python3 scripts/db_backup.py # 備份本機 DB 到 data/backups/（本機副本用）
+# scripts/pa_migrate.py      # 上傳到 PA 執行的修復工具包
 ```
 
 ---
