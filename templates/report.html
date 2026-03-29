@@ -59,7 +59,7 @@
     <thead>
       <tr>
         <th>日期</th><th>分店</th><th>客戶</th><th>生日</th><th>VIP等級</th>
-        <th>原始金額</th><th>實收金額</th><th>壽星折扣</th>
+        <th>原始金額</th><th>實收金額</th>
         <th>獲得點數</th><th>模式</th><th style="min-width:100px;">操作</th>
       </tr>
     </thead>
@@ -82,7 +82,6 @@
       </td>
       <td class="view-cell" style="text-align:right;">{{ '%.0f'|format(r.amount) }}</td>
       <td class="view-cell" style="text-align:right; font-weight:600;">{{ '%.0f'|format(r.final_amount) }}</td>
-      <td class="view-cell" style="text-align:center;">{{ '有折扣' if r.birthday_discount_applied else '-' }}</td>
       <td class="view-cell" style="color:#7c3aed;font-weight:700; text-align:right;">
         {% if r.entry_mode == 'birthday_recharge' %}
           +{{ r.coins_earned }}🎂
@@ -105,7 +104,7 @@
       </td>
 
       <!-- Edit mode cells (hidden by default) -->
-      <td class="edit-cell" style="display:none;" colspan="11">
+      <td class="edit-cell" style="display:none;" colspan="10">
         <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:8px 0;">
           <div><label style="font-size:12px;margin:0;">日期</label><br><input type="date" id="e-date-{{ r.id }}" value="{{ r.txn_date }}" style="width:140px;max-width:none;"></div>
           <div><label style="font-size:12px;margin:0;">分店</label><br>
