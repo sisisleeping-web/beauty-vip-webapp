@@ -22,8 +22,13 @@
         {% endfor %}
       </select>
     </div>
+    <div>
+      <label>搜尋姓名/電話</label>
+      <input type="text" name="q" value="{{ filters.q }}" placeholder="如：陳小明 / 09xx" style="max-width:180px;">
+    </div>
     <div style="align-self:flex-end;">
       <button type="submit" style="background:linear-gradient(135deg,#6c3fc5,#a855f7);color:#fff;">🔍 查詢</button>
+      <a href="/manager"><button type="button" style="background:#f3f4f6;color:#555;border:1px solid #ddd;margin-left:4px;">清除</button></a>
     </div>
   </form>
 </div>
@@ -100,7 +105,7 @@
       <td style="text-align:right; font-weight:600;">{{ '%.0f'|format(c.month_spend or 0) }}</td>
       <td style="text-align:right; font-weight:600; color:#0e7fa8;">{{ '%.0f'|format(c.year_spend or 0) }}</td>
       <td style="text-align:right; color:#d97706; font-weight:700; font-size:1.05rem;">
-        🪙 {{ '%.0f'|format(c.total_cashback or 0) }}
+        🪙 {{ c.coin_balance or 0 }}
       </td>
     </tr>
     {% endfor %}

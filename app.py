@@ -750,6 +750,7 @@ def manager_dashboard():
     month = request.args.get("month", date.today().strftime("%Y-%m"))
     year = month[:4]
     store_id_filter = request.args.get("store_id", "").strip()
+    q_filter = request.args.get("q", "").strip()
 
     stores = db.execute("SELECT id, name FROM stores ORDER BY name").fetchall()
 
@@ -766,16 +767,20 @@ def manager_dashboard():
         (month, year),
     ).fetchall()
 
-    # Customer stats with optional store filter
+    # Customer stats with optional store + name/phone filter
     cust_where = ""
     cust_params: list[Any] = [month, year]
     if store_id_filter:
-        cust_where = "AND t.store_id = ?"
+        cust_where += " AND t.store_id = ?"
         cust_params.append(store_id_filter)
+
+    if q_filter:
+        cust_where += " AND (c.name LIKE ? OR c.phone LIKE ?)"
+        cust_params.extend([f"%{q_filter}%", f"%{q_filter}%"])
 
     customer_stats = db.execute(
         f"""
-        SELECT c.name, c.phone, c.birthday, c.coin_balance,
+        SELECT c.id, c.name, c.phone, c.birthday, c.coin_balance,
                GROUP_CONCAT(DISTINCT s.name) AS stores,
                SUM(CASE WHEN t.month_key = ? THEN t.final_amount ELSE 0 END) AS month_spend,
                SUM(CASE WHEN substr(t.txn_date,1,4) = ? THEN t.final_amount ELSE 0 END) AS year_spend,
@@ -790,7 +795,7 @@ def manager_dashboard():
         cust_params,
     ).fetchall()
 
-    filters = {"store_id": store_id_filter}
+    filters = {"store_id": store_id_filter, "q": q_filter}
 
     return render_template(
         "manager.html",
@@ -921,8 +926,27 @@ def update_customer(customer_id):
         params.append(birthday)
     if updates:
         params.append(customer_id)
-        db.execute(f"UPDATE customers SET {', '.join(updates)} WHERE id=?", params)
-        db.commit()
+        try:
+            db.execute(f"UPDATE customers SET {', '.join(updates)} WHERE id=?", params)
+            db.commit()
+        except Exception as e:
+            err_msg = str(e)
+            if "UNIQUE" in err_msg:
+                # Conflict with existing customer — check if auto-merge is possible
+                new_name = name or db.execute("SELECT name FROM customers WHERE id=?", (customer_id,)).fetchone()["name"]
+                new_bday = birthday or db.execute("SELECT birthday FROM customers WHERE id=?", (customer_id,)).fetchone()["birthday"]
+                conflict = db.execute(
+                    "SELECT id FROM customers WHERE name=? AND birthday=? AND id!=?",
+                    (new_name, new_bday, customer_id),
+                ).fetchone()
+                if conflict:
+                    return (
+                        f"<p style='color:red;padding:20px;'>⚠️ 儲存失敗：已存在相同姓名+生日的顧客（ID {conflict['id']}）。"
+                        f"如需合併，請至<a href='/review'>資料審核頁</a>操作合併功能。</p>"
+                        f"<p><a href='/contacts'>← 返回通訊錄</a></p>",
+                        409,
+                    )
+            return f"<p style='color:red;padding:20px;'>儲存失敗：{err_msg}</p><p><a href='/contacts'>← 返回通訊錄</a></p>", 500
     return redirect(url_for("contacts"))
 
 
@@ -1024,7 +1048,66 @@ def review_update_birthday(customer_id):
             datetime.strptime(birthday, "%Y-%m-%d")
     except ValueError:
         return "生日格式錯誤", 400
-    db.execute("UPDATE customers SET birthday=? WHERE id=?", (birthday, customer_id))
+    try:
+        db.execute("UPDATE customers SET birthday=? WHERE id=?", (birthday, customer_id))
+        db.commit()
+    except Exception as e:
+        if "UNIQUE" in str(e):
+            cur_name = db.execute("SELECT name FROM customers WHERE id=?", (customer_id,)).fetchone()["name"]
+            conflict = db.execute(
+                "SELECT id FROM customers WHERE name=? AND birthday=? AND id!=?",
+                (cur_name, birthday, customer_id),
+            ).fetchone()
+            if conflict:
+                return (
+                    f"<p style='color:red;padding:20px;'>⚠️ 儲存失敗：已存在相同姓名+生日的顧客（ID {conflict['id']}）。"
+                    f"請使用下方合併功能，將 ID {customer_id} 合併至 ID {conflict['id']}。</p>"
+                    f"<p><a href='/review'>← 返回審核頁</a></p>",
+                    409,
+                )
+        return f"<p style='color:red;padding:20px;'>儲存失敗：{e}</p><p><a href='/review'>← 返回審核頁</a></p>", 500
+    return redirect(request.referrer or url_for("review_page"))
+
+
+@app.route("/api/customers/merge", methods=["POST"])
+def merge_customers():
+    """Merge keep_id ← absorb_id: move all transactions, then delete absorb_id."""
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
+    db = get_db()
+    try:
+        keep_id = int(request.form.get("keep_id", "0"))
+        absorb_id = int(request.form.get("absorb_id", "0"))
+    except (ValueError, TypeError):
+        return "參數錯誤", 400
+
+    if keep_id == absorb_id or not keep_id or not absorb_id:
+        return "請選擇兩個不同的顧客", 400
+
+    keep = db.execute("SELECT id, name, phone, birthday, coin_balance FROM customers WHERE id=?", (keep_id,)).fetchone()
+    absorb = db.execute("SELECT id, name, phone, birthday, coin_balance FROM customers WHERE id=?", (absorb_id,)).fetchone()
+
+    if not keep or not absorb:
+        return "找不到指定顧客", 404
+
+    # Move all transactions from absorb → keep
+    db.execute("UPDATE transactions SET customer_id=? WHERE customer_id=?", (keep_id, absorb_id))
+
+    # Merge coin balance
+    merged_coins = int(keep["coin_balance"] or 0) + int(absorb["coin_balance"] or 0)
+    # Keep the more complete phone (prefer non-empty)
+    merged_phone = keep["phone"] or absorb["phone"] or ""
+    db.execute(
+        "UPDATE customers SET coin_balance=?, phone=? WHERE id=?",
+        (merged_coins, merged_phone, keep_id),
+    )
+
+    # Delete absorbed customer
+    db.execute("DELETE FROM customers WHERE id=?", (absorb_id,))
+
+    # Clean up review flags for absorbed customer
+    db.execute("DELETE FROM review_flags WHERE item_type='birthday_suspicious' AND item_key=?", (str(absorb_id),))
+
     db.commit()
     return redirect(request.referrer or url_for("review_page"))
 

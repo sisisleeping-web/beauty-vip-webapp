@@ -104,22 +104,36 @@
     {% else %}
     <span style="color:#e67e22;">⚠️ 未審核</span>
     {% endif %}
-    <table style="margin-top:8px;">
+    <table style="margin-top:8px;width:100%;">
       <thead>
-        <tr><th>ID</th><th>生日</th><th>電話</th><th>建立時間</th><th>修改生日</th></tr>
+        <tr><th>ID</th><th>生日</th><th>電話</th><th>建立時間</th><th>修改生日</th><th>合併操作</th></tr>
       </thead>
       <tbody>
       {% for m in grp.members %}
       <tr>
-        <td>{{ m.id }}</td>
+        <td><strong>{{ m.id }}</strong></td>
         <td>{{ m.birthday }}</td>
         <td>{{ m.phone or '-' }}</td>
         <td style="font-size:0.85em;">{{ m.created_at }}</td>
         <td>
           <form method="post" action="/review/update_birthday/{{ m.id }}" style="display:inline-flex;gap:4px;align-items:center;">
             <input type="date" name="birthday" value="{{ m.birthday }}" style="padding:4px;">
-            <button type="submit" style="background:#2980b9;color:white;border:none;padding:4px 8px;cursor:pointer;">儲存</button>
+            <button type="submit" style="background:#2980b9;color:white;border:none;padding:4px 8px;cursor:pointer;">儲存生日</button>
           </form>
+        </td>
+        <td>
+          {# Merge buttons: for each OTHER member, offer to absorb them INTO this one #}
+          {% for target in grp.members if target.id != m.id %}
+          <form method="post" action="/api/customers/merge" style="display:inline;">
+            <input type="hidden" name="keep_id" value="{{ m.id }}">
+            <input type="hidden" name="absorb_id" value="{{ target.id }}">
+            <button type="submit"
+              onclick="return confirm('確定要將 ID {{ target.id }}（{{ target.birthday }}）的所有消費紀錄合併至 ID {{ m.id }}（{{ m.birthday }}），並刪除 ID {{ target.id }}？此動作無法復原。')"
+              style="background:#e67e22;color:white;border:none;border-radius:5px;padding:4px 9px;font-size:12px;cursor:pointer;">
+              ⇦ 吸收 ID {{ target.id }}
+            </button>
+          </form>
+          {% endfor %}
         </td>
       </tr>
       {% endfor %}
@@ -137,7 +151,6 @@
         <button type="submit" style="background:#7f8c8d;color:white;border:none;padding:6px 12px;cursor:pointer;">↩ 取消審核</button>
       </form>
       {% endif %}
-      <button type="button" disabled title="合併需手動操作" style="opacity:0.4;cursor:not-allowed;">合併（手動）</button>
     </div>
   </div>
   {% endfor %}
