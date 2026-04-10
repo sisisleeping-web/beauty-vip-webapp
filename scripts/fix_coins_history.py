@@ -2,9 +2,13 @@
 """Fix historical coins_earned and cashback for transactions where the
 current-txn amount itself should have triggered a higher tier.
 
-Bug: calc_tier() previously only considered past_max_single (before this txn),
+Bug 1: calc_tier() previously only considered past_max_single (before this txn),
 so a large first-time purchase (e.g. 20000) was calculated at 一般會員 rate
 instead of P級 rate. Fixed by using max(past_max_single, current_amount).
+
+Bug 2: previously used `id < txn_id` to find past transactions, which fails
+when data was imported in non-chronological order (so txn_date order != id order).
+Fixed by using `txn_date < current_txn_date` ordering instead.
 """
 
 import sqlite3
@@ -52,19 +56,24 @@ for r in rows:
     amount = float(r["final_amount"])
     old_coins = int(r["coins_earned"] or 0)
     old_cashback = float(r["cashback"] or 0)
-    year_str = r["txn_date"][:4]
+    txn_date = r["txn_date"]
+    year_str = txn_date[:4]
 
+    # Use txn_date ordering (not id) — data may have been imported out of id order
     past_max = float(
         cur.execute(
-            "SELECT COALESCE(MAX(final_amount),0) FROM transactions WHERE customer_id=? AND id < ?",
-            (cust_id, txn_id),
+            """SELECT COALESCE(MAX(final_amount),0) FROM transactions
+               WHERE customer_id=? AND txn_date < ? AND entry_mode='normal'""",
+            (cust_id, txn_date),
         ).fetchone()[0]
         or 0
     )
     year_before = float(
         cur.execute(
-            "SELECT COALESCE(SUM(final_amount),0) FROM transactions WHERE customer_id=? AND substr(txn_date,1,4)=? AND id < ?",
-            (cust_id, year_str, txn_id),
+            """SELECT COALESCE(SUM(final_amount),0) FROM transactions
+               WHERE customer_id=? AND substr(txn_date,1,4)=?
+               AND txn_date < ? AND entry_mode='normal'""",
+            (cust_id, year_str, txn_date),
         ).fetchone()[0]
         or 0
     )
