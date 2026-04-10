@@ -159,13 +159,21 @@ def birthday_discount_used_this_month(db: sqlite3.Connection, customer_id: int, 
     return int(row["cnt"]) > 0
 
 
-def calc_tier(single_amount: float, annual_amount: float, rules: dict[str, Any]) -> TierRule:
+def calc_tier(single_amount: float, annual_amount: float, rules: dict[str, Any], current_amount: float = 0.0) -> TierRule:
+    """Determine VIP tier based on:
+    - single_amount: best single-txn ever BEFORE this txn (historical max)
+    - annual_amount: year-to-date spend BEFORE this txn
+    - current_amount: the current txn amount (included so a big single purchase
+      immediately triggers the tier it qualifies for)
+    The effective single-txn figure is max(single_amount, current_amount).
+    """
+    effective_single = max(single_amount, current_amount)
     tier_name = "一般會員"
-    if single_amount >= 30000 or annual_amount >= 60000:
+    if effective_single >= 30000 or annual_amount >= 60000:
         tier_name = "A級美咖"
-    elif single_amount >= 12000 or annual_amount >= 24000:
+    elif effective_single >= 12000 or annual_amount >= 24000:
         tier_name = "P級美咖"
-    elif single_amount >= 8000 or annual_amount >= 15000:
+    elif effective_single >= 8000 or annual_amount >= 15000:
         tier_name = "S級美咖"
 
     for t in rules["vip_tiers"]:
@@ -421,7 +429,9 @@ def entry():
                     year_total_so_far = customer_year_total(db, customer_id, year_str)
                     past_max_single = get_past_max_single(db, customer_id)
 
-                    tier_before = calc_tier(past_max_single, year_total_so_far, rules)
+                    # Pass current amount so that a big single purchase immediately
+                    # benefits from the tier it qualifies for (e.g. 20000 → P級)
+                    tier_before = calc_tier(past_max_single, year_total_so_far, rules, current_amount=final_amount)
                     cashback = round(final_amount * tier_before.cashback_rate, 2)
                     points = int(final_amount * tier_before.points_rate)
 
@@ -666,7 +676,7 @@ def update_transaction(txn_id):
         year_str = d.strftime("%Y")
         past_max_single = float(db.execute("SELECT COALESCE(MAX(final_amount),0) FROM transactions WHERE customer_id=? AND id < ?", (old_customer_id, txn_id)).fetchone()[0] or 0)
         year_total_so_far = float(db.execute("SELECT COALESCE(SUM(final_amount),0) FROM transactions WHERE customer_id=? AND substr(txn_date,1,4)=? AND id < ?", (old_customer_id, year_str, txn_id)).fetchone()[0] or 0)
-        tier = calc_tier(past_max_single, year_total_so_far, rules)
+        tier = calc_tier(past_max_single, year_total_so_far, rules, current_amount=new_final_amount)
         new_coins_earned = int(new_final_amount * tier.points_rate)
 
     # 5. Update transaction record
@@ -1167,7 +1177,7 @@ def admin_backfill_coins():
                 (r["customer_id"], r["id"]),
             ).fetchone()["m"] or 0
         )
-        tier = calc_tier(max_single, year_total, rules)
+        tier = calc_tier(max_single, year_total, rules, current_amount=float(r["final_amount"]))
         coins = int(float(r["final_amount"]) * tier.points_rate)
         if coins > 0:
             db.execute(
