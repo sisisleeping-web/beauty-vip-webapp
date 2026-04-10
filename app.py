@@ -844,7 +844,9 @@ def contacts():
                GROUP_CONCAT(DISTINCT s.name) AS stores,
                COALESCE(SUM(t.final_amount),0) AS total_spend,
                MAX(t.txn_date) AS last_txn_date,
-               GROUP_CONCAT(DISTINCT t.store_id) AS store_ids
+               GROUP_CONCAT(DISTINCT t.store_id) AS store_ids,
+               COALESCE(SUM(t.coins_earned),0) AS total_coins_earned,
+               COALESCE(SUM(t.coins_redeemed),0) AS total_coins_redeemed
         FROM customers c
         LEFT JOIN transactions t ON c.id = t.customer_id
         LEFT JOIN stores s ON t.store_id = s.id
