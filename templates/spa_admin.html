@@ -75,6 +75,8 @@
         {% if b.status == 'pending' %}
         <button onclick="confirmBooking({{ b.id }})" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;">確認</button>
         {% endif %}
+        <button onclick="updateBookingTime({{ b.id }}, '{{ b.booking_date }}', '{{ b.booking_time }}')" style="background:#3b82f6;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;">修改時段</button>
+        <button onclick="deleteBooking({{ b.id }})" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;">刪除</button>
       </td>
     </tr>
     {% else %}
@@ -102,6 +104,37 @@ function confirmBooking(id) {
         console.error(err);
         alert('發生錯誤');
       });
+  }
+}
+
+function updateBookingTime(id, oldDate, oldTime) {
+  let newDate = prompt("請輸入新日期 (YYYY-MM-DD):", oldDate);
+  if(!newDate) return;
+  let newTime = prompt("請輸入新時段 (例如 09:00, 13:00):", oldTime);
+  if(!newTime) return;
+  
+  const fd = new URLSearchParams();
+  fd.append("booking_date", newDate);
+  fd.append("booking_time", newTime);
+  
+  fetch(`/api/spa/bookings/${id}/update_time`, { method: 'POST', body: fd })
+    .then(res => res.json())
+    .then(data => {
+      if(data.status === 'success') location.reload();
+      else alert(data.error || '修改失敗');
+    })
+    .catch(err => alert('發生錯誤'));
+}
+
+function deleteBooking(id) {
+  if(confirm("確定要刪除這筆預約嗎？(此操作無法復原)")) {
+    fetch(`/api/spa/bookings/${id}/delete`, { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        if(data.status === 'success') location.reload();
+        else alert(data.error || '刪除失敗');
+      })
+      .catch(err => alert('發生錯誤'));
   }
 }
 </script>

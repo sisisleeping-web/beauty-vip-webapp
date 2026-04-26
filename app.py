@@ -1684,8 +1684,32 @@ def spa_admin_bookings():
 
 @app.route("/api/spa/bookings/<int:booking_id>/confirm", methods=["POST"])
 def spa_admin_confirm(booking_id):
+    if not session.get("manager_authed"):
+        return {"error": "Unauthorized"}, 403
     db = get_db()
     db.execute("UPDATE spa_bookings SET status = 'confirmed' WHERE id = ?", (booking_id,))
+    db.commit()
+    return {"status": "success"}
+
+@app.route("/api/spa/bookings/<int:booking_id>/update_time", methods=["POST"])
+def spa_admin_update_time(booking_id):
+    if not session.get("manager_authed"):
+        return {"error": "Unauthorized"}, 403
+    db = get_db()
+    new_date = request.form.get("booking_date", "").strip()
+    new_time = request.form.get("booking_time", "").strip()
+    if not new_date or not new_time:
+        return {"error": "Missing parameters"}, 400
+    db.execute("UPDATE spa_bookings SET booking_date=?, booking_time=? WHERE id=?", (new_date, new_time, booking_id))
+    db.commit()
+    return {"status": "success"}
+
+@app.route("/api/spa/bookings/<int:booking_id>/delete", methods=["POST"])
+def spa_admin_delete(booking_id):
+    if not session.get("manager_authed"):
+        return {"error": "Unauthorized"}, 403
+    db = get_db()
+    db.execute("DELETE FROM spa_bookings WHERE id = ?", (booking_id,))
     db.commit()
     return {"status": "success"}
 
