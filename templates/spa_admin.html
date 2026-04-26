@@ -112,7 +112,7 @@
   <h4 style="margin-top:0; font-size:1.1rem;">調整單日時段人數上限</h4>
   <div style="margin-bottom:12px;">
     <label style="display:block; margin-bottom:4px; font-size:14px; font-weight:600;">選擇分店</label>
-    <select id="capStore" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;" onchange="renderCapTimeOptions()">
+    <select id="capStore" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;" onchange="fetchCapDataAndRender()">
       <option value="">請選擇</option>
       {% for s in stores %}
       <option value="{{ s.id }}" data-name="{{ s.name }}">{{ s.name }}</option>
@@ -121,11 +121,11 @@
   </div>
   <div style="margin-bottom:12px;">
     <label style="display:block; margin-bottom:4px; font-size:14px; font-weight:600;">選擇日期</label>
-    <input type="date" id="capDate" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;" onchange="renderCapTimeOptions()">
+    <input type="date" id="capDate" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;" onchange="fetchCapDataAndRender()">
   </div>
   <div style="margin-bottom:12px;">
     <label style="display:block; margin-bottom:4px; font-size:14px; font-weight:600;">選擇時段</label>
-    <select id="capTime" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">
+    <select id="capTime" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;" onchange="updateCapValue()">
       <option value="">請先選擇分店與日期</option>
     </select>
   </div>
@@ -278,6 +278,34 @@ function openCapacityModal() {
   document.getElementById('capacityModal').showModal();
 }
 
+let currentCapData = {};
+
+function fetchCapDataAndRender() {
+  const storeId = document.getElementById('capStore').value;
+  const dateVal = document.getElementById('capDate').value;
+  const timeSelect = document.getElementById('capTime');
+  const capValueInput = document.getElementById('capValue');
+  
+  if(!storeId || !dateVal) {
+    timeSelect.innerHTML = '<option value="">請先選擇分店與日期</option>';
+    capValueInput.value = 2;
+    currentCapData = {};
+    return;
+  }
+  
+  const monthStr = dateVal.substring(0, 7);
+  fetch(`/api/spa/availability?store_id=${storeId}&month=${monthStr}`)
+    .then(res => res.json())
+    .then(data => {
+      currentCapData = data.capacities || {};
+      renderCapTimeOptions();
+    })
+    .catch(err => {
+      console.error(err);
+      renderCapTimeOptions();
+    });
+}
+
 function renderCapTimeOptions() {
   const storeSel = document.getElementById('capStore');
   const dateVal = document.getElementById('capDate').value;
@@ -313,6 +341,25 @@ function renderCapTimeOptions() {
     option.textContent = time;
     timeSelect.appendChild(option);
   });
+  
+  updateCapValue();
+}
+
+function updateCapValue() {
+  const dateVal = document.getElementById('capDate').value;
+  const timeVal = document.getElementById('capTime').value;
+  const input = document.getElementById('capValue');
+  
+  if(!dateVal || !timeVal) {
+    input.value = 2;
+    return;
+  }
+  
+  if(currentCapData[dateVal] && currentCapData[dateVal][timeVal] !== undefined) {
+    input.value = currentCapData[dateVal][timeVal];
+  } else {
+    input.value = 2; // Default
+  }
 }
 
 function saveCapacity() {
