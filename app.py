@@ -40,14 +40,14 @@ def main_unlock():
     pin = (request.form.get("pin") or "").strip()
     if pin == MAIN_PIN:
         session["main_authed"] = True
-        return redirect(url_for("home"))
+        return redirect(url_for("index"))
     return render_template("main_lock.html", error="密碼錯誤，請再試一次。")
 
 @app.route("/main_logout")
 def main_logout():
     session.pop("main_authed", None)
     session.pop("manager_authed", None)
-    return redirect(url_for("home"))
+    return redirect(url_for("index"))
 
 # Birthday recharge campaign plans
 BIRTHDAY_RECHARGE_PLANS = [
