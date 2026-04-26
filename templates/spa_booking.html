@@ -244,7 +244,7 @@
           <div class="store-selector">
             {% for s in stores %}
             <button class="store-btn {% if loop.first %}active{% endif %}" data-store="{{ s.id }}">{{ s.name }}</button>
-            {% endform %}
+            {% endfor %}
           </div>
         </div>
         
