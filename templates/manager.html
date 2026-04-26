@@ -10,8 +10,12 @@
   </div>
   <form method="get" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
     <div>
-      <label>月份</label>
-      <input type="month" name="month" value="{{ month }}" style="max-width:180px;">
+      <label>起始月份</label>
+      <input type="month" name="month_from" id="mgr_month_from" value="{{ month_from }}" style="max-width:180px;">
+    </div>
+    <div>
+      <label>結束月份</label>
+      <input type="month" name="month_to" id="mgr_month_to" value="{{ month_to }}" style="max-width:180px;">
     </div>
     <div>
       <label>篩選分店（明細用）</label>
@@ -31,6 +35,32 @@
       <a href="/manager"><button type="button" style="background:#f3f4f6;color:#555;border:1px solid #ddd;margin-left:4px;">清除</button></a>
     </div>
   </form>
+  <div style="margin-top:10px;">
+    <label style="font-size:0.85rem; color:#666;">快速選擇</label>
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(1,1)">1月</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(2,2)">2月</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(3,3)">3月</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(4,4)">4月</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(5,5)">5月</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(6,6)">6月</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(7,7)">7月</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(8,8)">8月</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(9,9)">9月</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(10,10)">10月</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(11,11)">11月</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(12,12)">12月</button>
+      <span style="border-left:1px solid #ddd;margin:0 2px;"></span>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(1,3)" style="background:#ede9fe;">Q1</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(4,6)" style="background:#ede9fe;">Q2</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(7,9)" style="background:#ede9fe;">Q3</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(10,12)" style="background:#ede9fe;">Q4</button>
+      <span style="border-left:1px solid #ddd;margin:0 2px;"></span>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(1,6)" style="background:#dbeafe;">上半年</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(7,12)" style="background:#dbeafe;">下半年</button>
+      <button type="button" class="quick-month-btn" onclick="setMgrRange(1,12)" style="background:#d1fae5;">全年</button>
+    </div>
+  </div>
 </div>
 
 <!-- Store Revenue Summary -->
@@ -40,8 +70,8 @@
     <thead>
       <tr>
         <th>分店</th>
-        <th style="text-align:right;">{{ month }} 月營收</th>
-        <th style="text-align:right;">{{ month[:4] }} 年營收</th>
+        <th style="text-align:right;">{% if month_from == month_to %}{{ month_label }} 月營收{% else %}{{ month_label }} 期間營收{% endif %}</th>
+        <th style="text-align:right;">{{ month_from[:4] }} 年營收</th>
       </tr>
     </thead>
     <tbody>
@@ -90,8 +120,8 @@
         <th>手機號碼</th>
         <th>生日</th>
         <th>所屬分店</th>
-        <th style="text-align:right;">{{ month }} 月消費</th>
-        <th style="text-align:right;">{{ month[:4] }} 年消費</th>
+        <th style="text-align:right;">{% if month_from == month_to %}{{ month_label }} 月消費{% else %}{{ month_label }} 期間消費{% endif %}</th>
+        <th style="text-align:right;">{{ month_from[:4] }} 年消費</th>
         <th style="text-align:right;">累計美咖幣</th>
       </tr>
     </thead>
@@ -112,4 +142,21 @@
     </tbody>
   </table></div>
 </div>
+
+<style>
+.quick-month-btn {
+  background: #f3f4f6; color: #333; border: 1px solid #ddd; border-radius: 6px;
+  padding: 4px 10px; font-size: 13px; cursor: pointer; white-space: nowrap;
+  transition: all 0.15s;
+}
+.quick-month-btn:hover { background: #6c3fc5; color: #fff; border-color: #6c3fc5; }
+</style>
+
+<script>
+function setMgrRange(from, to) {
+  const year = document.getElementById('mgr_month_from').value.substring(0, 4) || new Date().getFullYear().toString();
+  document.getElementById('mgr_month_from').value = year + '-' + String(from).padStart(2, '0');
+  document.getElementById('mgr_month_to').value = year + '-' + String(to).padStart(2, '0');
+}
+</script>
 {% endblock %}

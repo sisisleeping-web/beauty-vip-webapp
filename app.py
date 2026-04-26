@@ -798,29 +798,38 @@ def manager_dashboard():
         return render_template("manager_lock.html", error=None)
 
     db = get_db()
-    month = request.args.get("month", date.today().strftime("%Y-%m"))
-    year = month[:4]
+    default_month = date.today().strftime("%Y-%m")
+    month_from = request.args.get("month_from", "").strip() or request.args.get("month", default_month)
+    month_to = request.args.get("month_to", "").strip() or month_from
+    if month_to < month_from:
+        month_to = month_from
+    year = month_from[:4]
     store_id_filter = request.args.get("store_id", "").strip()
     q_filter = request.args.get("q", "").strip()
+
+    if month_from == month_to:
+        month_label = month_from
+    else:
+        month_label = f"{month_from} ~ {month_to}"
 
     stores = db.execute("SELECT id, name FROM stores ORDER BY name").fetchall()
 
     store_stats = db.execute(
         """
         SELECT s.name AS store_name,
-               SUM(CASE WHEN t.month_key = ? THEN t.final_amount ELSE 0 END) AS month_revenue,
+               SUM(CASE WHEN t.month_key >= ? AND t.month_key <= ? THEN t.final_amount ELSE 0 END) AS month_revenue,
                SUM(CASE WHEN substr(t.txn_date,1,4) = ? THEN t.final_amount ELSE 0 END) AS year_revenue
         FROM stores s
         LEFT JOIN transactions t ON s.id = t.store_id
         GROUP BY s.name
         ORDER BY s.name
         """,
-        (month, year),
+        (month_from, month_to, year),
     ).fetchall()
 
     # Customer stats with optional store + name/phone filter
     cust_where = ""
-    cust_params: list[Any] = [month, year]
+    cust_params: list[Any] = [month_from, month_to, year]
     if store_id_filter:
         cust_where += " AND t.store_id = ?"
         cust_params.append(store_id_filter)
@@ -833,7 +842,7 @@ def manager_dashboard():
         f"""
         SELECT c.id, c.name, c.phone, c.birthday, c.coin_balance,
                GROUP_CONCAT(DISTINCT s.name) AS stores,
-               SUM(CASE WHEN t.month_key = ? THEN t.final_amount ELSE 0 END) AS month_spend,
+               SUM(CASE WHEN t.month_key >= ? AND t.month_key <= ? THEN t.final_amount ELSE 0 END) AS month_spend,
                SUM(CASE WHEN substr(t.txn_date,1,4) = ? THEN t.final_amount ELSE 0 END) AS year_spend,
                SUM(t.cashback) AS total_cashback
         FROM customers c
@@ -846,11 +855,14 @@ def manager_dashboard():
         cust_params,
     ).fetchall()
 
-    filters = {"store_id": store_id_filter, "q": q_filter}
+    filters = {"store_id": store_id_filter, "q": q_filter, "month_from": month_from, "month_to": month_to}
 
     return render_template(
         "manager.html",
-        month=month,
+        month=month_from,
+        month_label=month_label,
+        month_from=month_from,
+        month_to=month_to,
         store_stats=store_stats,
         customer_stats=customer_stats,
         stores=stores,
