@@ -19,6 +19,35 @@ APP_VERSION = "1.2.0"
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("APP_SECRET_KEY", "beauty-vip-demo")
 MANAGER_PIN = os.getenv("MANAGER_PIN", "1225")
+MAIN_PIN = os.getenv("MAIN_PIN", "27789254")
+
+@app.before_request
+def require_main_auth():
+    if request.path.startswith("/static/"):
+        return
+    if request.path.startswith("/my"):
+        return
+    if request.path in ["/main_unlock", "/manager/unlock"]:
+        return
+    
+    if session.get("main_authed") or session.get("manager_authed"):
+        return
+        
+    return render_template("main_lock.html", error=None)
+
+@app.route("/main_unlock", methods=["POST"])
+def main_unlock():
+    pin = (request.form.get("pin") or "").strip()
+    if pin == MAIN_PIN:
+        session["main_authed"] = True
+        return redirect(url_for("home"))
+    return render_template("main_lock.html", error="密碼錯誤，請再試一次。")
+
+@app.route("/main_logout")
+def main_logout():
+    session.pop("main_authed", None)
+    session.pop("manager_authed", None)
+    return redirect(url_for("home"))
 
 # Birthday recharge campaign plans
 BIRTHDAY_RECHARGE_PLANS = [

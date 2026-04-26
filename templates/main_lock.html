@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 40px auto; text-align: center;">
+  <h3>🔒 系統存取驗證</h3>
+  <p style="color: #666; margin-bottom: 20px;">請輸入主網密碼以進入系統。</p>
+  {% if error %}<p style="color:#b00020; font-weight: bold; background: #fee2e2; padding: 10px; border-radius: 8px;">{{ error }}</p>{% endif %}
+  <form method="post" action="/main_unlock">
+    <input type="password" name="pin" placeholder="請輸入密碼" required autofocus style="width: 100%; padding: 12px; border: 1.5px solid #d4c9f0; border-radius: 10px; font-size: 16px; margin-bottom: 16px; text-align: center;">
+    <button type="submit" style="width: 100%; background: linear-gradient(135deg, #6c3fc5, #a855f7); color: white; padding: 12px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">進入系統</button>
+  </form>
+  <div style="margin-top: 20px; font-size: 0.85rem;">
+    <a href="/my" style="color: #6c3fc5; text-decoration: none;">👤 顧客請點此前往自助查詢專區</a>
+  </div>
+</div>
+{% endblock %}
