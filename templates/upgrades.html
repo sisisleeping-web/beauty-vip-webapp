@@ -3,31 +3,30 @@
 <div class="card">
   <h3>🎁 升級禮追蹤管理</h3>
   <div style="margin:0 0 16px; display:flex; gap:16px; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px;">
-    <a href="/manager" style="color:#6c3fc5; font-size:0.9rem; text-decoration:none;">← 回主管儀表板</a>
-    <a href="/manager/logout" style="color:#dc2626; font-size:0.9rem; text-decoration:none;">🚪 登出</a>
+    <a href="/" style="color:#6c3fc5; font-size:0.9rem; text-decoration:none;">← 回首頁</a>
   </div>
 
   <!-- Status Filter Tabs -->
   <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
-    <a href="/manager/upgrades" style="text-decoration:none;">
+    <a href="/upgrades" style="text-decoration:none;">
       <button type="button" style="padding:6px 14px; border-radius:20px; border:1px solid #ddd; cursor:pointer; font-size:0.85rem;
         {% if not filters.status %}background:#6c3fc5; color:#fff; border-color:#6c3fc5; font-weight:700;{% else %}background:#f3f4f6; color:#333;{% endif %}">
         全部 ({{ (status_counts.get('pending',0) + status_counts.get('delivered',0) + status_counts.get('skipped',0)) }})
       </button>
     </a>
-    <a href="/manager/upgrades?status=pending{% if filters.q %}&q={{ filters.q }}{% endif %}" style="text-decoration:none;">
+    <a href="/upgrades?status=pending{% if filters.q %}&q={{ filters.q }}{% endif %}{% if filters.start_date %}&start_date={{ filters.start_date }}{% endif %}{% if filters.end_date %}&end_date={{ filters.end_date }}{% endif %}" style="text-decoration:none;">
       <button type="button" style="padding:6px 14px; border-radius:20px; border:1px solid #ddd; cursor:pointer; font-size:0.85rem;
         {% if filters.status == 'pending' %}background:#f59e0b; color:#fff; border-color:#f59e0b; font-weight:700;{% else %}background:#fef3c7; color:#92400e;{% endif %}">
         ⏳ 待發放 ({{ status_counts.get('pending', 0) }})
       </button>
     </a>
-    <a href="/manager/upgrades?status=delivered{% if filters.q %}&q={{ filters.q }}{% endif %}" style="text-decoration:none;">
+    <a href="/upgrades?status=delivered{% if filters.q %}&q={{ filters.q }}{% endif %}{% if filters.start_date %}&start_date={{ filters.start_date }}{% endif %}{% if filters.end_date %}&end_date={{ filters.end_date }}{% endif %}" style="text-decoration:none;">
       <button type="button" style="padding:6px 14px; border-radius:20px; border:1px solid #ddd; cursor:pointer; font-size:0.85rem;
         {% if filters.status == 'delivered' %}background:#059669; color:#fff; border-color:#059669; font-weight:700;{% else %}background:#d1fae5; color:#065f46;{% endif %}">
         ✅ 已送達 ({{ status_counts.get('delivered', 0) }})
       </button>
     </a>
-    <a href="/manager/upgrades?status=skipped{% if filters.q %}&q={{ filters.q }}{% endif %}" style="text-decoration:none;">
+    <a href="/upgrades?status=skipped{% if filters.q %}&q={{ filters.q }}{% endif %}{% if filters.start_date %}&start_date={{ filters.start_date }}{% endif %}{% if filters.end_date %}&end_date={{ filters.end_date }}{% endif %}" style="text-decoration:none;">
       <button type="button" style="padding:6px 14px; border-radius:20px; border:1px solid #ddd; cursor:pointer; font-size:0.85rem;
         {% if filters.status == 'skipped' %}background:#6b7280; color:#fff; border-color:#6b7280; font-weight:700;{% else %}background:#f3f4f6; color:#6b7280;{% endif %}">
         ⏭️ 略過 ({{ status_counts.get('skipped', 0) }})
@@ -36,18 +35,28 @@
   </div>
 
   <!-- Search -->
-  <form method="get" style="display:flex; gap:8px; align-items:flex-end; margin-bottom:16px;">
+  <form method="get" style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; margin-bottom:16px;">
     {% if filters.status %}
     <input type="hidden" name="status" value="{{ filters.status }}">
     {% endif %}
     <div>
-      <label style="font-size:0.85rem;">搜尋顧客姓名/電話</label>
-      <input type="text" name="q" value="{{ filters.q }}" placeholder="如：陳小明" style="max-width:180px;">
+      <label style="font-size:0.85rem; margin-top:0;">起始日期</label>
+      <input type="date" name="start_date" value="{{ filters.start_date }}" style="max-width:140px; padding:6px 10px;">
     </div>
-    <button type="submit" style="background:#6c3fc5; color:#fff; padding:6px 14px; border-radius:8px; font-size:0.85rem;">🔍 搜尋</button>
-    <a href="/manager/upgrades{% if filters.status %}?status={{ filters.status }}{% endif %}">
-      <button type="button" style="background:#f3f4f6; color:#555; border:1px solid #ddd; padding:6px 14px; border-radius:8px; font-size:0.85rem;">清除</button>
-    </a>
+    <div>
+      <label style="font-size:0.85rem; margin-top:0;">結束日期</label>
+      <input type="date" name="end_date" value="{{ filters.end_date }}" style="max-width:140px; padding:6px 10px;">
+    </div>
+    <div>
+      <label style="font-size:0.85rem; margin-top:0;">搜尋姓名/電話</label>
+      <input type="text" name="q" value="{{ filters.q }}" placeholder="如：陳小明" style="max-width:180px; padding:6px 10px;">
+    </div>
+    <div style="margin-bottom:4px;">
+      <button type="submit" style="background:#6c3fc5; color:#fff; padding:6px 14px; border-radius:8px; font-size:0.85rem; min-height:30px;">🔍 篩選</button>
+      <a href="/upgrades{% if filters.status %}?status={{ filters.status }}{% endif %}">
+        <button type="button" style="background:#f3f4f6; color:#555; border:1px solid #ddd; padding:5px 14px; border-radius:8px; font-size:0.85rem; min-height:30px; margin-left:4px;">清除</button>
+      </a>
+    </div>
   </form>
 </div>
 

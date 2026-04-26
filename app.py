@@ -1342,15 +1342,14 @@ def admin_backfill_coins():
 
 # ── Tier Upgrade Management ──────────────────────────────────────────────────
 
-@app.route("/manager/upgrades")
-def manager_upgrades():
+@app.route("/upgrades")
+def upgrades_page():
     """升級禮追蹤頁面"""
-    if not session.get("manager_authed"):
-        return render_template("manager_lock.html", error=None)
-
     db = get_db()
     status_filter = request.args.get("status", "").strip()
     q_filter = request.args.get("q", "").strip()
+    start_date = request.args.get("start_date", "").strip()
+    end_date = request.args.get("end_date", "").strip()
 
     where = ["1=1"]
     params: list[Any] = []
@@ -1360,6 +1359,12 @@ def manager_upgrades():
     if q_filter:
         where.append("(c.name LIKE ? OR c.phone LIKE ?)")
         params.extend([f"%{q_filter}%", f"%{q_filter}%"])
+    if start_date:
+        where.append("u.upgrade_date >= ?")
+        params.append(start_date)
+    if end_date:
+        where.append("u.upgrade_date <= ?")
+        params.append(end_date)
 
     rows = db.execute(
         f"""
@@ -1380,7 +1385,7 @@ def manager_upgrades():
     ).fetchall()
     status_counts = {r["gift_status"]: r["cnt"] for r in counts}
 
-    filters = {"status": status_filter, "q": q_filter}
+    filters = {"status": status_filter, "q": q_filter, "start_date": start_date, "end_date": end_date}
     return render_template(
         "upgrades.html",
         upgrades=rows,
@@ -1392,24 +1397,20 @@ def manager_upgrades():
 @app.route("/api/upgrades/<int:upgrade_id>/deliver", methods=["POST"])
 def deliver_upgrade_gift(upgrade_id):
     """標記升級禮已送達"""
-    if not session.get("manager_authed"):
-        return "Unauthorized", 403
     db = get_db()
     note = request.form.get("note", "").strip()
     now_str = datetime.now().isoformat(timespec="seconds")
     db.execute(
-        "UPDATE tier_upgrades SET gift_status='delivered', gift_delivered_at=?, gift_delivered_by='manager', note=? WHERE id=?",
+        "UPDATE tier_upgrades SET gift_status='delivered', gift_delivered_at=?, gift_delivered_by='staff', note=? WHERE id=?",
         (now_str, note, upgrade_id),
     )
     db.commit()
-    return redirect(request.referrer or url_for("manager_upgrades"))
+    return redirect(request.referrer or url_for("upgrades_page"))
 
 
 @app.route("/api/upgrades/<int:upgrade_id>/skip", methods=["POST"])
 def skip_upgrade_gift(upgrade_id):
     """標記升級禮略過（不發放）"""
-    if not session.get("manager_authed"):
-        return "Unauthorized", 403
     db = get_db()
     note = request.form.get("note", "").strip()
     now_str = datetime.now().isoformat(timespec="seconds")
@@ -1418,21 +1419,19 @@ def skip_upgrade_gift(upgrade_id):
         (now_str, note, upgrade_id),
     )
     db.commit()
-    return redirect(request.referrer or url_for("manager_upgrades"))
+    return redirect(request.referrer or url_for("upgrades_page"))
 
 
 @app.route("/api/upgrades/<int:upgrade_id>/reopen", methods=["POST"])
 def reopen_upgrade_gift(upgrade_id):
     """重新開啟升級禮為待發放（補發機制）"""
-    if not session.get("manager_authed"):
-        return "Unauthorized", 403
     db = get_db()
     db.execute(
         "UPDATE tier_upgrades SET gift_status='pending', gift_delivered_at=NULL, gift_delivered_by=NULL WHERE id=?",
         (upgrade_id,),
     )
     db.commit()
-    return redirect(request.referrer or url_for("manager_upgrades"))
+    return redirect(request.referrer or url_for("upgrades_page"))
 
 
 # ── Customer Self-Service Lookup ─────────────────────────────────────────────
