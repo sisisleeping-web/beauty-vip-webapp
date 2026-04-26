@@ -1379,11 +1379,31 @@ def upgrades_page():
         params,
     ).fetchall()
 
-    # Count by status
+    # Count by status (all time, ignores date filter for the general tabs if we want, or we can apply it. The original code didn't apply date filter to status tabs, but let's leave status_counts as is)
     counts = db.execute(
         "SELECT gift_status, COUNT(*) AS cnt FROM tier_upgrades GROUP BY gift_status"
     ).fetchall()
     status_counts = {r["gift_status"]: r["cnt"] for r in counts}
+
+    # Count delivered gifts by tier (applying date filter)
+    where_delivered = ["gift_status = 'delivered'"]
+    params_delivered = []
+    if start_date:
+        where_delivered.append("upgrade_date >= ?")
+        params_delivered.append(start_date)
+    if end_date:
+        where_delivered.append("upgrade_date <= ?")
+        params_delivered.append(end_date)
+        
+    tier_counts = db.execute(
+        f"""
+        SELECT tier_after, COUNT(*) AS cnt 
+        FROM tier_upgrades
+        WHERE {' AND '.join(where_delivered)}
+        GROUP BY tier_after
+        """, params_delivered
+    ).fetchall()
+    delivered_tier_counts = {r["tier_after"]: r["cnt"] for r in tier_counts}
 
     filters = {"status": status_filter, "q": q_filter, "start_date": start_date, "end_date": end_date}
     return render_template(
@@ -1391,6 +1411,7 @@ def upgrades_page():
         upgrades=rows,
         filters=filters,
         status_counts=status_counts,
+        delivered_tier_counts=delivered_tier_counts,
     )
 
 
