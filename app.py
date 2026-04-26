@@ -184,6 +184,15 @@ def init_db() -> None:
             status TEXT NOT NULL DEFAULT 'pending',
             created_at TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS spa_capacity_overrides (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            store_id TEXT NOT NULL,
+            override_date TEXT NOT NULL,
+            override_time TEXT NOT NULL,
+            capacity INTEGER NOT NULL DEFAULT 2,
+            UNIQUE(store_id, override_date, override_time)
+        );
         """
     )
 
@@ -1618,8 +1627,48 @@ def spa_availability():
         if dt not in booked_counts:
             booked_counts[dt] = {}
         booked_counts[dt][tm] = r["cnt"]
+
+    # Also fetch capacity overrides
+    cap_rows = db.execute(
+        "SELECT override_date, override_time, capacity FROM spa_capacity_overrides WHERE store_id = ? AND override_date LIKE ?",
+        (store_id, f"{year_month}-%")
+    ).fetchall()
+    capacities = {}
+    for r in cap_rows:
+        dt = r["override_date"]
+        tm = r["override_time"]
+        if dt not in capacities:
+            capacities[dt] = {}
+        capacities[dt][tm] = r["capacity"]
         
-    return {"booked_counts": booked_counts}
+    return {"booked_counts": booked_counts, "capacities": capacities}
+
+@app.route("/api/spa/capacity/update", methods=["POST"])
+def spa_capacity_update():
+    store_id = request.form.get("store_id", "").strip()
+    override_date = request.form.get("override_date", "").strip()
+    override_time = request.form.get("override_time", "").strip()
+    capacity = request.form.get("capacity", "").strip()
+    
+    if not all([store_id, override_date, override_time, capacity]):
+        return {"error": "Missing parameters"}, 400
+        
+    try:
+        capacity_int = int(capacity)
+    except ValueError:
+        return {"error": "Invalid capacity"}, 400
+        
+    db = get_db()
+    db.execute(
+        """
+        INSERT INTO spa_capacity_overrides (store_id, override_date, override_time, capacity)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(store_id, override_date, override_time) DO UPDATE SET capacity=excluded.capacity
+        """,
+        (store_id, override_date, override_time, capacity_int)
+    )
+    db.commit()
+    return {"status": "success"}
 
 @app.route("/api/spa/book", methods=["POST"])
 def spa_book():
@@ -1635,14 +1684,42 @@ def spa_book():
     if not all([store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type]):
         return {"error": "請填寫完整資料"}, 400
         
+    # Check 4-week limit
+    try:
+        b_date = datetime.strptime(booking_date, "%Y-%m-%d").date()
+        today_date = date.today()
+        if (b_date - today_date).days > 28:
+            return {"error": "僅開放4週(28天)內的預約"}, 400
+        if b_date < today_date:
+            return {"error": "無法預約過去的日期"}, 400
+    except ValueError:
+        return {"error": "日期格式錯誤"}, 400
+
     db = get_db()
-    # Check if this slot already has 2 bookings
+    
+    # Check if same person already booked on the same day
+    same_day_bookings = db.execute(
+        "SELECT COUNT(*) as cnt FROM spa_bookings WHERE booking_date = ? AND customer_name = ? AND customer_phone = ? AND status != 'cancelled'",
+        (booking_date, customer_name, customer_phone)
+    ).fetchone()["cnt"]
+    
+    if same_day_bookings >= 1:
+        return {"error": "同一天只能預約一個時段，若需更改請聯繫客服"}, 400
+    
+    # Check if this slot is full based on dynamic capacity
     cnt = db.execute(
         "SELECT COUNT(*) as cnt FROM spa_bookings WHERE store_id = ? AND booking_date = ? AND booking_time = ? AND status != 'cancelled'",
         (store_id, booking_date, booking_time)
     ).fetchone()["cnt"]
     
-    if cnt >= 2:
+    cap_row = db.execute(
+        "SELECT capacity FROM spa_capacity_overrides WHERE store_id = ? AND override_date = ? AND override_time = ?",
+        (store_id, booking_date, booking_time)
+    ).fetchone()
+    
+    max_cap = cap_row["capacity"] if cap_row else 2
+    
+    if cnt >= max_cap:
         return {"error": "該時段已被預約額滿，請選擇其他時段"}, 400
         
     now_str = datetime.now().isoformat(timespec="seconds")

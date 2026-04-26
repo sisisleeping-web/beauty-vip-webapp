@@ -19,6 +19,7 @@
     <div style="align-self:flex-end;">
       <button type="submit" style="background:linear-gradient(135deg,#6c3fc5,#a855f7);color:#fff;">🔍 查詢</button>
       <a href="/spa/admin/bookings"><button type="button" style="background:#f3f4f6;color:#555;border:1px solid #ddd;margin-left:4px;">清除</button></a>
+      <button type="button" onclick="openCapacityModal()" style="background:#fef08a;color:#854d0e;border:1px solid #fde047;margin-left:4px;cursor:pointer;">⚙️ 調整人數上限</button>
     </div>
   </form>
 
@@ -104,6 +105,37 @@
   <div style="display:flex; justify-content:flex-end; gap:10px;">
     <button onclick="closeEditModal()" style="padding:8px 16px; background:#f3f4f6; border:1px solid #ddd; border-radius:6px; cursor:pointer;">取消</button>
     <button id="btnSaveTime" style="padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:bold;" disabled>儲存</button>
+  </div>
+</dialog>
+
+<dialog id="capacityModal" style="border:none; border-radius:12px; padding:20px; box-shadow:0 10px 25px rgba(0,0,0,0.2); width:320px; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); margin:0;">
+  <h4 style="margin-top:0; font-size:1.1rem;">調整單日時段人數上限</h4>
+  <div style="margin-bottom:12px;">
+    <label style="display:block; margin-bottom:4px; font-size:14px; font-weight:600;">選擇分店</label>
+    <select id="capStore" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;" onchange="renderCapTimeOptions()">
+      <option value="">請選擇</option>
+      {% for s in stores %}
+      <option value="{{ s.id }}" data-name="{{ s.name }}">{{ s.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="margin-bottom:12px;">
+    <label style="display:block; margin-bottom:4px; font-size:14px; font-weight:600;">選擇日期</label>
+    <input type="date" id="capDate" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;" onchange="renderCapTimeOptions()">
+  </div>
+  <div style="margin-bottom:12px;">
+    <label style="display:block; margin-bottom:4px; font-size:14px; font-weight:600;">選擇時段</label>
+    <select id="capTime" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">
+      <option value="">請先選擇分店與日期</option>
+    </select>
+  </div>
+  <div style="margin-bottom:20px;">
+    <label style="display:block; margin-bottom:4px; font-size:14px; font-weight:600;">人數上限 (預設 2)</label>
+    <input type="number" id="capValue" min="0" max="10" value="2" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">
+  </div>
+  <div style="display:flex; justify-content:flex-end; gap:10px;">
+    <button onclick="document.getElementById('capacityModal').close()" style="padding:8px 16px; background:#f3f4f6; border:1px solid #ddd; border-radius:6px; cursor:pointer;">取消</button>
+    <button onclick="saveCapacity()" style="padding:8px 16px; background:#eab308; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">設定</button>
   </div>
 </dialog>
 
@@ -241,6 +273,77 @@ document.getElementById('btnSaveTime').addEventListener('click', () => {
     })
     .catch(err => alert('發生錯誤'));
 });
+
+function openCapacityModal() {
+  document.getElementById('capacityModal').showModal();
+}
+
+function renderCapTimeOptions() {
+  const storeSel = document.getElementById('capStore');
+  const dateVal = document.getElementById('capDate').value;
+  const timeSelect = document.getElementById('capTime');
+  
+  if(!storeSel.value || !dateVal) {
+    timeSelect.innerHTML = '<option value="">請先選擇分店與日期</option>';
+    return;
+  }
+  
+  const storeName = storeSel.options[storeSel.selectedIndex].dataset.name;
+  const dateObj = new Date(dateVal);
+  const dayOfWeek = dateObj.getDay();
+  let baseSlots = [];
+  
+  if(storeName.includes('斗六')) {
+    if(dayOfWeek >= 1 && dayOfWeek <= 5) baseSlots = ['09:00', '13:00', '15:00', '17:00'];
+    else baseSlots = ['09:00', '14:00', '16:00'];
+  } else if(storeName.includes('虎尾')) {
+    if(dayOfWeek >= 1 && dayOfWeek <= 6) baseSlots = ['09:00', '13:00', '15:00', '17:00'];
+    else baseSlots = [];
+  }
+  
+  timeSelect.innerHTML = '';
+  if(baseSlots.length === 0) {
+    timeSelect.innerHTML = '<option value="">當日不開放預約</option>';
+    return;
+  }
+  
+  baseSlots.forEach(time => {
+    const option = document.createElement('option');
+    option.value = time;
+    option.textContent = time;
+    timeSelect.appendChild(option);
+  });
+}
+
+function saveCapacity() {
+  const storeId = document.getElementById('capStore').value;
+  const dateVal = document.getElementById('capDate').value;
+  const timeVal = document.getElementById('capTime').value;
+  const capVal = document.getElementById('capValue').value;
+  
+  if(!storeId || !dateVal || !timeVal || !capVal) {
+    alert("請填寫完整資訊");
+    return;
+  }
+  
+  const fd = new URLSearchParams();
+  fd.append("store_id", storeId);
+  fd.append("override_date", dateVal);
+  fd.append("override_time", timeVal);
+  fd.append("capacity", capVal);
+  
+  fetch('/api/spa/capacity/update', { method: 'POST', body: fd })
+    .then(res => res.json())
+    .then(data => {
+      if(data.status === 'success') {
+        alert('設定成功！');
+        document.getElementById('capacityModal').close();
+      } else {
+        alert(data.error || '設定失敗');
+      }
+    })
+    .catch(err => alert('發生錯誤'));
+}
 
 function deleteBooking(id) {
   if(confirm("確定要刪除這筆預約嗎？(此操作無法復原)")) {

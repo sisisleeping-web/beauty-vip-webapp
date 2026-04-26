@@ -353,12 +353,17 @@
   let currentMonth = new Date();
   currentMonth.setDate(1);
   let availability = {};
+  let capacities = {};
   
   // Logic
   const today = new Date();
   const minDate = new Date();
   minDate.setDate(today.getDate() + 3);
   minDate.setHours(0,0,0,0);
+  
+  const maxDate = new Date();
+  maxDate.setDate(today.getDate() + 28);
+  maxDate.setHours(0,0,0,0);
   
   // Elements
   const btnNext = document.getElementById('btnNext');
@@ -408,6 +413,7 @@
       .then(res => res.json())
       .then(data => {
         availability = data.booked_counts || {};
+        capacities = data.capacities || {};
         renderCalendar();
         hideLoading();
       })
@@ -441,7 +447,7 @@
       const dateObj = new Date(yyyy, mm, d);
       const dateStr = `${yyyy}-${String(mm+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       
-      if(dateObj < minDate) {
+      if(dateObj < minDate || dateObj > maxDate) {
         el.classList.add('disabled');
       } else {
         el.addEventListener('click', () => {
@@ -501,7 +507,12 @@
         booked = availability[selectedDate][time];
       }
       
-      if(booked >= 2) {
+      let cap = 2;
+      if(capacities[selectedDate] && capacities[selectedDate][time]) {
+        cap = capacities[selectedDate][time];
+      }
+      
+      if(booked >= cap) {
         el.classList.add('disabled');
         el.textContent += ' (額滿)';
       } else {
