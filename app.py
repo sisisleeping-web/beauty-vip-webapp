@@ -1535,7 +1535,7 @@ def _build_customer_result(cid: int) -> dict | None:
 
     upgrades = db.execute(
         """
-        SELECT upgrade_date, tier_before, tier_after, trigger_reason, gift_name, gift_status
+        SELECT upgrade_date, tier_before, tier_after, trigger_reason, gift_name, gift_status, gift_delivered_at
         FROM tier_upgrades
         WHERE customer_id = ?
         ORDER BY upgrade_date DESC, id DESC
