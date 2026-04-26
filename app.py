@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "data" / "beauty_vip.db"
 RULES_PATH = BASE_DIR / "rules.json"
 
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("APP_SECRET_KEY", "beauty-vip-demo")
@@ -26,6 +26,9 @@ BIRTHDAY_RECHARGE_PLANS = [
     {"amount": 20000, "coins": 1000},
     {"amount": 30000, "coins": 1500},
 ]
+
+# Tier hierarchy (lowest → highest)
+TIER_ORDER = ["一般會員", "S級美咖", "P級美咖", "A級美咖"]
 
 
 @dataclass
@@ -116,6 +119,23 @@ def init_db() -> None:
             note TEXT DEFAULT '',
             updated_at TEXT NOT NULL,
             UNIQUE(item_type, item_key)
+        );
+
+        CREATE TABLE IF NOT EXISTS tier_upgrades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            upgrade_date TEXT NOT NULL,
+            tier_before TEXT NOT NULL,
+            tier_after TEXT NOT NULL,
+            trigger_txn_id INTEGER,
+            trigger_reason TEXT NOT NULL DEFAULT '',
+            gift_name TEXT NOT NULL DEFAULT '',
+            gift_status TEXT NOT NULL DEFAULT 'pending',
+            gift_delivered_at TEXT,
+            gift_delivered_by TEXT,
+            note TEXT DEFAULT '',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(customer_id) REFERENCES customers(id)
         );
         """
     )
@@ -461,13 +481,52 @@ def entry():
                             "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
                             (coins_earned, customer_id),
                         )
-                    db.commit()
-
                     monthly_total = customer_month_total(db, customer_id, month_key)
                     new_max_single = max(past_max_single, final_amount)
                     new_year_total = year_total_so_far + final_amount
                     tier_after = calc_tier(new_max_single, new_year_total, rules)
                     coin_balance = get_customer_coin_balance(db, customer_id)
+
+                    # Get the txn_id we just inserted
+                    last_txn_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+                    # Detect tier upgrade (including multi-level jumps)
+                    upgrades_recorded = []
+                    if tier_after.name != tier_before.name:
+                        idx_before = TIER_ORDER.index(tier_before.name) if tier_before.name in TIER_ORDER else 0
+                        idx_after = TIER_ORDER.index(tier_after.name) if tier_after.name in TIER_ORDER else 0
+                        if idx_after > idx_before:
+                            # Determine trigger reason
+                            if new_max_single > past_max_single and new_max_single >= final_amount:
+                                reason = f"單筆消費 {int(new_max_single):,} 元達標"
+                            else:
+                                reason = f"年度累計 {int(new_year_total):,} 元達標"
+                            now_str_up = datetime.now().isoformat(timespec="seconds")
+                            # Record each intermediate upgrade level
+                            for step in range(idx_before + 1, idx_after + 1):
+                                step_from = TIER_ORDER[step - 1]
+                                step_to = TIER_ORDER[step]
+                                # Look up gift name from rules
+                                gift_name = ""
+                                for t in rules["vip_tiers"]:
+                                    if t["name"] == step_to:
+                                        gift_name = f"{step_to} 升級禮"
+                                        break
+                                db.execute("""
+                                    INSERT INTO tier_upgrades(
+                                        customer_id, upgrade_date, tier_before, tier_after,
+                                        trigger_txn_id, trigger_reason, gift_name,
+                                        gift_status, created_at
+                                    ) VALUES(?,?,?,?,?,?,?,?,?)
+                                """, (
+                                    customer_id, txn_day.isoformat(),
+                                    step_from, step_to,
+                                    last_txn_id, reason, gift_name,
+                                    "pending", now_str_up,
+                                ))
+                                upgrades_recorded.append({"from": step_from, "to": step_to, "gift": gift_name})
+
+                    db.commit()
 
                     result = {
                         "mode": "normal",
@@ -482,6 +541,7 @@ def entry():
                         "points": points,
                         "coins_earned": coins_earned,
                         "coin_balance": coin_balance,
+                        "upgrades": upgrades_recorded,
                     }
 
     return render_template(
@@ -1249,6 +1309,215 @@ def admin_backfill_coins():
 
     db.commit()
     return f"<p>補填完成，共更新 {updated} 筆交易的 coins_earned。</p><p><a href='/report'>回報表查詢</a> | <a href='/manager'>回主管頁</a></p>"
+
+
+# ── Tier Upgrade Management ──────────────────────────────────────────────────
+
+@app.route("/manager/upgrades")
+def manager_upgrades():
+    """升級禮追蹤頁面"""
+    if not session.get("manager_authed"):
+        return render_template("manager_lock.html", error=None)
+
+    db = get_db()
+    status_filter = request.args.get("status", "").strip()
+    q_filter = request.args.get("q", "").strip()
+
+    where = ["1=1"]
+    params: list[Any] = []
+    if status_filter:
+        where.append("u.gift_status = ?")
+        params.append(status_filter)
+    if q_filter:
+        where.append("(c.name LIKE ? OR c.phone LIKE ?)")
+        params.extend([f"%{q_filter}%", f"%{q_filter}%"])
+
+    rows = db.execute(
+        f"""
+        SELECT u.*, c.name AS customer_name, c.phone AS customer_phone, c.birthday
+        FROM tier_upgrades u
+        JOIN customers c ON c.id = u.customer_id
+        WHERE {' AND '.join(where)}
+        ORDER BY
+            CASE u.gift_status WHEN 'pending' THEN 0 ELSE 1 END,
+            u.upgrade_date DESC
+        """,
+        params,
+    ).fetchall()
+
+    # Count by status
+    counts = db.execute(
+        "SELECT gift_status, COUNT(*) AS cnt FROM tier_upgrades GROUP BY gift_status"
+    ).fetchall()
+    status_counts = {r["gift_status"]: r["cnt"] for r in counts}
+
+    filters = {"status": status_filter, "q": q_filter}
+    return render_template(
+        "upgrades.html",
+        upgrades=rows,
+        filters=filters,
+        status_counts=status_counts,
+    )
+
+
+@app.route("/api/upgrades/<int:upgrade_id>/deliver", methods=["POST"])
+def deliver_upgrade_gift(upgrade_id):
+    """標記升級禮已送達"""
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
+    db = get_db()
+    note = request.form.get("note", "").strip()
+    now_str = datetime.now().isoformat(timespec="seconds")
+    db.execute(
+        "UPDATE tier_upgrades SET gift_status='delivered', gift_delivered_at=?, gift_delivered_by='manager', note=? WHERE id=?",
+        (now_str, note, upgrade_id),
+    )
+    db.commit()
+    return redirect(request.referrer or url_for("manager_upgrades"))
+
+
+@app.route("/api/upgrades/<int:upgrade_id>/skip", methods=["POST"])
+def skip_upgrade_gift(upgrade_id):
+    """標記升級禮略過（不發放）"""
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
+    db = get_db()
+    note = request.form.get("note", "").strip()
+    now_str = datetime.now().isoformat(timespec="seconds")
+    db.execute(
+        "UPDATE tier_upgrades SET gift_status='skipped', gift_delivered_at=?, note=? WHERE id=?",
+        (now_str, note, upgrade_id),
+    )
+    db.commit()
+    return redirect(request.referrer or url_for("manager_upgrades"))
+
+
+@app.route("/api/upgrades/<int:upgrade_id>/reopen", methods=["POST"])
+def reopen_upgrade_gift(upgrade_id):
+    """重新開啟升級禮為待發放（補發機制）"""
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
+    db = get_db()
+    db.execute(
+        "UPDATE tier_upgrades SET gift_status='pending', gift_delivered_at=NULL, gift_delivered_by=NULL WHERE id=?",
+        (upgrade_id,),
+    )
+    db.commit()
+    return redirect(request.referrer or url_for("manager_upgrades"))
+
+
+# ── Customer Self-Service Lookup ─────────────────────────────────────────────
+
+@app.route("/my", methods=["GET", "POST"])
+def customer_lookup():
+    """Customer-facing readonly page to view own records."""
+    result = None
+    error = None
+    candidates = None  # For multi-match selection
+
+    # Direct lookup by customer_id (from selection list)
+    cid_direct = request.args.get("cid", "").strip()
+    if cid_direct:
+        try:
+            cid = int(cid_direct)
+        except ValueError:
+            cid = None
+        if cid:
+            result = _build_customer_result(cid)
+            if not result:
+                error = "查無此顧客。"
+
+    elif request.method == "POST":
+        name = request.form.get("name", "").strip()
+        phone = request.form.get("phone", "").strip()
+
+        if not (name or phone):
+            error = "請輸入姓名或手機號碼"
+        else:
+            db = get_db()
+
+            # Search by name or phone (exact match only for privacy)
+            rows = []
+            if name and phone:
+                rows = db.execute(
+                    "SELECT id, name, phone, birthday FROM customers WHERE name=? AND phone=?",
+                    (name, phone),
+                ).fetchall()
+            elif name:
+                rows = db.execute(
+                    "SELECT id, name, phone, birthday FROM customers WHERE name=?",
+                    (name,),
+                ).fetchall()
+            else:
+                rows = db.execute(
+                    "SELECT id, name, phone, birthday FROM customers WHERE phone=?",
+                    (phone,),
+                ).fetchall()
+
+            if not rows:
+                error = "查無此顧客，請確認姓名或手機號碼是否正確。"
+            elif len(rows) == 1:
+                result = _build_customer_result(int(rows[0]["id"]))
+            else:
+                # Multiple matches — let customer pick
+                candidates = [dict(r) for r in rows]
+
+    return render_template("my.html", result=result, error=error, candidates=candidates)
+
+
+def _build_customer_result(cid: int) -> dict | None:
+    """Build the full customer result dict for display."""
+    db = get_db()
+    row = db.execute(
+        "SELECT id, name, phone, birthday, coin_balance, created_at FROM customers WHERE id=?",
+        (cid,),
+    ).fetchone()
+    if not row:
+        return None
+
+    customer = dict(row)
+    year_str = date.today().strftime("%Y")
+
+    max_single = get_past_max_single(db, cid)
+    year_total = customer_year_total(db, cid, year_str)
+    customer["tier"] = _tier_name_from_totals(max_single, year_total)
+    customer["year_total"] = year_total
+
+    points_row = db.execute(
+        "SELECT COALESCE(SUM(coins_earned),0) AS earned, COALESCE(SUM(coins_redeemed),0) AS redeemed FROM transactions WHERE customer_id=?",
+        (cid,),
+    ).fetchone()
+    customer["total_earned"] = int(points_row["earned"] or 0)
+    customer["total_redeemed"] = int(points_row["redeemed"] or 0)
+
+    txns = db.execute(
+        """
+        SELECT t.txn_date, s.name AS store_name, t.amount, t.final_amount,
+               t.coins_earned, t.coins_redeemed, t.entry_mode,
+               t.recharge_plan, t.recharge_amount
+        FROM transactions t
+        JOIN stores s ON s.id = t.store_id
+        WHERE t.customer_id = ?
+        ORDER BY t.txn_date DESC, t.id DESC
+        """,
+        (cid,),
+    ).fetchall()
+
+    upgrades = db.execute(
+        """
+        SELECT upgrade_date, tier_before, tier_after, trigger_reason, gift_name, gift_status
+        FROM tier_upgrades
+        WHERE customer_id = ?
+        ORDER BY upgrade_date DESC, id DESC
+        """,
+        (cid,),
+    ).fetchall()
+
+    return {
+        "customer": customer,
+        "transactions": [dict(t) for t in txns],
+        "upgrades": [dict(u) for u in upgrades],
+    }
 
 
 if __name__ == "__main__":

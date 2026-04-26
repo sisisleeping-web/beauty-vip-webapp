@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>美咖美容 — 我的會員專區</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans TC', '微軟正黑體', Arial, sans-serif;
+      margin: 0; color: #1a1a2e;
+      background: linear-gradient(135deg, #f8f6ff 0%, #f0ecff 50%, #fdf2f8 100%);
+      min-height: 100vh;
+    }
+
+    .page-header {
+      background: linear-gradient(135deg, #6c3fc5 0%, #a855f7 60%, #ec4899 100%);
+      color: #fff; text-align: center;
+      padding: 24px 20px 20px;
+      box-shadow: 0 4px 20px rgba(108,63,197,0.25);
+    }
+    .page-header h1 {
+      margin: 0; font-size: 1.4rem; font-weight: 700; letter-spacing: 1px;
+    }
+    .page-header p {
+      margin: 6px 0 0; font-size: 0.85rem; opacity: 0.85;
+    }
+
+    .container {
+      max-width: 680px; margin: 0 auto;
+      padding: 20px 16px 60px;
+    }
+
+    .card {
+      background: #fff; border-radius: 16px;
+      padding: 22px 24px; margin: 16px 0;
+      box-shadow: 0 2px 16px rgba(108,63,197,0.08);
+      border: 1px solid #ede9ff;
+    }
+    .card h2 {
+      font-size: 1.1rem; margin: 0 0 14px; color: #2d1b69; font-weight: 700;
+    }
+
+    label { display: block; margin-top: 12px; font-size: 0.88rem; color: #555; font-weight: 500; }
+    input {
+      padding: 11px 14px; margin-top: 5px; width: 100%;
+      font-size: 16px; border: 1.5px solid #d4c9f0; border-radius: 10px;
+      font-family: inherit; background: #fafaf9;
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    input:focus {
+      outline: none; border-color: #a855f7;
+      box-shadow: 0 0 0 3px rgba(168,85,247,0.12);
+    }
+
+    .btn-primary {
+      display: block; width: 100%; margin-top: 18px;
+      padding: 13px 20px; font-size: 16px; font-weight: 700;
+      color: #fff; border: none; border-radius: 12px; cursor: pointer;
+      background: linear-gradient(135deg, #6c3fc5, #a855f7);
+      box-shadow: 0 4px 14px rgba(108,63,197,0.3);
+      transition: transform 0.15s, box-shadow 0.15s;
+      font-family: inherit;
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(108,63,197,0.4);
+    }
+
+    .error-msg {
+      color: #dc2626; font-weight: 600; background: #fef2f2;
+      padding: 10px 14px; border-radius: 8px; margin-top: 14px;
+      border: 1px solid #fecaca; font-size: 0.9rem;
+    }
+
+    .profile-header {
+      display: flex; align-items: center; gap: 16px;
+      flex-wrap: wrap; margin-bottom: 6px;
+    }
+    .profile-name {
+      font-size: 1.4rem; font-weight: 700; color: #1a1a2e; margin: 0;
+    }
+    .tier-badge {
+      display: inline-block; padding: 4px 14px; border-radius: 20px;
+      font-size: 0.85rem; font-weight: 700; white-space: nowrap;
+    }
+    .tier-一般會員 { background: #f3f4f6; color: #6b7280; }
+    .tier-S級美咖 { background: #dbeafe; color: #1d4ed8; }
+    .tier-P級美咖 { background: #fef3c7; color: #b45309; }
+    .tier-A級美咖 { background: linear-gradient(135deg, #fde68a, #fbbf24); color: #78350f; }
+
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px; margin-top: 14px;
+    }
+    .stat-item {
+      background: linear-gradient(135deg, #f8f6ff, #f0ecff);
+      border-radius: 12px; padding: 14px 16px; text-align: center;
+      border: 1px solid #e8e4f3;
+    }
+    .stat-value {
+      font-size: 1.35rem; font-weight: 700; color: #6c3fc5; margin: 0;
+    }
+    .stat-label {
+      font-size: 0.78rem; color: #888; margin-top: 4px;
+    }
+    .stat-item.highlight {
+      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+      border-color: #a7f3d0;
+    }
+    .stat-item.highlight .stat-value { color: #059669; }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 10px; }
+    th, td { border: 1px solid #e8e4f3; padding: 8px 10px; white-space: nowrap; }
+    th {
+      background: linear-gradient(135deg, #f0ebff, #f8f4ff);
+      color: #4a2d8c; font-weight: 700; position: sticky; top: 0;
+    }
+    tr:nth-child(even) td { background: #fdfbff; }
+    tr:hover td { background: #f5f0ff; }
+
+    .mode-tag {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 0.75rem; font-weight: 600;
+    }
+    .mode-normal { background: #ede9fe; color: #6c3fc5; }
+    .mode-coin_deduct { background: #fee2e2; color: #dc2626; }
+    .mode-birthday_recharge { background: #fef3c7; color: #d97706; }
+
+    /* Upgrade Timeline */
+    .timeline { position: relative; padding-left: 28px; margin-top: 12px; }
+    .timeline::before {
+      content: ''; position: absolute; left: 10px; top: 0; bottom: 0;
+      width: 2px; background: linear-gradient(to bottom, #a855f7, #e8e4f3);
+    }
+    .timeline-item {
+      position: relative; margin-bottom: 16px; padding-bottom: 4px;
+    }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -22px; top: 4px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #a855f7; border: 2px solid #fff;
+      box-shadow: 0 0 0 2px #a855f7;
+    }
+    .timeline-date {
+      font-size: 0.8rem; color: #888; margin-bottom: 2px;
+    }
+    .timeline-content {
+      font-size: 0.92rem;
+    }
+    .timeline-reason {
+      font-size: 0.8rem; color: #888; margin-top: 2px;
+    }
+
+    .empty-state {
+      text-align: center; color: #aaa; padding: 24px 0; font-size: 0.9rem;
+    }
+
+    .back-link {
+      display: inline-block; margin-top: 10px; color: #6c3fc5;
+      font-size: 0.9rem; text-decoration: none; font-weight: 500;
+    }
+    .back-link:hover { text-decoration: underline; }
+
+    .divider {
+      margin: 12px 0; font-size: 0.8rem; color: #bbb; text-align: center;
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 12px 10px 40px; }
+      .card { padding: 16px 16px; }
+      .profile-header { gap: 10px; }
+      .profile-name { font-size: 1.2rem; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>💄 美咖美容 — 我的會員專區</h1>
+    <p>查詢您的消費記錄、點數與會員等級</p>
+  </div>
+
+  <div class="container">
+
+  {% if not result %}
+    <!-- Search Form -->
+    <div class="card">
+      <h2>🔍 查詢我的會員資料</h2>
+      <p style="font-size:0.85rem; color:#888; margin:0 0 4px;">請輸入您的姓名或手機號碼即可查詢。</p>
+
+      {% if error %}
+      <div class="error-msg">{{ error }}</div>
+      {% endif %}
+
+      {% if candidates %}
+      <!-- Multiple matches found — let customer pick -->
+      <p style="font-size:0.9rem; color:#6c3fc5; font-weight:600; margin:14px 0 8px;">找到多筆符合的資料，請選擇您的帳號：</p>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        {% for c in candidates %}
+        <a href="/my?cid={{ c.id }}" style="
+          display:block; padding:14px 16px; border-radius:12px;
+          background:linear-gradient(135deg, #f8f6ff, #f0ecff);
+          border:1.5px solid #d4c9f0; text-decoration:none; color:#1a1a2e;
+          transition: border-color 0.18s, box-shadow 0.18s;
+        " onmouseover="this.style.borderColor='#a855f7';this.style.boxShadow='0 2px 12px rgba(168,85,247,0.15)'"
+           onmouseout="this.style.borderColor='#d4c9f0';this.style.boxShadow='none'">
+          <span style="font-weight:700; font-size:1rem;">{{ c.name }}</span>
+          {% if c.phone %}
+          <span style="color:#888; font-size:0.85rem; margin-left:10px;">📱 {{ c.phone }}</span>
+          {% endif %}
+          <span style="color:#aaa; font-size:0.8rem; margin-left:10px;">🎂 {{ c.birthday }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      <div style="text-align:center; margin-top:14px;">
+        <a href="/my" class="back-link">← 重新查詢</a>
+      </div>
+      {% else %}
+      <form method="post">
+        <label>姓名</label>
+        <input type="text" name="name" placeholder="請輸入您的姓名" autocomplete="name">
+
+        <div class="divider">— 或 —</div>
+
+        <label>手機號碼</label>
+        <input type="tel" name="phone" placeholder="請輸入手機號碼" autocomplete="tel">
+
+        <button type="submit" class="btn-primary">查詢我的資料</button>
+      </form>
+      {% endif %}
+    </div>
+  {% else %}
+    {% set c = result.customer %}
+    <!-- Profile Card -->
+    <div class="card">
+      <div class="profile-header">
+        <p class="profile-name">{{ c.name }}</p>
+        <span class="tier-badge tier-{{ c.tier }}">{{ c.tier }}</span>
+      </div>
+      <p style="font-size:0.85rem; color:#888; margin:4px 0 0;">
+        加入日期：{{ c.created_at[:10] if c.created_at else '-' }}
+      </p>
+
+      <div class="stats-grid">
+        <div class="stat-item highlight">
+          <p class="stat-value">🪙 {{ c.coin_balance }}</p>
+          <p class="stat-label">目前點數餘額</p>
+        </div>
+        <div class="stat-item">
+          <p class="stat-value">{{ c.total_earned }}</p>
+          <p class="stat-label">累計獲得點數</p>
+        </div>
+        <div class="stat-item">
+          <p class="stat-value">{{ c.total_redeemed }}</p>
+          <p class="stat-label">累計使用點數</p>
+        </div>
+        <div class="stat-item">
+          <p class="stat-value">{{ '{:,.0f}'.format(c.year_total) }}</p>
+          <p class="stat-label">{{ now_year if now_year is defined else '2026' }} 年消費</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tier Upgrade History -->
+    {% if result.upgrades %}
+    <div class="card">
+      <h2>🏅 等級升級紀錄</h2>
+      <div class="timeline">
+        {% for u in result.upgrades %}
+        <div class="timeline-item">
+          <div class="timeline-date">{{ u.upgrade_date }}</div>
+          <div class="timeline-content">
+            {{ u.tier_before }} → <strong style="color:#d97706;">{{ u.tier_after }}</strong>
+            {% if u.gift_status == 'delivered' %}
+              <span style="font-size:0.75rem; background:#d1fae5; color:#065f46; padding:1px 8px; border-radius:8px; margin-left:6px;">🎁 升級禮已領取</span>
+            {% elif u.gift_status == 'pending' %}
+              <span style="font-size:0.75rem; background:#fef3c7; color:#92400e; padding:1px 8px; border-radius:8px; margin-left:6px;">🎁 升級禮待領取</span>
+            {% endif %}
+          </div>
+          <div class="timeline-reason">{{ u.trigger_reason }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Transaction History -->
+    <div class="card">
+      <h2>📋 消費紀錄</h2>
+      {% if result.transactions %}
+      <p style="font-size:0.8rem; color:#888; margin:0 0 6px;">共 {{ result.transactions|length }} 筆記錄</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>分店</th>
+              <th>類型</th>
+              <th style="text-align:right;">金額</th>
+              <th style="text-align:right;">實收</th>
+              <th style="text-align:right;">獲得點數</th>
+              <th style="text-align:right;">扣除點數</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in result.transactions %}
+            <tr>
+              <td>{{ t.txn_date }}</td>
+              <td>{{ t.store_name }}</td>
+              <td>
+                {% if t.entry_mode == 'normal' %}
+                  <span class="mode-tag mode-normal">消費</span>
+                {% elif t.entry_mode == 'coin_deduct' %}
+                  <span class="mode-tag mode-coin_deduct">扣點</span>
+                {% elif t.entry_mode == 'birthday_recharge' %}
+                  <span class="mode-tag mode-birthday_recharge">🎂 壽星充值</span>
+                {% else %}
+                  <span class="mode-tag mode-normal">{{ t.entry_mode }}</span>
+                {% endif %}
+              </td>
+              <td style="text-align:right;">
+                {% if t.entry_mode == 'birthday_recharge' %}
+                  {{ '{:,.0f}'.format(t.recharge_amount or 0) }}
+                {% elif t.amount and t.amount > 0 %}
+                  {{ '{:,.0f}'.format(t.amount) }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td style="text-align:right;">
+                {% if t.final_amount and t.final_amount > 0 %}
+                  {{ '{:,.0f}'.format(t.final_amount) }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td style="text-align:right; color:#059669; font-weight:600;">
+                {% if t.coins_earned and t.coins_earned > 0 %}
+                  +{{ t.coins_earned }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td style="text-align:right; color:#dc2626; font-weight:600;">
+                {% if t.coins_redeemed and t.coins_redeemed > 0 %}
+                  -{{ t.coins_redeemed }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">目前沒有消費紀錄</div>
+      {% endif %}
+    </div>
+
+    <div style="text-align:center; margin-top:16px;">
+      <a href="/my" class="back-link">← 重新查詢</a>
+    </div>
+  {% endif %}
+
+  </div>
+</body>
+</html>

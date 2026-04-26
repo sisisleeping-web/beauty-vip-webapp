@@ -98,6 +98,18 @@
     <p>本筆點數：{{ result.points }}</p>
     <p>本筆獲得硬幣：<strong style="color:#e06c00;">{{ result.coins_earned }}</strong> 點</p>
     <p>目前點數餘額：{{ result.coin_balance }} 點</p>
+    {% if result.upgrades %}
+    <div style="margin-top:12px; padding:12px 16px; background:linear-gradient(135deg,#fef3c7,#fde68a); border-radius:10px; border:2px solid #f59e0b;">
+      {% for up in result.upgrades %}
+      <p style="margin:4px 0; font-size:1.1rem;">
+        🎉 <strong>恭喜升級！</strong> {{ up['from'] }} → <strong style="color:#d97706;">{{ up['to'] }}</strong>
+      </p>
+      <p style="margin:2px 0; font-size:0.9rem; color:#92400e;">
+        📦 {{ up.gift }} 已列入待發放清單，請安排送出實體禮物。
+      </p>
+      {% endfor %}
+    </div>
+    {% endif %}
   {% endif %}
 </div>
 {% endif %}

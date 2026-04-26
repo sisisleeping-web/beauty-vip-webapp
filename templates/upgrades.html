@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h3>🎁 升級禮追蹤管理</h3>
+  <div style="margin:0 0 16px; display:flex; gap:16px; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px;">
+    <a href="/manager" style="color:#6c3fc5; font-size:0.9rem; text-decoration:none;">← 回主管儀表板</a>
+    <a href="/manager/logout" style="color:#dc2626; font-size:0.9rem; text-decoration:none;">🚪 登出</a>
+  </div>
+
+  <!-- Status Filter Tabs -->
+  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
+    <a href="/manager/upgrades" style="text-decoration:none;">
+      <button type="button" style="padding:6px 14px; border-radius:20px; border:1px solid #ddd; cursor:pointer; font-size:0.85rem;
+        {% if not filters.status %}background:#6c3fc5; color:#fff; border-color:#6c3fc5; font-weight:700;{% else %}background:#f3f4f6; color:#333;{% endif %}">
+        全部 ({{ (status_counts.get('pending',0) + status_counts.get('delivered',0) + status_counts.get('skipped',0)) }})
+      </button>
+    </a>
+    <a href="/manager/upgrades?status=pending{% if filters.q %}&q={{ filters.q }}{% endif %}" style="text-decoration:none;">
+      <button type="button" style="padding:6px 14px; border-radius:20px; border:1px solid #ddd; cursor:pointer; font-size:0.85rem;
+        {% if filters.status == 'pending' %}background:#f59e0b; color:#fff; border-color:#f59e0b; font-weight:700;{% else %}background:#fef3c7; color:#92400e;{% endif %}">
+        ⏳ 待發放 ({{ status_counts.get('pending', 0) }})
+      </button>
+    </a>
+    <a href="/manager/upgrades?status=delivered{% if filters.q %}&q={{ filters.q }}{% endif %}" style="text-decoration:none;">
+      <button type="button" style="padding:6px 14px; border-radius:20px; border:1px solid #ddd; cursor:pointer; font-size:0.85rem;
+        {% if filters.status == 'delivered' %}background:#059669; color:#fff; border-color:#059669; font-weight:700;{% else %}background:#d1fae5; color:#065f46;{% endif %}">
+        ✅ 已送達 ({{ status_counts.get('delivered', 0) }})
+      </button>
+    </a>
+    <a href="/manager/upgrades?status=skipped{% if filters.q %}&q={{ filters.q }}{% endif %}" style="text-decoration:none;">
+      <button type="button" style="padding:6px 14px; border-radius:20px; border:1px solid #ddd; cursor:pointer; font-size:0.85rem;
+        {% if filters.status == 'skipped' %}background:#6b7280; color:#fff; border-color:#6b7280; font-weight:700;{% else %}background:#f3f4f6; color:#6b7280;{% endif %}">
+        ⏭️ 略過 ({{ status_counts.get('skipped', 0) }})
+      </button>
+    </a>
+  </div>
+
+  <!-- Search -->
+  <form method="get" style="display:flex; gap:8px; align-items:flex-end; margin-bottom:16px;">
+    {% if filters.status %}
+    <input type="hidden" name="status" value="{{ filters.status }}">
+    {% endif %}
+    <div>
+      <label style="font-size:0.85rem;">搜尋顧客姓名/電話</label>
+      <input type="text" name="q" value="{{ filters.q }}" placeholder="如：陳小明" style="max-width:180px;">
+    </div>
+    <button type="submit" style="background:#6c3fc5; color:#fff; padding:6px 14px; border-radius:8px; font-size:0.85rem;">🔍 搜尋</button>
+    <a href="/manager/upgrades{% if filters.status %}?status={{ filters.status }}{% endif %}">
+      <button type="button" style="background:#f3f4f6; color:#555; border:1px solid #ddd; padding:6px 14px; border-radius:8px; font-size:0.85rem;">清除</button>
+    </a>
+  </form>
+</div>
+
+{% if upgrades %}
+  {% for u in upgrades %}
+  <div class="card" style="
+    {% if u.gift_status == 'pending' %}
+      border-left: 4px solid #f59e0b; background: linear-gradient(135deg, #fffbeb, #ffffff);
+    {% elif u.gift_status == 'delivered' %}
+      border-left: 4px solid #059669; opacity: 0.85;
+    {% else %}
+      border-left: 4px solid #9ca3af; opacity: 0.7;
+    {% endif %}
+  ">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+      <div>
+        <p style="margin:0 0 4px; font-size:1.1rem;">
+          <strong>{{ u.customer_name }}</strong>
+          {% if u.customer_phone %}<span style="color:#666; font-size:0.85rem; margin-left:6px;">{{ u.customer_phone }}</span>{% endif %}
+        </p>
+        <p style="margin:0 0 6px; font-size:1rem;">
+          {{ u.tier_before }} → <strong style="color:#d97706; font-size:1.1rem;">{{ u.tier_after }}</strong>
+        </p>
+        <p style="margin:0; font-size:0.85rem; color:#666;">
+          📅 升級日期：{{ u.upgrade_date }}
+        </p>
+        <p style="margin:2px 0; font-size:0.85rem; color:#666;">
+          💡 升級原因：{{ u.trigger_reason }}
+        </p>
+        <p style="margin:2px 0; font-size:0.85rem; color:#666;">
+          🎁 升級禮：<strong>{{ u.gift_name }}</strong>
+        </p>
+        {% if u.gift_status == 'delivered' %}
+        <p style="margin:2px 0; font-size:0.85rem; color:#059669;">
+          ✅ 已送達：{{ u.gift_delivered_at }}
+        </p>
+        {% endif %}
+        {% if u.note %}
+        <p style="margin:2px 0; font-size:0.85rem; color:#888;">
+          📝 {{ u.note }}
+        </p>
+        {% endif %}
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:6px; min-width:120px;">
+        {% if u.gift_status == 'pending' %}
+          <!-- Deliver button -->
+          <form method="post" action="/api/upgrades/{{ u.id }}/deliver" style="margin:0;">
+            <input type="text" name="note" placeholder="備註（選填）" style="width:100%; margin-bottom:4px; padding:4px 8px; font-size:0.8rem; border:1px solid #ccc; border-radius:4px;">
+            <button type="submit" style="width:100%; background:#059669; color:#fff; padding:6px 12px; border-radius:6px; font-size:0.85rem; cursor:pointer; border:none;">
+              ✅ 標記已送達
+            </button>
+          </form>
+          <!-- Skip button -->
+          <form method="post" action="/api/upgrades/{{ u.id }}/skip" style="margin:0;"
+                onsubmit="return confirm('確定要略過此升級禮嗎？')">
+            <input type="hidden" name="note" value="管理者略過">
+            <button type="submit" style="width:100%; background:#f3f4f6; color:#6b7280; padding:6px 12px; border-radius:6px; font-size:0.85rem; cursor:pointer; border:1px solid #ddd;">
+              ⏭️ 略過
+            </button>
+          </form>
+        {% elif u.gift_status == 'delivered' %}
+          <span style="display:inline-block; background:#d1fae5; color:#065f46; padding:4px 10px; border-radius:12px; font-size:0.8rem; text-align:center;">
+            ✅ 已送達
+          </span>
+        {% elif u.gift_status == 'skipped' %}
+          <span style="display:inline-block; background:#f3f4f6; color:#6b7280; padding:4px 10px; border-radius:12px; font-size:0.8rem; text-align:center;">
+            ⏭️ 已略過
+          </span>
+          <!-- Reopen for re-delivery -->
+          <form method="post" action="/api/upgrades/{{ u.id }}/reopen" style="margin:0;">
+            <button type="submit" style="width:100%; background:#fef3c7; color:#92400e; padding:6px 12px; border-radius:6px; font-size:0.85rem; cursor:pointer; border:1px solid #f59e0b;">
+              🔄 補發
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="card" style="text-align:center; color:#888; padding:40px;">
+    <p style="font-size:1.2rem; margin:0;">目前沒有升級禮記錄</p>
+    <p style="font-size:0.9rem; margin:8px 0 0;">新的升級事件會在顧客消費達標後自動產生</p>
+  </div>
+{% endif %}
+
+{% endblock %}
