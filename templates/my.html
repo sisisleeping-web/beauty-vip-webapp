@@ -278,10 +278,7 @@
           <p class="stat-value">{{ c.total_redeemed }}</p>
           <p class="stat-label">累計使用點數</p>
         </div>
-        <div class="stat-item">
-          <p class="stat-value">{{ '{:,.0f}'.format(c.year_total) }}</p>
-          <p class="stat-label">{{ now_year if now_year is defined else '2026' }} 年消費</p>
-        </div>
+
       </div>
     </div>
 
@@ -297,20 +294,7 @@
             {{ u.tier_before }} → <strong style="color:#d97706;">{{ u.tier_after }}</strong>
           </div>
           <div class="timeline-reason">{{ u.trigger_reason }}</div>
-          {% if u.gift_name %}
-            <div style="margin-top:6px; font-size:0.85rem; padding:6px; background:#f8f6ff; border-radius:8px; display:inline-block;">
-              <span style="color:#6c3fc5; font-weight:600;">🎁 專屬升級禮：{{ u.gift_name }}</span>
-              <div style="margin-top:4px;">
-                {% if u.gift_status == 'delivered' %}
-                  <span style="background:#d1fae5; color:#065f46; padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:600;">✅ 已於 {{ (u.gift_delivered_at[:10] if u.gift_delivered_at else u.upgrade_date) }} 領取</span>
-                {% elif u.gift_status == 'pending' %}
-                  <span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:600;">⏳ 可回店領取</span>
-                {% elif u.gift_status == 'skipped' %}
-                  <span style="background:#f3f4f6; color:#6b7280; padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:600;">⏭️ 放棄領取</span>
-                {% endif %}
-              </div>
-            </div>
-          {% endif %}
+
         </div>
         {% endfor %}
       </div>
