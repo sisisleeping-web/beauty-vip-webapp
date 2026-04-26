@@ -192,7 +192,7 @@
     <!-- Search Form -->
     <div class="card">
       <h2>🔍 查詢我的會員資料</h2>
-      <p style="font-size:0.85rem; color:#888; margin:0 0 4px;">請輸入您的姓名或手機號碼即可查詢。</p>
+      <p style="font-size:0.85rem; color:#888; margin:0 0 4px;">請輸入您的姓名與手機號碼進行查詢。</p>
 
       {% if error %}
       <div class="error-msg">{{ error }}</div>
@@ -223,13 +223,11 @@
       </div>
       {% else %}
       <form method="post">
-        <label>姓名</label>
-        <input type="text" name="name" placeholder="請輸入您的姓名" autocomplete="name">
+        <label>姓名 <span style="color:#dc2626;">*</span></label>
+        <input type="text" name="name" placeholder="請輸入您的姓名" autocomplete="name" required>
 
-        <div class="divider">— 或 —</div>
-
-        <label>手機號碼</label>
-        <input type="tel" name="phone" placeholder="請輸入手機號碼" autocomplete="tel">
+        <label>手機號碼 <span style="color:#dc2626;">*</span></label>
+        <input type="tel" name="phone" placeholder="請輸入手機號碼" autocomplete="tel" required>
 
         <button type="submit" class="btn-primary">查詢我的資料</button>
       </form>

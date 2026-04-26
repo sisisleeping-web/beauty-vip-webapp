@@ -1431,35 +1431,23 @@ def customer_lookup():
         name = request.form.get("name", "").strip()
         phone = request.form.get("phone", "").strip()
 
-        if not (name or phone):
-            error = "請輸入姓名或手機號碼"
+        if not name or not phone:
+            error = "請輸入姓名與手機號碼"
         else:
             db = get_db()
 
-            # Search by name or phone (exact match only for privacy)
-            rows = []
-            if name and phone:
-                rows = db.execute(
-                    "SELECT id, name, phone, birthday FROM customers WHERE name=? AND phone=?",
-                    (name, phone),
-                ).fetchall()
-            elif name:
-                rows = db.execute(
-                    "SELECT id, name, phone, birthday FROM customers WHERE name=?",
-                    (name,),
-                ).fetchall()
-            else:
-                rows = db.execute(
-                    "SELECT id, name, phone, birthday FROM customers WHERE phone=?",
-                    (phone,),
-                ).fetchall()
+            # Search by name and phone (exact match only for privacy)
+            rows = db.execute(
+                "SELECT id, name, phone, birthday FROM customers WHERE name=? AND phone=?",
+                (name, phone),
+            ).fetchall()
 
             if not rows:
-                error = "查無此顧客，請確認姓名或手機號碼是否正確。"
+                error = "查無此顧客，請確認姓名與手機號碼是否正確。"
             elif len(rows) == 1:
                 result = _build_customer_result(int(rows[0]["id"]))
             else:
-                # Multiple matches — let customer pick
+                # Multiple matches — let customer pick (if multiple same name and phone exist)
                 candidates = [dict(r) for r in rows]
 
     return render_template("my.html", result=result, error=error, candidates=candidates)
