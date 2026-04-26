@@ -563,12 +563,42 @@ def report():
     detail_rows_raw = db.execute(sql, params).fetchall()
 
     tier_map = get_customer_tier_map(db, year)
+
+    # Build per-customer coin summary
+    customer_ids_in_result = set(int(r["customer_id"]) for r in detail_rows_raw)
+    coin_summary_map: dict[int, dict] = {}
+    if customer_ids_in_result:
+        placeholders = ",".join("?" * len(customer_ids_in_result))
+        coin_rows = db.execute(
+            f"""
+            SELECT c.id AS customer_id,
+                   c.coin_balance,
+                   COALESCE(SUM(t.coins_earned), 0) AS total_earned,
+                   COALESCE(SUM(t.coins_redeemed), 0) AS total_redeemed
+            FROM customers c
+            LEFT JOIN transactions t ON t.customer_id = c.id
+            WHERE c.id IN ({placeholders})
+            GROUP BY c.id
+            """,
+            list(customer_ids_in_result),
+        ).fetchall()
+        for cr in coin_rows:
+            coin_summary_map[int(cr["customer_id"])] = {
+                "total_earned": int(cr["total_earned"] or 0),
+                "total_redeemed": int(cr["total_redeemed"] or 0),
+                "coin_balance": int(cr["coin_balance"] or 0),
+            }
+
     detail_rows = []
     for r in detail_rows_raw:
         d = dict(r)
         d["vip_tier"] = tier_map.get(int(r["customer_id"]), "一般會員")
         if vip_tier and d["vip_tier"] != vip_tier:
             continue
+        cs = coin_summary_map.get(int(r["customer_id"]), {})
+        d["cust_total_earned"] = cs.get("total_earned", 0)
+        d["cust_total_redeemed"] = cs.get("total_redeemed", 0)
+        d["cust_coin_balance"] = cs.get("coin_balance", 0)
         detail_rows.append(d)
 
     monthly_by_customer = db.execute(

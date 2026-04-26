@@ -90,7 +90,9 @@
       <tr>
         <th>日期</th><th>分店</th><th>客戶</th><th>生日</th><th>VIP等級</th>
         <th>原始金額</th><th>實收金額</th>
-        <th>獲得點數</th><th>模式</th><th style="min-width:100px;">操作</th>
+        <th>獲得點數</th><th>模式</th>
+        <th style="text-align:right;">累計獲得</th><th style="text-align:right;">累計折抵</th><th style="text-align:right;">點數餘額</th>
+        <th style="min-width:100px;">操作</th>
       </tr>
     </thead>
     <tbody>
@@ -126,6 +128,9 @@
         {% elif r.entry_mode == 'coin_deduct' %}<span style="color:#dc2626;">點數扣除</span>
         {% else %}一般消費{% endif %}
       </td>
+      <td class="view-cell" style="text-align:right;">{{ r.cust_total_earned }}</td>
+      <td class="view-cell" style="text-align:right;">{{ r.cust_total_redeemed }}</td>
+      <td class="view-cell" style="text-align:right; font-weight:700; color:#059669;">{{ r.cust_coin_balance }}</td>
       <td class="view-cell" style="white-space:nowrap;">
         <button type="button" onclick="startEdit({{ r.id }}, '{{ r.txn_date }}', '{{ r.store_id }}', '{{ r.customer_name|replace("'", "\\'") }}', '{{ r.birthday }}', {{ r.amount }}, {{ r.final_amount }})"
           style="background:#ede9fe;color:#6c3fc5;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;margin-right:4px;">✏️ 修改</button>
@@ -134,7 +139,7 @@
       </td>
 
       <!-- Edit mode cells (hidden by default) -->
-      <td class="edit-cell" style="display:none;" colspan="10">
+      <td class="edit-cell" style="display:none;" colspan="13">
         <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:8px 0;">
           <div><label style="font-size:12px;margin:0;">日期</label><br><input type="date" id="e-date-{{ r.id }}" value="{{ r.txn_date }}" style="width:140px;max-width:none;"></div>
           <div><label style="font-size:12px;margin:0;">分店</label><br>
