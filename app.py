@@ -29,6 +29,10 @@ def require_main_auth():
         return
     if request.path in ["/main_unlock", "/manager/unlock"]:
         return
+    if request.path == "/spa/booking":
+        return
+    if request.path in ["/api/spa/availability", "/api/spa/book"]:
+        return
     
     if session.get("main_authed") or session.get("manager_authed"):
         return
@@ -165,6 +169,20 @@ def init_db() -> None:
             note TEXT DEFAULT '',
             created_at TEXT NOT NULL,
             FOREIGN KEY(customer_id) REFERENCES customers(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS spa_bookings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            store_id TEXT NOT NULL,
+            booking_date TEXT NOT NULL,
+            booking_time TEXT NOT NULL,
+            customer_name TEXT NOT NULL,
+            customer_phone TEXT NOT NULL,
+            customer_type TEXT NOT NULL,
+            service_type TEXT NOT NULL,
+            note TEXT DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at TEXT NOT NULL
         );
         """
     )
@@ -1569,6 +1587,107 @@ def _build_customer_result(cid: int) -> dict | None:
         "transactions": [dict(t) for t in txns],
         "upgrades": [dict(u) for u in upgrades],
     }
+
+
+@app.route("/spa/booking")
+def spa_booking():
+    db = get_db()
+    stores = db.execute("SELECT id, name FROM stores ORDER BY name").fetchall()
+    return render_template("spa_booking.html", stores=stores)
+
+@app.route("/api/spa/availability")
+def spa_availability():
+    store_id = request.args.get("store_id", "").strip()
+    year_month = request.args.get("month", "").strip() # YYYY-MM
+    if not store_id or not year_month:
+        return {"error": "Missing parameters"}, 400
+        
+    db = get_db()
+    # Find all bookings for this store in this month
+    rows = db.execute(
+        "SELECT booking_date, booking_time, COUNT(*) as cnt FROM spa_bookings WHERE store_id = ? AND booking_date LIKE ? AND status != 'cancelled' GROUP BY booking_date, booking_time",
+        (store_id, f"{year_month}-%")
+    ).fetchall()
+    
+    # booking_limits per time slot
+    # We return the counts so the frontend can disable time slots
+    booked_counts = {}
+    for r in rows:
+        dt = r["booking_date"]
+        tm = r["booking_time"]
+        if dt not in booked_counts:
+            booked_counts[dt] = {}
+        booked_counts[dt][tm] = r["cnt"]
+        
+    return {"booked_counts": booked_counts}
+
+@app.route("/api/spa/book", methods=["POST"])
+def spa_book():
+    store_id = request.form.get("store_id", "").strip()
+    booking_date = request.form.get("booking_date", "").strip()
+    booking_time = request.form.get("booking_time", "").strip()
+    customer_name = request.form.get("customer_name", "").strip()
+    customer_phone = request.form.get("customer_phone", "").strip()
+    customer_type = request.form.get("customer_type", "").strip()
+    service_type = request.form.get("service_type", "").strip()
+    note = request.form.get("note", "").strip()
+    
+    if not all([store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type]):
+        return {"error": "請填寫完整資料"}, 400
+        
+    db = get_db()
+    # Check if this slot already has 2 bookings
+    cnt = db.execute(
+        "SELECT COUNT(*) as cnt FROM spa_bookings WHERE store_id = ? AND booking_date = ? AND booking_time = ? AND status != 'cancelled'",
+        (store_id, booking_date, booking_time)
+    ).fetchone()["cnt"]
+    
+    if cnt >= 2:
+        return {"error": "該時段已被預約額滿，請選擇其他時段"}, 400
+        
+    now_str = datetime.now().isoformat(timespec="seconds")
+    db.execute(
+        """
+        INSERT INTO spa_bookings (store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type, note, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+        """,
+        (store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type, note, now_str)
+    )
+    db.commit()
+    return {"status": "success"}
+
+@app.route("/spa/admin/bookings")
+def spa_admin_bookings():
+    db = get_db()
+    stores = db.execute("SELECT id, name FROM stores ORDER BY name").fetchall()
+    
+    store_id = request.args.get("store_id", "").strip()
+    month = request.args.get("month", date.today().strftime("%Y-%m")).strip()
+    
+    where = ["booking_date LIKE ?"]
+    params = [f"{month}-%"]
+    
+    if store_id:
+        where.append("store_id = ?")
+        params.append(store_id)
+        
+    query = f"""
+        SELECT sb.*, s.name as store_name
+        FROM spa_bookings sb
+        JOIN stores s ON s.id = sb.store_id
+        WHERE {" AND ".join(where)}
+        ORDER BY sb.booking_date DESC, sb.booking_time DESC
+    """
+    bookings = db.execute(query, params).fetchall()
+    
+    return render_template("spa_admin.html", bookings=bookings, stores=stores, month=month, store_id=store_id)
+
+@app.route("/api/spa/bookings/<int:booking_id>/confirm", methods=["POST"])
+def spa_admin_confirm(booking_id):
+    db = get_db()
+    db.execute("UPDATE spa_bookings SET status = 'confirmed' WHERE id = ?", (booking_id,))
+    db.commit()
+    return {"status": "success"}
 
 
 if __name__ == "__main__":

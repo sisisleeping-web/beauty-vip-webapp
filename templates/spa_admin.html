@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h3>📅 SPA 預約管理</h3>
+  <form method="get" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin-bottom:1rem;">
+    <div>
+      <label>查詢月份</label>
+      <input type="month" name="month" value="{{ month }}" style="max-width:180px;">
+    </div>
+    <div>
+      <label>篩選分店</label>
+      <select name="store_id" style="max-width:160px;">
+        <option value="">全部分店</option>
+        {% for s in stores %}
+        <option value="{{ s.id }}" {% if store_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="align-self:flex-end;">
+      <button type="submit" style="background:linear-gradient(135deg,#6c3fc5,#a855f7);color:#fff;">🔍 查詢</button>
+      <a href="/spa/admin/bookings"><button type="button" style="background:#f3f4f6;color:#555;border:1px solid #ddd;margin-left:4px;">清除</button></a>
+    </div>
+  </form>
+
+  <p style="font-size:0.85rem; color:#888; margin:0 0 8px;">共 {{ bookings|length }} 筆預約</p>
+  <div class="table-wrap"><table>
+    <thead>
+      <tr>
+        <th>預約日期</th>
+        <th>時段</th>
+        <th>分店</th>
+        <th>客戶姓名</th>
+        <th>聯絡電話</th>
+        <th>客群</th>
+        <th>服務項目</th>
+        <th>備註</th>
+        <th>狀態</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for b in bookings %}
+    <tr id="booking-{{ b.id }}">
+      <td style="font-weight:600;">{{ b.booking_date }}</td>
+      <td style="font-weight:600; color:#6c3fc5;">{{ b.booking_time }}</td>
+      <td>{{ b.store_name }}</td>
+      <td><strong>{{ b.customer_name }}</strong></td>
+      <td>
+        <a href="tel:{{ b.customer_phone }}" style="color:#0e7fa8; text-decoration:none;">📞 {{ b.customer_phone }}</a>
+      </td>
+      <td>
+        {% if b.customer_type == 'new' %}
+        <span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:0.8em;">新客</span>
+        {% else %}
+        <span style="background:#f3f4f6;color:#555;padding:2px 6px;border-radius:4px;font-size:0.8em;">舊客</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if b.service_type == 'body' %}身體課程
+        {% elif b.service_type == 'facial' %}臉部課程
+        {% elif b.service_type == 'nail' %}美甲課程
+        {% else %}其他{% endif %}
+      </td>
+      <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ b.note }}">{{ b.note }}</td>
+      <td id="status-{{ b.id }}">
+        {% if b.status == 'confirmed' %}
+        <span style="color:#059669;font-weight:700;">✅ 已確認</span>
+        {% elif b.status == 'cancelled' %}
+        <span style="color:#dc2626;font-weight:700;">❌ 已取消</span>
+        {% else %}
+        <span style="color:#d97706;font-weight:700;">⏳ 待確認</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if b.status == 'pending' %}
+        <button onclick="confirmBooking({{ b.id }})" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;">確認</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="10" style="text-align:center; padding:2rem; color:#888;">尚無預約資料</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+<script>
+function confirmBooking(id) {
+  if(confirm('確定要將此預約標記為「已確認」嗎？')) {
+    fetch(`/api/spa/bookings/${id}/confirm`, { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        if(data.status === 'success') {
+          location.reload();
+        } else {
+          alert('確認失敗');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('發生錯誤');
+      });
+  }
+}
+</script>
+{% endblock %}

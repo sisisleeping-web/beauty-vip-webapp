@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>美容 SPA 線上預約</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+      --secondary: #ec4899;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --text-light: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --error: #ef4444;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,0) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,0.05) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,0.05) 0, transparent 50%);
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 2rem;
+      text-align: center;
+    }
+    .header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .header p { opacity: 0.9; font-weight: 500; }
+    
+    .content { padding: 2rem; }
+    
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+    
+    .store-selector {
+      display: flex;
+      gap: 1rem;
+    }
+    .store-btn {
+      flex: 1;
+      padding: 0.75rem;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text-light);
+      transition: all 0.2s;
+    }
+    .store-btn.active {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(139, 92, 246, 0.05);
+    }
+    
+    .calendar-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .calendar-controls button {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--primary);
+      padding: 0.5rem;
+    }
+    .calendar-controls span { font-weight: 700; font-size: 1.1rem; }
+    
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.25rem;
+      text-align: center;
+    }
+    .calendar-day-header {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-light);
+      padding: 0.5rem 0;
+    }
+    .calendar-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .calendar-day:not(.disabled):hover { background: var(--bg); }
+    .calendar-day.disabled { color: var(--border); cursor: not-allowed; }
+    .calendar-day.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(139,92,246,0.3); }
+    .calendar-day.today { border: 1px solid var(--primary); }
+    
+    .time-slots {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .time-slot {
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .time-slot:not(.disabled):hover { border-color: var(--primary); color: var(--primary); }
+    .time-slot.disabled { background: var(--bg); color: var(--text-light); cursor: not-allowed; opacity: 0.6; }
+    .time-slot.active { background: var(--primary); color: white; border-color: var(--primary); }
+    
+    .input-field {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(139,92,246,0.1); }
+    
+    .radio-group {
+      display: flex;
+      gap: 1.5rem;
+    }
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+    
+    .btn-submit {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(139,92,246,0.3);
+      margin-top: 1rem;
+    }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139,92,246,0.4); }
+    .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+    
+    .step { display: none; animation: fadeIn 0.4s ease; }
+    .step.active { display: block; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .success-message {
+      text-align: center;
+      padding: 3rem 1rem;
+    }
+    .success-icon {
+      font-size: 4rem;
+      color: var(--success);
+      margin-bottom: 1rem;
+    }
+    
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      visibility: hidden;
+      opacity: 0;
+      transition: all 0.3s;
+    }
+    .loading-overlay.active { visibility: visible; opacity: 1; }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  
+  <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+
+  <div class="container">
+    <div class="header">
+      <h1>✨ SPA 專屬預約</h1>
+      <p>放鬆身心，享受完美呵護</p>
+    </div>
+    
+    <div class="content">
+      <!-- Step 1: Select Store & Date & Time -->
+      <div id="step1" class="step active">
+        <div class="form-group">
+          <label>1. 選擇預約門市</label>
+          <div class="store-selector">
+            {% for s in stores %}
+            <button class="store-btn {% if loop.first %}active{% endif %}" data-store="{{ s.id }}">{{ s.name }}</button>
+            {% endform %}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>2. 選擇預約日期</label>
+          <div class="calendar-controls">
+            <button id="prevMonth">&lt;</button>
+            <span id="currentMonthStr">2026 年 04 月</span>
+            <button id="nextMonth">&gt;</button>
+          </div>
+          <div class="calendar-grid" id="calendarHeader">
+            <div class="calendar-day-header">日</div>
+            <div class="calendar-day-header">一</div>
+            <div class="calendar-day-header">二</div>
+            <div class="calendar-day-header">三</div>
+            <div class="calendar-day-header">四</div>
+            <div class="calendar-day-header">五</div>
+            <div class="calendar-day-header">六</div>
+          </div>
+          <div class="calendar-grid" id="calendarBody">
+            <!-- Days injected here -->
+          </div>
+        </div>
+        
+        <div class="form-group" id="timeSlotContainer" style="display:none;">
+          <label>3. 選擇預約時段 (每時段限2位)</label>
+          <div class="time-slots" id="timeSlots">
+            <!-- Slots injected here -->
+          </div>
+        </div>
+        
+        <button class="btn-submit" id="btnNext" disabled>下一步</button>
+      </div>
+      
+      <!-- Step 2: Customer Info -->
+      <div id="step2" class="step">
+        <div class="form-group">
+          <label>您已選擇</label>
+          <div style="background: var(--bg); padding: 1rem; border-radius: 8px; font-weight: 500;">
+            <span id="summaryStore" style="color:var(--primary)"></span> - 
+            <span id="summaryDateTime"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="cName">姓名</label>
+          <input type="text" id="cName" class="input-field" placeholder="請輸入您的姓名" required>
+        </div>
+        <div class="form-group">
+          <label for="cPhone">聯絡電話</label>
+          <input type="tel" id="cPhone" class="input-field" placeholder="請輸入聯絡電話" required>
+        </div>
+        <div class="form-group">
+          <label>會員身分</label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="cType" value="existing" checked> 舊顧客</label>
+            <label class="radio-label"><input type="radio" name="cType" value="new"> 新顧客</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="cService">預約服務項目</label>
+          <select id="cService" class="input-field">
+            <option value="body">身體課程</option>
+            <option value="facial">臉部課程</option>
+            <option value="nail">美甲課程</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="cNote">備註留言</label>
+          <textarea id="cNote" class="input-field" rows="2" placeholder="若選擇其他或有特殊需求請填寫..."></textarea>
+        </div>
+        
+        <div style="display:flex; gap:1rem;">
+          <button class="btn-submit" id="btnBack" style="background:var(--border); color:var(--text); box-shadow:none;">上一步</button>
+          <button class="btn-submit" id="btnSubmit">確認預約</button>
+        </div>
+      </div>
+      
+      <!-- Step 3: Success -->
+      <div id="step3" class="step success-message">
+        <div class="success-icon">✓</div>
+        <h2>預約成功！</h2>
+        <p style="margin-top: 1rem; color: var(--text-light);">感謝您的預約，我們會盡快由專人為您確認並安排服務。</p>
+        <button class="btn-submit" onclick="location.reload()" style="max-width: 200px; margin: 2rem auto 0;">返回首頁</button>
+      </div>
+      
+    </div>
+  </div>
+
+<script>
+  // Setup data
+  const storesData = [
+    {% for s in stores %}
+      { id: "{{ s.id }}", name: "{{ s.name }}" }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+  
+  let selectedStore = storesData.length > 0 ? storesData[0].id : null;
+  let selectedStoreName = storesData.length > 0 ? storesData[0].name : null;
+  let selectedDate = null;
+  let selectedTime = null;
+  let currentMonth = new Date();
+  currentMonth.setDate(1);
+  let availability = {};
+  
+  // Logic
+  const today = new Date();
+  const minDate = new Date();
+  minDate.setDate(today.getDate() + 3);
+  minDate.setHours(0,0,0,0);
+  
+  // Elements
+  const btnNext = document.getElementById('btnNext');
+  const btnBack = document.getElementById('btnBack');
+  const btnSubmit = document.getElementById('btnSubmit');
+  
+  // Store Selection
+  document.querySelectorAll('.store-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.store-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      selectedStore = e.target.getAttribute('data-store');
+      selectedStoreName = e.target.textContent;
+      
+      // Reset selections
+      selectedDate = null;
+      selectedTime = null;
+      document.getElementById('timeSlotContainer').style.display = 'none';
+      checkNextButton();
+      
+      // Refetch
+      fetchAvailability();
+    });
+  });
+  
+  // Calendar Navigation
+  document.getElementById('prevMonth').addEventListener('click', () => {
+    currentMonth.setMonth(currentMonth.getMonth() - 1);
+    fetchAvailability();
+  });
+  document.getElementById('nextMonth').addEventListener('click', () => {
+    currentMonth.setMonth(currentMonth.getMonth() + 1);
+    fetchAvailability();
+  });
+  
+  function fetchAvailability() {
+    const yyyy = currentMonth.getFullYear();
+    const mm = String(currentMonth.getMonth() + 1).padStart(2, '0');
+    const monthStr = `${yyyy}-${mm}`;
+    
+    document.getElementById('currentMonthStr').textContent = `${yyyy} 年 ${mm} 月`;
+    
+    if(!selectedStore) return;
+    
+    showLoading();
+    fetch(`/api/spa/availability?store_id=${selectedStore}&month=${monthStr}`)
+      .then(res => res.json())
+      .then(data => {
+        availability = data.booked_counts || {};
+        renderCalendar();
+        hideLoading();
+      })
+      .catch(err => {
+        console.error(err);
+        hideLoading();
+      });
+  }
+  
+  function renderCalendar() {
+    const body = document.getElementById('calendarBody');
+    body.innerHTML = '';
+    
+    const yyyy = currentMonth.getFullYear();
+    const mm = currentMonth.getMonth();
+    
+    const firstDay = new Date(yyyy, mm, 1);
+    const lastDay = new Date(yyyy, mm + 1, 0);
+    
+    // Padding days
+    for(let i=0; i<firstDay.getDay(); i++){
+      const el = document.createElement('div');
+      body.appendChild(el);
+    }
+    
+    for(let d=1; d<=lastDay.getDate(); d++){
+      const el = document.createElement('div');
+      el.className = 'calendar-day';
+      el.textContent = d;
+      
+      const dateObj = new Date(yyyy, mm, d);
+      const dateStr = `${yyyy}-${String(mm+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      
+      if(dateObj < minDate) {
+        el.classList.add('disabled');
+      } else {
+        el.addEventListener('click', () => {
+          document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('active'));
+          el.classList.add('active');
+          selectedDate = dateStr;
+          selectedTime = null;
+          renderTimeSlots(dateObj);
+          checkNextButton();
+        });
+        
+        if(selectedDate === dateStr) {
+          el.classList.add('active');
+        }
+      }
+      
+      body.appendChild(el);
+    }
+  }
+  
+  function renderTimeSlots(dateObj) {
+    const container = document.getElementById('timeSlotContainer');
+    const slotsEl = document.getElementById('timeSlots');
+    slotsEl.innerHTML = '';
+    container.style.display = 'block';
+    
+    const dayOfWeek = dateObj.getDay(); // 0:Sun, 1:Mon...
+    let slots = [];
+    
+    if(selectedStoreName.includes('斗六')) {
+      if(dayOfWeek >= 1 && dayOfWeek <= 5) {
+        slots = ['09:00', '13:00', '15:00', '17:00'];
+      } else {
+        slots = ['09:00', '14:00', '16:00'];
+      }
+    } else if(selectedStoreName.includes('虎尾')) {
+      if(dayOfWeek >= 1 && dayOfWeek <= 6) {
+        slots = ['09:00', '13:00', '15:00', '17:00'];
+      } else {
+        slots = []; // Sunday closed
+      }
+    }
+    
+    if(slots.length === 0) {
+      slotsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-light);">本店當日不開放預約</div>';
+      return;
+    }
+    
+    slots.forEach(time => {
+      const el = document.createElement('div');
+      el.className = 'time-slot';
+      el.textContent = time;
+      
+      // Check capacity
+      let booked = 0;
+      if(availability[selectedDate] && availability[selectedDate][time]) {
+        booked = availability[selectedDate][time];
+      }
+      
+      if(booked >= 2) {
+        el.classList.add('disabled');
+        el.textContent += ' (額滿)';
+      } else {
+        el.addEventListener('click', () => {
+          document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('active'));
+          el.classList.add('active');
+          selectedTime = time;
+          checkNextButton();
+        });
+      }
+      
+      slotsEl.appendChild(el);
+    });
+  }
+  
+  function checkNextButton() {
+    if(selectedStore && selectedDate && selectedTime) {
+      btnNext.disabled = false;
+    } else {
+      btnNext.disabled = true;
+    }
+  }
+  
+  btnNext.addEventListener('click', () => {
+    document.getElementById('step1').classList.remove('active');
+    document.getElementById('step2').classList.add('active');
+    document.getElementById('summaryStore').textContent = selectedStoreName;
+    document.getElementById('summaryDateTime').textContent = `${selectedDate} ${selectedTime}`;
+  });
+  
+  btnBack.addEventListener('click', () => {
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step1').classList.add('active');
+  });
+  
+  btnSubmit.addEventListener('click', () => {
+    const cName = document.getElementById('cName').value.trim();
+    const cPhone = document.getElementById('cPhone').value.trim();
+    if(!cName || !cPhone) {
+      alert("請填寫姓名與聯絡電話");
+      return;
+    }
+    
+    const cType = document.querySelector('input[name="cType"]:checked').value;
+    const cService = document.getElementById('cService').value;
+    const cNote = document.getElementById('cNote').value;
+    
+    const formData = new URLSearchParams();
+    formData.append('store_id', selectedStore);
+    formData.append('booking_date', selectedDate);
+    formData.append('booking_time', selectedTime);
+    formData.append('customer_name', cName);
+    formData.append('customer_phone', cPhone);
+    formData.append('customer_type', cType);
+    formData.append('service_type', cService);
+    formData.append('note', cNote);
+    
+    showLoading();
+    fetch('/api/spa/book', {
+      method: 'POST',
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      hideLoading();
+      if(data.error) {
+        alert(data.error);
+      } else {
+        document.getElementById('step2').classList.remove('active');
+        document.getElementById('step3').classList.add('active');
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      hideLoading();
+      alert("發生錯誤，請稍後再試。");
+    });
+  });
+  
+  function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+  function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+  
+  // Init
+  fetchAvailability();
+</script>
+</body>
+</html>
