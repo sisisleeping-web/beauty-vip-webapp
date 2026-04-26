@@ -192,7 +192,7 @@
     <!-- Search Form -->
     <div class="card">
       <h2>🔍 查詢我的會員資料</h2>
-      <p style="font-size:0.85rem; color:#888; margin:0 0 4px;">請輸入您的姓名與手機號碼進行查詢。</p>
+      <p style="font-size:0.85rem; color:#888; margin:0 0 4px;">請輸入姓名，並搭配「手機號碼」或「生日」進行驗證。</p>
 
       {% if error %}
       <div class="error-msg">{{ error }}</div>
@@ -222,15 +222,35 @@
         <a href="/my" class="back-link">← 重新查詢</a>
       </div>
       {% else %}
-      <form method="post">
+      <form method="post" id="lookupForm">
         <label>姓名 <span style="color:#dc2626;">*</span></label>
         <input type="text" name="name" placeholder="請輸入您的姓名" autocomplete="name" required>
 
-        <label>手機號碼 <span style="color:#dc2626;">*</span></label>
-        <input type="tel" name="phone" placeholder="請輸入手機號碼" autocomplete="tel" required>
+        <div style="margin:16px 0; padding:14px; background:#f8f6ff; border:1px solid #e8e4f3; border-radius:12px;">
+          <p style="font-size:0.85rem; font-weight:600; color:#6c3fc5; margin:0 0 10px;">以下擇一輸入即可：</p>
+          
+          <label style="margin-top:0;">手機號碼</label>
+          <input type="tel" id="lookupPhone" name="phone" placeholder="請輸入手機號碼" autocomplete="tel">
 
-        <button type="submit" class="btn-primary">查詢我的資料</button>
+          <div style="margin:12px 0; font-size:0.8rem; color:#bbb; text-align:center;">— 或 —</div>
+
+          <label style="margin-top:0;">生日</label>
+          <input type="date" id="lookupBirthday" name="birthday">
+        </div>
+
+        <button type="submit" class="btn-primary" onclick="return validateForm()">查詢我的資料</button>
       </form>
+      <script>
+        function validateForm() {
+          const phone = document.getElementById('lookupPhone').value.trim();
+          const bday = document.getElementById('lookupBirthday').value.trim();
+          if (!phone && !bday) {
+            alert("請至少輸入「手機號碼」或「生日」其中一項！");
+            return false;
+          }
+          return true;
+        }
+      </script>
       {% endif %}
     </div>
   {% else %}

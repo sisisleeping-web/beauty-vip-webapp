@@ -1430,20 +1430,34 @@ def customer_lookup():
     elif request.method == "POST":
         name = request.form.get("name", "").strip()
         phone = request.form.get("phone", "").strip()
+        birthday = request.form.get("birthday", "").strip()
 
-        if not name or not phone:
-            error = "請輸入姓名與手機號碼"
+        if not name:
+            error = "請輸入姓名"
+        elif not phone and not birthday:
+            error = "請輸入手機號碼或生日進行驗證"
         else:
             db = get_db()
 
-            # Search by name and phone (exact match only for privacy)
-            rows = db.execute(
-                "SELECT id, name, phone, birthday FROM customers WHERE name=? AND phone=?",
-                (name, phone),
-            ).fetchall()
+            rows = []
+            if phone and birthday:
+                rows = db.execute(
+                    "SELECT id, name, phone, birthday FROM customers WHERE name=? AND phone=? AND birthday=?",
+                    (name, phone, birthday),
+                ).fetchall()
+            elif phone:
+                rows = db.execute(
+                    "SELECT id, name, phone, birthday FROM customers WHERE name=? AND phone=?",
+                    (name, phone),
+                ).fetchall()
+            elif birthday:
+                rows = db.execute(
+                    "SELECT id, name, phone, birthday FROM customers WHERE name=? AND birthday=?",
+                    (name, birthday),
+                ).fetchall()
 
             if not rows:
-                error = "查無此顧客，請確認姓名與手機號碼是否正確。"
+                error = "查無此顧客，請確認輸入資料是否正確。"
             elif len(rows) == 1:
                 result = _build_customer_result(int(rows[0]["id"]))
             else:
