@@ -194,5 +194,28 @@
   <div class="main-content">
     {% block content %}{% endblock %}
   </div>
+  {% if session.get('main_authed') or session.get('manager_authed') %}
+  <script>
+    (function() {
+      let idleSeconds = 0;
+      const idleLimit = 5 * 60; // 5 minutes
+
+      function resetIdle() {
+        idleSeconds = 0;
+      }
+
+      ['load', 'mousemove', 'mousedown', 'touchstart', 'click', 'keydown'].forEach(evt => {
+        window.addEventListener(evt, resetIdle);
+      });
+
+      setInterval(function() {
+        idleSeconds++;
+        if (idleSeconds >= idleLimit) {
+          window.location.href = "/main_logout";
+        }
+      }, 1000);
+    })();
+  </script>
+  {% endif %}
 </body>
 </html>
