@@ -122,7 +122,9 @@
         <th>所屬分店</th>
         <th style="text-align:right;">{% if month_from == month_to %}{{ month_label }} 月消費{% else %}{{ month_label }} 期間消費{% endif %}</th>
         <th style="text-align:right;">{{ month_from[:4] }} 年消費</th>
-        <th style="text-align:right;">累計美咖幣</th>
+        <th style="text-align:right;">累計獲得</th>
+        <th style="text-align:right;">累計折抵</th>
+        <th style="text-align:right;">點數餘額</th>
       </tr>
     </thead>
     <tbody>
@@ -134,9 +136,9 @@
       <td style="font-size:0.9em; color:#555;">{{ c.stores or '-' }}</td>
       <td style="text-align:right; font-weight:600;">{{ '%.0f'|format(c.month_spend or 0) }}</td>
       <td style="text-align:right; font-weight:600; color:#0e7fa8;">{{ '%.0f'|format(c.year_spend or 0) }}</td>
-      <td style="text-align:right; color:#d97706; font-weight:700; font-size:1.05rem;">
-        🪙 {{ c.coin_balance or 0 }}
-      </td>
+      <td style="text-align:right;">{{ c.total_coins_earned or 0 }}</td>
+      <td style="text-align:right;">{{ c.total_coins_redeemed or 0 }}</td>
+      <td style="text-align:right; color:#059669; font-weight:700; font-size:1.05rem;">🪙 {{ c.coin_balance or 0 }}</td>
     </tr>
     {% endfor %}
     </tbody>

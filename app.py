@@ -844,7 +844,9 @@ def manager_dashboard():
                GROUP_CONCAT(DISTINCT s.name) AS stores,
                SUM(CASE WHEN t.month_key >= ? AND t.month_key <= ? THEN t.final_amount ELSE 0 END) AS month_spend,
                SUM(CASE WHEN substr(t.txn_date,1,4) = ? THEN t.final_amount ELSE 0 END) AS year_spend,
-               SUM(t.cashback) AS total_cashback
+               SUM(t.cashback) AS total_cashback,
+               COALESCE(SUM(t.coins_earned),0) AS total_coins_earned,
+               COALESCE(SUM(t.coins_redeemed),0) AS total_coins_redeemed
         FROM customers c
         LEFT JOIN transactions t ON c.id = t.customer_id {cust_where}
         LEFT JOIN stores s ON t.store_id = s.id
