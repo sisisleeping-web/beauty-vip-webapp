@@ -497,8 +497,13 @@ def entry():
 @app.route("/report")
 def report():
     db = get_db()
-    month = request.args.get("month", date.today().strftime("%Y-%m"))
-    year = request.args.get("year", month[:4])
+    default_month = date.today().strftime("%Y-%m")
+    month_from = request.args.get("month_from", "").strip() or request.args.get("month", default_month)
+    month_to = request.args.get("month_to", "").strip() or month_from
+    # Ensure month_to >= month_from
+    if month_to < month_from:
+        month_to = month_from
+    year = request.args.get("year", month_from[:4])
     store_id = request.args.get("store_id", "").strip()
     q = request.args.get("q", "").strip()
     start_date = request.args.get("start_date", "").strip()
@@ -506,11 +511,17 @@ def report():
     birthday_month = request.args.get("birthday_month", "").strip()
     vip_tier = request.args.get("vip_tier", "").strip()
 
+    # Build human-readable month label
+    if month_from == month_to:
+        month_label = month_from
+    else:
+        month_label = f"{month_from} ~ {month_to}"
+
     where = ["1=1"]
     params: list[Any] = []
 
-    where.append("t.month_key = ?")
-    params.append(month)
+    where.append("t.month_key >= ? AND t.month_key <= ?")
+    params.extend([month_from, month_to])
 
     if store_id:
         where.append("t.store_id = ?")
@@ -567,11 +578,11 @@ def report():
         FROM transactions t
         JOIN customers c ON c.id = t.customer_id
         JOIN stores s ON s.id = t.store_id
-        WHERE t.month_key = ?
+        WHERE t.month_key >= ? AND t.month_key <= ?
         GROUP BY s.name, c.name, c.birthday
         ORDER BY s.name, month_total DESC
         """,
-        (month,),
+        (month_from, month_to),
     ).fetchall()
 
     yearly_by_customer = db.execute(
@@ -598,11 +609,16 @@ def report():
         "birthday_month": birthday_month,
         "vip_tier": vip_tier,
         "year": year,
+        "month_from": month_from,
+        "month_to": month_to,
     }
 
     return render_template(
         "report.html",
-        month=month,
+        month=month_from,
+        month_label=month_label,
+        month_from=month_from,
+        month_to=month_to,
         detail_rows=detail_rows,
         monthly_by_customer=monthly_by_customer,
         yearly_by_customer=yearly_by_customer,

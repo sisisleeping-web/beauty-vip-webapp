@@ -4,8 +4,38 @@
   <h3>📊 報表查詢</h3>
   <form method="get" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px 16px; align-items: end; margin-top: 10px;">
     <div>
-      <label>月份</label>
-      <input type="month" name="month" value="{{ month }}">
+      <label>起始月份</label>
+      <input type="month" name="month_from" id="month_from" value="{{ month_from }}">
+    </div>
+    <div>
+      <label>結束月份</label>
+      <input type="month" name="month_to" id="month_to" value="{{ month_to }}">
+    </div>
+    <div style="grid-column: 1 / -1;">
+      <label>快速選擇</label>
+      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(1,1)">1月</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(2,2)">2月</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(3,3)">3月</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(4,4)">4月</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(5,5)">5月</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(6,6)">6月</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(7,7)">7月</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(8,8)">8月</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(9,9)">9月</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(10,10)">10月</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(11,11)">11月</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(12,12)">12月</button>
+        <span style="border-left:1px solid #ddd;margin:0 2px;"></span>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(1,3)" style="background:#ede9fe;">Q1</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(4,6)" style="background:#ede9fe;">Q2</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(7,9)" style="background:#ede9fe;">Q3</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(10,12)" style="background:#ede9fe;">Q4</button>
+        <span style="border-left:1px solid #ddd;margin:0 2px;"></span>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(1,6)" style="background:#dbeafe;">上半年</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(7,12)" style="background:#dbeafe;">下半年</button>
+        <button type="button" class="quick-month-btn" onclick="setMonthRange(1,12)" style="background:#d1fae5;">全年</button>
+      </div>
     </div>
     <div>
       <label>年份（VIP分級計算）</label>
@@ -53,7 +83,7 @@
 </div>
 
 <div class="card">
-  <h3>📋 日明細（{{ month }}）</h3>
+  <h3>📋 日明細（{{ month_label }}）</h3>
   <p style="font-size:0.85rem; color:#888; margin:0 0 8px;">共 {{ detail_rows|length }} 筆</p>
   <div class="table-wrap"><table id="detail-table">
     <thead>
@@ -131,9 +161,9 @@
 </div>
 
 <div class="card">
-  <h3>📅 月消費彙總（{{ month }}）</h3>
+  <h3>📅 {% if month_from == month_to %}月消費彙總（{{ month_label }}）{% else %}期間消費彙總（{{ month_label }}）{% endif %}</h3>
   <div class="table-wrap"><table>
-    <thead><tr><th>分店</th><th>客戶</th><th>生日</th><th style="text-align:right;">月累計金額</th></tr></thead>
+    <thead><tr><th>分店</th><th>客戶</th><th>生日</th><th style="text-align:right;">{% if month_from == month_to %}月累計金額{% else %}期間累計金額{% endif %}</th></tr></thead>
     <tbody>
     {% for r in monthly_by_customer %}
     <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td style="text-align:right; font-weight:600;">{{ '%.0f'|format(r.month_total) }}</td></tr>
@@ -143,7 +173,7 @@
 </div>
 
 <div class="card">
-  <h3>📆 年消費彙總（{{ month[:4] }} 年）</h3>
+  <h3>📆 年消費彙總（{{ month_from[:4] }} 年）</h3>
   <div class="table-wrap"><table>
     <thead><tr><th>分店</th><th>客戶</th><th>生日</th><th style="text-align:right;">年累計金額</th></tr></thead>
     <tbody>
@@ -157,9 +187,21 @@
 <style>
 #detail-table tr.editing .view-cell { display: none; }
 #detail-table tr.editing .edit-cell { display: table-cell !important; }
+.quick-month-btn {
+  background: #f3f4f6; color: #333; border: 1px solid #ddd; border-radius: 6px;
+  padding: 4px 10px; font-size: 13px; cursor: pointer; white-space: nowrap;
+  transition: all 0.15s;
+}
+.quick-month-btn:hover { background: #6c3fc5; color: #fff; border-color: #6c3fc5; }
 </style>
 
 <script>
+function setMonthRange(from, to) {
+  const year = document.getElementById('month_from').value.substring(0, 4) || new Date().getFullYear().toString();
+  document.getElementById('month_from').value = year + '-' + String(from).padStart(2, '0');
+  document.getElementById('month_to').value = year + '-' + String(to).padStart(2, '0');
+}
+
 function startEdit(id, txnDate, storeId, name, birthday, amount, cashReceived) {
   const row = document.getElementById('row-' + id);
   row.classList.add('editing');

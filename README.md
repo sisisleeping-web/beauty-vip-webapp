@@ -22,6 +22,16 @@ python app.py
 
 開啟： http://localhost:5090
 
+目前對外網址會由 `run_tunnel.sh` 啟動 Cloudflare Tunnel 後自動寫入 `current_tunnel_url.txt`。
+查看目前對外網址：
+```bash
+cat current_tunnel_url.txt
+```
+健康檢查：
+```bash
+python3 scripts/check_tunnel_health.py
+```
+
 ## 規則設定
 編輯 `rules.json`：
 - `birthday_offer.discount_rate`：壽星折扣（0.1 = 9折）
