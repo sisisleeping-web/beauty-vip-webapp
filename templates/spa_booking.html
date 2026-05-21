@@ -526,7 +526,7 @@
       }
       
       let cap = 2;
-      if(capacities[selectedDate] && capacities[selectedDate][time]) {
+      if(capacities[selectedDate] && capacities[selectedDate][time] !== undefined) {
         cap = capacities[selectedDate][time];
       }
       
