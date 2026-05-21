@@ -1684,14 +1684,17 @@ def spa_book():
     if not all([store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type]):
         return {"error": "請填寫完整資料"}, 400
         
+    is_admin = session.get("manager_authed") or session.get("main_authed")
+    
     # Check 4-week limit
     try:
         b_date = datetime.strptime(booking_date, "%Y-%m-%d").date()
         today_date = date.today()
-        if (b_date - today_date).days > 28:
-            return {"error": "僅開放4週(28天)內的預約"}, 400
-        if b_date < today_date:
-            return {"error": "無法預約過去的日期"}, 400
+        if not is_admin:
+            if (b_date - today_date).days > 28:
+                return {"error": "僅開放4週(28天)內的預約"}, 400
+            if b_date < today_date:
+                return {"error": "無法預約過去的日期"}, 400
     except ValueError:
         return {"error": "日期格式錯誤"}, 400
 
@@ -1740,6 +1743,7 @@ def spa_admin_bookings():
     
     store_id = request.args.get("store_id", "").strip()
     month = request.args.get("month", date.today().strftime("%Y-%m")).strip()
+    status = request.args.get("status", "").strip()
     
     where = ["booking_date LIKE ?"]
     params = [f"{month}-%"]
@@ -1747,6 +1751,10 @@ def spa_admin_bookings():
     if store_id:
         where.append("store_id = ?")
         params.append(store_id)
+        
+    if status:
+        where.append("status = ?")
+        params.append(status)
         
     query = f"""
         SELECT sb.*, s.name as store_name
@@ -1757,7 +1765,7 @@ def spa_admin_bookings():
     """
     bookings = db.execute(query, params).fetchall()
     
-    return render_template("spa_admin.html", bookings=bookings, stores=stores, month=month, store_id=store_id)
+    return render_template("spa_admin.html", bookings=bookings, stores=stores, month=month, store_id=store_id, status=status)
 
 @app.route("/api/spa/bookings/<int:booking_id>/confirm", methods=["POST"])
 def spa_admin_confirm(booking_id):
