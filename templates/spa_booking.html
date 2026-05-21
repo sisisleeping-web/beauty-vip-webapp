@@ -112,11 +112,13 @@
       padding: 0.5rem 0;
     }
     .calendar-day {
-      aspect-ratio: 1;
+      min-height: 65px;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      border-radius: 50%;
+      justify-content: flex-start;
+      border-radius: 8px;
+      padding: 4px 2px;
       cursor: pointer;
       font-weight: 500;
       transition: all 0.2s;
@@ -124,6 +126,7 @@
     .calendar-day:not(.disabled):hover { background: var(--bg); }
     .calendar-day.disabled { color: var(--border); cursor: not-allowed; }
     .calendar-day.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(139,92,246,0.3); }
+    .calendar-day.active .slot-pill { background: rgba(255,255,255,0.2) !important; color: white !important; }
     .calendar-day.today { border: 1px solid var(--primary); }
     
     .time-slots {
@@ -448,7 +451,12 @@
     for(let d=1; d<=lastDay.getDate(); d++){
       const el = document.createElement('div');
       el.className = 'calendar-day';
-      el.textContent = d;
+      
+      const dateNum = document.createElement('div');
+      dateNum.textContent = d;
+      dateNum.style.marginBottom = '4px';
+      dateNum.style.fontWeight = '600';
+      el.appendChild(dateNum);
       
       const dateObj = new Date(yyyy, mm, d);
       const dateStr = `${yyyy}-${String(mm+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -457,18 +465,43 @@
         el.classList.add('disabled');
       } else {
         const slots = getBaseSlots(dateObj);
-        let hasAny = false;
+        let availableSlots = [];
+        
         slots.forEach(time => {
           let booked = 0;
           if(availability[dateStr] && availability[dateStr][time]) booked = availability[dateStr][time];
           let cap = 2;
           if(capacities[dateStr] && capacities[dateStr][time] !== undefined) cap = capacities[dateStr][time];
-          if(booked < cap) hasAny = true;
+          if(booked < cap) {
+            availableSlots.push(time);
+          }
         });
         
-        if(!hasAny || slots.length === 0) {
+        if(availableSlots.length === 0) {
           el.classList.add('disabled');
         } else {
+          // Render available slots pills
+          const slotsContainer = document.createElement('div');
+          slotsContainer.style.display = 'flex';
+          slotsContainer.style.flexDirection = 'column';
+          slotsContainer.style.gap = '2px';
+          slotsContainer.style.width = '100%';
+          
+          availableSlots.forEach(time => {
+             const pill = document.createElement('div');
+             pill.className = 'slot-pill';
+             pill.textContent = time;
+             pill.style.fontSize = '0.65rem';
+             pill.style.background = '#e0e7ff';
+             pill.style.color = '#4338ca';
+             pill.style.borderRadius = '4px';
+             pill.style.textAlign = 'center';
+             pill.style.padding = '2px 0';
+             pill.style.lineHeight = '1.1';
+             slotsContainer.appendChild(pill);
+          });
+          el.appendChild(slotsContainer);
+
           el.addEventListener('click', () => {
             document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('active'));
             el.classList.add('active');
