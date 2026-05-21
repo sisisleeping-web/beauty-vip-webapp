@@ -456,17 +456,31 @@
       if(dateObj < minDate || dateObj > maxDate) {
         el.classList.add('disabled');
       } else {
-        el.addEventListener('click', () => {
-          document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('active'));
-          el.classList.add('active');
-          selectedDate = dateStr;
-          selectedTime = null;
-          renderTimeSlots(dateObj);
-          checkNextButton();
+        const slots = getBaseSlots(dateObj);
+        let hasAny = false;
+        slots.forEach(time => {
+          let booked = 0;
+          if(availability[dateStr] && availability[dateStr][time]) booked = availability[dateStr][time];
+          let cap = 2;
+          if(capacities[dateStr] && capacities[dateStr][time] !== undefined) cap = capacities[dateStr][time];
+          if(booked < cap) hasAny = true;
         });
         
-        if(selectedDate === dateStr) {
-          el.classList.add('active');
+        if(!hasAny || slots.length === 0) {
+          el.classList.add('disabled');
+        } else {
+          el.addEventListener('click', () => {
+            document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('active'));
+            el.classList.add('active');
+            selectedDate = dateStr;
+            selectedTime = null;
+            renderTimeSlots(dateObj);
+            checkNextButton();
+          });
+          
+          if(selectedDate === dateStr) {
+            el.classList.add('active');
+          }
         }
       }
       
@@ -474,28 +488,26 @@
     }
   }
   
+  function getBaseSlots(dateObj) {
+    const dayOfWeek = dateObj.getDay();
+    let slots = [];
+    if(selectedStoreName.includes('斗六')) {
+      if(dayOfWeek >= 1 && dayOfWeek <= 5) slots = ['09:00', '13:00', '15:00', '17:00'];
+      else slots = ['09:00', '14:00', '16:00'];
+    } else if(selectedStoreName.includes('虎尾')) {
+      if(dayOfWeek >= 1 && dayOfWeek <= 6) slots = ['09:00', '13:00', '15:00', '17:00'];
+      else slots = [];
+    }
+    return slots;
+  }
+
   function renderTimeSlots(dateObj) {
     const container = document.getElementById('timeSlotContainer');
     const slotsEl = document.getElementById('timeSlots');
     slotsEl.innerHTML = '';
     container.style.display = 'block';
     
-    const dayOfWeek = dateObj.getDay(); // 0:Sun, 1:Mon...
-    let slots = [];
-    
-    if(selectedStoreName.includes('斗六')) {
-      if(dayOfWeek >= 1 && dayOfWeek <= 5) {
-        slots = ['09:00', '13:00', '15:00', '17:00'];
-      } else {
-        slots = ['09:00', '14:00', '16:00'];
-      }
-    } else if(selectedStoreName.includes('虎尾')) {
-      if(dayOfWeek >= 1 && dayOfWeek <= 6) {
-        slots = ['09:00', '13:00', '15:00', '17:00'];
-      } else {
-        slots = []; // Sunday closed
-      }
-    }
+    let slots = getBaseSlots(dateObj);
     
     if(slots.length === 0) {
       slotsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-light);">本店當日不開放預約</div>';
