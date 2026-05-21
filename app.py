@@ -1680,6 +1680,14 @@ def spa_book():
     customer_type = request.form.get("customer_type", "").strip()
     service_type = request.form.get("service_type", "").strip()
     note = request.form.get("note", "").strip()
+    pax_str = request.form.get("pax", "1").strip()
+    
+    try:
+        pax = int(pax_str)
+        if pax < 1 or pax > 2:
+            pax = 1
+    except ValueError:
+        pax = 1
     
     if not all([store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type]):
         return {"error": "請填寫完整資料"}, 400
@@ -1722,10 +1730,12 @@ def spa_book():
     
     max_cap = cap_row["capacity"] if cap_row else 2
     
-    if cnt >= max_cap:
-        return {"error": "該時段已被預約額滿，請選擇其他時段"}, 400
+    if cnt + pax > max_cap:
+        return {"error": f"該時段剩餘空檔不足 {pax} 位，請選擇其他時段或減少人數"}, 400
         
     now_str = datetime.now().isoformat(timespec="seconds")
+    
+    # Insert main booker
     db.execute(
         """
         INSERT INTO spa_bookings (store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type, note, status, created_at)
@@ -1733,6 +1743,17 @@ def spa_book():
         """,
         (store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type, note, now_str)
     )
+    
+    # Insert companion if pax == 2
+    if pax == 2:
+        db.execute(
+            """
+            INSERT INTO spa_bookings (store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type, note, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+            """,
+            (store_id, booking_date, booking_time, f"{customer_name} (同行)", customer_phone, customer_type, service_type, note, now_str)
+        )
+        
     db.commit()
     return {"status": "success"}
 

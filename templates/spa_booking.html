@@ -290,11 +290,18 @@
         </div>
         <div class="form-group">
           <label for="cName">姓名</label>
-          <input type="text" id="cName" class="input-field" placeholder="請輸入您的姓名" required>
+          <input type="text" id="cName" class="input-field" placeholder="請輸入您的姓名" autocomplete="name" required>
         </div>
         <div class="form-group">
           <label for="cPhone">聯絡電話</label>
-          <input type="tel" id="cPhone" class="input-field" placeholder="請輸入聯絡電話" required>
+          <input type="tel" id="cPhone" class="input-field" placeholder="請輸入聯絡電話" autocomplete="tel" required>
+        </div>
+        <div class="form-group">
+          <label for="cPax">預約人數</label>
+          <select id="cPax" class="input-field">
+            <option value="1">1位</option>
+            <option value="2">2位</option>
+          </select>
         </div>
         <div class="form-group">
           <label>會員身分</label>
@@ -558,6 +565,7 @@
     const cType = document.querySelector('input[name="cType"]:checked').value;
     const cService = document.getElementById('cService').value;
     const cNote = document.getElementById('cNote').value;
+    const cPax = document.getElementById('cPax').value;
     
     const formData = new URLSearchParams();
     formData.append('store_id', selectedStore);
@@ -568,6 +576,7 @@
     formData.append('customer_type', cType);
     formData.append('service_type', cService);
     formData.append('note', cNote);
+    formData.append('pax', cPax);
     
     showLoading();
     fetch('/api/spa/book', {
