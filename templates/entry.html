@@ -52,6 +52,8 @@
     <div id="section-coin_deduct" style="display:none;">
       <label>扣除點數（點）</label>
       <input type="number" name="coins_deduct" id="coins_deduct" min="1" step="1" placeholder="請輸入要扣除的點數">
+      <label>扣點說明（選填）</label>
+      <input type="text" name="deduct_note" id="deduct_note" placeholder="例如：兌換療程、課程或產品">
       <p style="color:#666;font-size:13px;">※ 純點數扣除，不記入消費金額</p>
     </div>
 
@@ -86,6 +88,7 @@
     <h3 class="ok">點數扣除完成</h3>
     <p>顧客：{{ result.name }}</p>
     <p>扣除點數：{{ result.coins_redeemed }} 點</p>
+    {% if result.deduct_note %}<p>說明：{{ result.deduct_note }}</p>{% endif %}
     <p>剩餘點數：{{ result.coin_balance }} 點</p>
   {% else %}
     <h3 class="ok">已完成入帳</h3>

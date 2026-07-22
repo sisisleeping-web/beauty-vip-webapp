@@ -140,6 +140,7 @@ def init_db() -> None:
             recharge_plan TEXT DEFAULT NULL,
             recharge_amount REAL DEFAULT NULL,
             entry_mode TEXT NOT NULL DEFAULT 'normal',
+            note TEXT DEFAULT '',
             FOREIGN KEY(customer_id) REFERENCES customers(id),
             FOREIGN KEY(store_id) REFERENCES stores(id)
         );
@@ -214,6 +215,7 @@ def init_db() -> None:
         ("recharge_plan", "TEXT DEFAULT NULL"),
         ("recharge_amount", "REAL DEFAULT NULL"),
         ("entry_mode", "TEXT NOT NULL DEFAULT 'normal'"),
+        ("note", "TEXT DEFAULT ''"),
     ]:
         try:
             table = "customers" if col == "coin_balance" else "transactions"
@@ -451,6 +453,7 @@ def entry():
                 coins_to_deduct = int(request.form.get("coins_deduct", "0") or 0)
             except ValueError:
                 coins_to_deduct = 0
+            deduct_note = request.form.get("deduct_note", "").strip()
 
             if not (store_id and name and birthday):
                 error_message = "請填寫完整顧客資料！"
@@ -469,13 +472,13 @@ def entry():
                         INSERT INTO transactions(
                             customer_id, store_id, txn_date, month_key, amount,
                             birthday_discount_applied, final_amount, cashback, created_at,
-                            coins_earned, coins_redeemed, entry_mode
-                        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+                            coins_earned, coins_redeemed, entry_mode, note
+                        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
                         """,
                         (
                             customer_id, store_id, txn_day.isoformat(), month_key,
                             0, 0, 0, 0, now_str,
-                            0, coins_to_deduct, "coin_deduct",
+                            0, coins_to_deduct, "coin_deduct", deduct_note,
                         ),
                     )
                     db.execute(
@@ -488,6 +491,7 @@ def entry():
                         "mode": "coin_deduct",
                         "name": name,
                         "coins_redeemed": coins_to_deduct,
+                        "deduct_note": deduct_note,
                         "coin_balance": coin_balance,
                     }
 
@@ -1691,7 +1695,7 @@ def _build_customer_result(cid: int) -> dict | None:
         """
         SELECT t.txn_date, s.name AS store_name, t.amount, t.final_amount,
                t.coins_earned, t.coins_redeemed, t.entry_mode,
-               t.recharge_plan, t.recharge_amount
+               t.recharge_plan, t.recharge_amount, t.note, t.created_at
         FROM transactions t
         JOIN stores s ON s.id = t.store_id
         WHERE t.customer_id = ?
@@ -1720,11 +1724,29 @@ def _build_customer_result(cid: int) -> dict | None:
         (cid,),
     ).fetchall()
 
+    adjustments_history = []
+    for pa in point_adjustments:
+        adjustments_history.append({
+            "date": pa["created_at"][:10],
+            "reason": pa["reason"],
+            "points_change": pa["points"],
+            "timestamp": pa["created_at"],
+        })
+    for t in txns:
+        if t["entry_mode"] == "coin_deduct":
+            adjustments_history.append({
+                "date": t["txn_date"],
+                "reason": dict(t).get("note") or "點數扣除",
+                "points_change": -t["coins_redeemed"],
+                "timestamp": dict(t).get("created_at") or t["txn_date"],
+            })
+    adjustments_history.sort(key=lambda x: x["timestamp"], reverse=True)
+
     return {
         "customer": customer,
         "transactions": [dict(t) for t in txns],
         "upgrades": [dict(u) for u in upgrades],
-        "point_adjustments": [dict(pa) for pa in point_adjustments],
+        "point_adjustments": adjustments_history,
     }
 
 
