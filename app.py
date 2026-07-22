@@ -1135,6 +1135,74 @@ def add_points(customer_id):
     return redirect(url_for("contacts"))
 
 
+@app.route("/api/customers/<int:customer_id>/point_adjustments")
+def get_point_adjustments(customer_id):
+    db = get_db()
+    rows = db.execute(
+        "SELECT id, points, reason, operator, created_at FROM point_adjustments WHERE customer_id=? ORDER BY created_at DESC, id DESC",
+        (customer_id,),
+    ).fetchall()
+    return {"adjustments": [dict(r) for r in rows]}
+
+
+@app.route("/api/point_adjustments/<int:adj_id>/update", methods=["POST"])
+def update_point_adjustment(adj_id):
+    db = get_db()
+    if not (session.get("manager_authed") or session.get("main_authed")):
+        return {"status": "error", "message": "Unauthorized"}, 403
+
+    old = db.execute(
+        "SELECT id, customer_id, points FROM point_adjustments WHERE id=?", (adj_id,)
+    ).fetchone()
+    if not old:
+        return {"status": "error", "message": "找不到此紀錄"}, 404
+
+    try:
+        new_points = int(request.form.get("points", "0") or 0)
+    except ValueError:
+        new_points = 0
+    new_reason = request.form.get("reason", "").strip()
+
+    if new_points <= 0:
+        return {"status": "error", "message": "點數必須大於 0"}, 400
+    if not new_reason:
+        return {"status": "error", "message": "原因不能為空"}, 400
+
+    diff = new_points - int(old["points"])
+    db.execute(
+        "UPDATE point_adjustments SET points=?, reason=? WHERE id=?",
+        (new_points, new_reason, adj_id),
+    )
+    if diff != 0:
+        db.execute(
+            "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
+            (diff, old["customer_id"]),
+        )
+    db.commit()
+    return {"status": "ok"}
+
+
+@app.route("/api/point_adjustments/<int:adj_id>/delete", methods=["POST"])
+def delete_point_adjustment(adj_id):
+    db = get_db()
+    if not (session.get("manager_authed") or session.get("main_authed")):
+        return {"status": "error", "message": "Unauthorized"}, 403
+
+    old = db.execute(
+        "SELECT id, customer_id, points FROM point_adjustments WHERE id=?", (adj_id,)
+    ).fetchone()
+    if not old:
+        return {"status": "error", "message": "找不到此紀錄"}, 404
+
+    db.execute("DELETE FROM point_adjustments WHERE id=?", (adj_id,))
+    db.execute(
+        "UPDATE customers SET coin_balance = coin_balance - ? WHERE id=?",
+        (old["points"], old["customer_id"]),
+    )
+    db.commit()
+    return {"status": "ok"}
+
+
 @app.route("/api/customers/<int:customer_id>/update", methods=["POST"])
 def update_customer(customer_id):
     db = get_db()
