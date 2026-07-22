@@ -238,17 +238,19 @@ function escAttr(s) { return String(s).replace(/'/g,"\\'"); }
 
 function deletePA(adjId, cid) {
   if (!confirm('確定要刪除此筆贈點紀錄？點數將同步扣回。')) return;
-  fetch('/api/point_adjustments/' + adjId + '/delete', {method:'POST'})
+  fetch('/api/point_adjustments/' + adjId + '/delete', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+  })
     .then(r => r.json())
     .then(d => {
       if (d.status === 'ok') {
-        loadPAList(cid);
-        // Reload page to refresh coin_balance column
         location.reload();
       } else {
         alert('刪除失敗：' + d.message);
       }
-    });
+    })
+    .catch(e => { alert('連線錯誤：' + e.message); });
 }
 
 function openEditPAModal(adjId, cid, points, reason) {
@@ -274,8 +276,21 @@ function submitEditPA() {
   const reason = document.getElementById('pa-edit-reason').value;
   const errEl = document.getElementById('pa-edit-err');
 
-  const body = new URLSearchParams({points, reason});
-  fetch('/api/point_adjustments/' + adjId + '/update', {method:'POST', body})
+  if (!points || parseInt(points) <= 0) {
+    errEl.textContent = '請輸入有效的點數數量（大於 0）';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const body = new URLSearchParams();
+  body.append('points', points);
+  body.append('reason', reason);
+
+  fetch('/api/point_adjustments/' + adjId + '/update', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: body.toString()
+  })
     .then(r => r.json())
     .then(d => {
       if (d.status === 'ok') {
@@ -285,6 +300,10 @@ function submitEditPA() {
         errEl.textContent = d.message || '更新失敗';
         errEl.style.display = 'block';
       }
+    })
+    .catch(e => {
+      errEl.textContent = '連線錯誤：' + e.message;
+      errEl.style.display = 'block';
     });
 }
 </script>
