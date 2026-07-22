@@ -282,6 +282,33 @@
       </div>
     </div>
 
+    <!-- Point Adjustments History -->
+    {% if result.point_adjustments %}
+    <div class="card">
+      <h2>🎁 活動與手動贈點紀錄</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>獲得日期</th>
+              <th>贈點項目 / 原因</th>
+              <th style="text-align:right;">獲得點數</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pa in result.point_adjustments %}
+            <tr>
+              <td>{{ pa.created_at[:10] }}</td>
+              <td>{{ pa.reason }}</td>
+              <td style="text-align:right; font-weight:700; color:#059669;">+{{ pa.points }} 點</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Tier Upgrade History -->
     {% if result.upgrades %}
     <div class="card">

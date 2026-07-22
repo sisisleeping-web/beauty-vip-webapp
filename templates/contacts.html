@@ -74,12 +74,40 @@
       <td>{{ c.last_txn_date or '-' }}</td>
       <td style="font-size:0.85em; color:#888;">{{ c.created_at[:10] }}</td>
       <td style="text-align:center; white-space:nowrap;">
+        <button type="button" onclick="openAddPoints({{ c.id }})"
+          style="background:#fef3c7;color:#b45309;border:none;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer;margin-right:4px;">🎁 贈點</button>
         <button type="button" onclick="openEdit({{ c.id }})"
           style="background:#ede9fe;color:#6c3fc5;border:none;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer;margin-right:4px;">✏️ 修改</button>
         <form method="post" action="/api/customers/{{ c.id }}/delete" style="display:inline;"
               onsubmit="return confirm('確定要刪除顧客「{{ c.name }}」及其所有消費紀錄嗎？此動作無法復原。');">
           <button type="submit"
             style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer;">🗑️ 刪除</button>
+        </form>
+      </td>
+    </tr>
+    <!-- Add Points row (hidden by default) -->
+    <tr id="cust-points-{{ c.id }}" style="display:none; background:#fffbeb;">
+      <td colspan="11">
+        <form method="post" action="/api/customers/{{ c.id }}/add_points" style="display:flex; flex-wrap:wrap; gap:10px 16px; align-items:flex-end; padding: 8px 4px;">
+          <div>
+            <label style="font-size:12px; margin:0; color:#b45309; font-weight:bold;">手動增加點數 (顧客：{{ c.name }})</label><br>
+            <input type="number" name="points" min="1" placeholder="輸入點數數量 (如 50)" required style="width:160px; max-width:none; padding:6px 8px; font-size:14px;">
+          </div>
+          <div>
+            <label style="font-size:12px; margin:0; color:#b45309; font-weight:bold;">贈點原因/說明</label><br>
+            <select name="reason" style="padding:6px 8px; font-size:14px; border-radius:4px; border:1px solid #ccc;">
+              <option value="填寫線上問卷點數回饋">填寫線上問卷點數回饋</option>
+              <option value="新活動促銷贈點">新活動促銷贈點</option>
+              <option value="顧客服務補償">顧客服務補償</option>
+              <option value="其他手動加點">其他手動加點</option>
+            </select>
+          </div>
+          <div style="display:flex; gap:8px; align-items:flex-end;">
+            <button type="submit"
+              style="background:#d97706;color:#fff;border:none;border-radius:6px;padding:7px 18px;cursor:pointer;font-weight:bold;">🎁 確定發送點數</button>
+            <button type="button" onclick="closeAddPoints({{ c.id }})"
+              style="background:#aaa;color:#fff;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;">取消</button>
+          </div>
         </form>
       </td>
     </tr>
@@ -119,12 +147,22 @@
 
 <script>
 function openEdit(id) {
+  closeAddPoints(id);
   document.getElementById('cust-view-' + id).style.display = 'none';
   document.getElementById('cust-edit-' + id).style.display = '';
 }
 function closeEdit(id) {
   document.getElementById('cust-view-' + id).style.display = '';
   document.getElementById('cust-edit-' + id).style.display = 'none';
+}
+function openAddPoints(id) {
+  closeEdit(id);
+  document.getElementById('cust-view-' + id).style.display = 'none';
+  document.getElementById('cust-points-' + id).style.display = '';
+}
+function closeAddPoints(id) {
+  document.getElementById('cust-view-' + id).style.display = '';
+  document.getElementById('cust-points-' + id).style.display = 'none';
 }
 </script>
 {% endblock %}

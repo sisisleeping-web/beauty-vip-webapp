@@ -193,6 +193,16 @@ def init_db() -> None:
             capacity INTEGER NOT NULL DEFAULT 2,
             UNIQUE(store_id, override_date, override_time)
         );
+
+        CREATE TABLE IF NOT EXISTS point_adjustments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            points INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            operator TEXT NOT NULL DEFAULT 'staff',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(customer_id) REFERENCES customers(id)
+        );
         """
     )
 
@@ -1591,10 +1601,21 @@ def _build_customer_result(cid: int) -> dict | None:
         (cid,),
     ).fetchall()
 
+    point_adjustments = db.execute(
+        """
+        SELECT points, reason, operator, created_at
+        FROM point_adjustments
+        WHERE customer_id = ?
+        ORDER BY created_at DESC, id DESC
+        """,
+        (cid,),
+    ).fetchall()
+
     return {
         "customer": customer,
         "transactions": [dict(t) for t in txns],
         "upgrades": [dict(u) for u in upgrades],
+        "point_adjustments": [dict(pa) for pa in point_adjustments],
     }
 
 
