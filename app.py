@@ -1094,6 +1094,47 @@ def delete_customer(customer_id):
     return redirect(url_for("contacts"))
 
 
+@app.route("/api/customers/<int:customer_id>/add_points", methods=["POST"])
+def add_points(customer_id):
+    db = get_db()
+
+    try:
+        points = int(request.form.get("points", "0") or 0)
+    except ValueError:
+        points = 0
+
+    reason = request.form.get("reason", "").strip()
+
+    if points <= 0:
+        return "點數數量必須大於 0", 400
+    if not reason:
+        return "請填寫贈點原因", 400
+
+    cust = db.execute("SELECT id FROM customers WHERE id=?", (customer_id,)).fetchone()
+    if not cust:
+        return "找不到此顧客", 404
+
+    # Determine operator identity from session
+    if session.get("manager_authed"):
+        operator = "manager"
+    elif session.get("main_authed"):
+        operator = "staff"
+    else:
+        return "Unauthorized", 403
+
+    now_str = datetime.now().isoformat(timespec="seconds")
+    db.execute(
+        "INSERT INTO point_adjustments(customer_id, points, reason, operator, created_at) VALUES(?,?,?,?,?)",
+        (customer_id, points, reason, operator, now_str),
+    )
+    db.execute(
+        "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
+        (points, customer_id),
+    )
+    db.commit()
+    return redirect(url_for("contacts"))
+
+
 @app.route("/api/customers/<int:customer_id>/update", methods=["POST"])
 def update_customer(customer_id):
     db = get_db()
