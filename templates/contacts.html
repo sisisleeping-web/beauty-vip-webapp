@@ -158,15 +158,17 @@
     <h3 style="margin:0 0 16px; color:#b45309;">✏️ 修改贈點紀錄</h3>
     <input type="hidden" id="pa-edit-id">
     <input type="hidden" id="pa-edit-cid">
+    <input type="hidden" id="pa-edit-type">
     <label style="font-size:13px; color:#555; font-weight:600;">點數數量</label>
     <input type="number" id="pa-edit-points" min="1" style="width:100%; padding:8px 10px; margin:6px 0 14px; font-size:15px; border:1.5px solid #e0d7f0; border-radius:8px; box-sizing:border-box;">
-    <label style="font-size:13px; color:#555; font-weight:600;">原因</label>
-    <select id="pa-edit-reason" style="width:100%; padding:8px 10px; margin:6px 0 20px; font-size:15px; border:1.5px solid #e0d7f0; border-radius:8px; box-sizing:border-box;">
-      <option value="填寫線上問卷點數回饋">填寫線上問卷點數回饋</option>
-      <option value="新活動促銷贈點">新活動促銷贈點</option>
-      <option value="顧客服務補償">顧客服務補償</option>
-      <option value="其他手動加點">其他手動加點</option>
-    </select>
+    <label style="font-size:13px; color:#555; font-weight:600;">原因 / 說明</label>
+    <input type="text" id="pa-edit-reason" list="pa-reason-options" style="width:100%; padding:8px 10px; margin:6px 0 20px; font-size:15px; border:1.5px solid #e0d7f0; border-radius:8px; box-sizing:border-box;">
+    <datalist id="pa-reason-options">
+      <option value="填寫線上問卷點數回饋">
+      <option value="新活動促銷贈點">
+      <option value="顧客服務補償">
+      <option value="其他手動加點">
+    </datalist>
     <div style="display:flex; gap:10px;">
       <button onclick="submitEditPA()" style="flex:1; background:#d97706; color:#fff; border:none; border-radius:8px; padding:10px; font-size:15px; font-weight:700; cursor:pointer;">💾 儲存</button>
       <button onclick="closeEditPAModal()" style="flex:1; background:#aaa; color:#fff; border:none; border-radius:8px; padding:10px; font-size:15px; cursor:pointer;">取消</button>
@@ -216,14 +218,16 @@ function loadPAList(cid) {
         + '<th style="padding:5px 8px;text-align:center;border:1px solid #f0d080;">操作</th>'
         + '</tr></thead><tbody>';
       data.adjustments.forEach(pa => {
+        const sign = pa.type === 'add' ? '+' : '-';
+        const color = pa.type === 'add' ? '#059669' : '#dc2626';
         html += '<tr>'
           + '<td style="padding:5px 8px;border:1px solid #f0e8c0;">' + pa.created_at.slice(0,10) + '</td>'
           + '<td style="padding:5px 8px;border:1px solid #f0e8c0;">' + escHtml(pa.reason) + '</td>'
-          + '<td style="padding:5px 8px;text-align:right;border:1px solid #f0e8c0;font-weight:700;color:#059669;">+' + pa.points + '</td>'
+          + '<td style="padding:5px 8px;text-align:right;border:1px solid #f0e8c0;font-weight:700;color:' + color + ';">' + sign + pa.points + '</td>'
           + '<td style="padding:5px 8px;text-align:center;border:1px solid #f0e8c0;white-space:nowrap;">'
-          + '<button onclick="openEditPAModal(' + pa.id + ',' + cid + ',' + pa.points + ',\'' + escAttr(pa.reason) + '\')" '
+          + '<button onclick="openEditPAModal(' + pa.id + ',' + cid + ',' + pa.points + ',\'' + escAttr(pa.reason) + '\',\'' + pa.type + '\')" '
           + 'style="background:#ede9fe;color:#6c3fc5;border:none;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:12px;">✏️ 修改</button> '
-          + '<button onclick="deletePA(' + pa.id + ',' + cid + ')" '
+          + '<button onclick="deletePA(' + pa.id + ',' + cid + ',\'' + pa.type + '\')" '
           + 'style="background:#fee2e2;color:#dc2626;border:none;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:12px;">🗑️ 刪除</button>'
           + '</td></tr>';
       });
@@ -236,9 +240,10 @@ function loadPAList(cid) {
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escAttr(s) { return String(s).replace(/'/g,"\\'"); }
 
-function deletePA(adjId, cid) {
-  if (!confirm('確定要刪除此筆贈點紀錄？點數將同步扣回。')) return;
-  fetch('/api/point_adjustments/' + adjId + '/delete', {
+function deletePA(adjId, cid, type) {
+  if (!confirm('確定要刪除此筆異動紀錄？點數將同步還原。')) return;
+  const url = type === 'add' ? '/api/point_adjustments/' + adjId + '/delete' : '/api/transactions/' + adjId + '/delete';
+  fetch(url, {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'}
   })
@@ -253,15 +258,12 @@ function deletePA(adjId, cid) {
     .catch(e => { alert('連線錯誤：' + e.message); });
 }
 
-function openEditPAModal(adjId, cid, points, reason) {
+function openEditPAModal(adjId, cid, points, reason, type) {
   document.getElementById('pa-edit-id').value = adjId;
   document.getElementById('pa-edit-cid').value = cid;
+  document.getElementById('pa-edit-type').value = type;
   document.getElementById('pa-edit-points').value = points;
-  const sel = document.getElementById('pa-edit-reason');
-  // Try to match existing option, else pick first
-  let matched = false;
-  for (let opt of sel.options) { if (opt.value === reason) { opt.selected = true; matched = true; break; } }
-  if (!matched) sel.options[0].selected = true;
+  document.getElementById('pa-edit-reason').value = reason;
   document.getElementById('pa-edit-err').style.display = 'none';
   const modal = document.getElementById('pa-edit-modal');
   modal.style.display = 'flex';
@@ -272,6 +274,7 @@ function closeEditPAModal() {
 function submitEditPA() {
   const adjId = document.getElementById('pa-edit-id').value;
   const cid = document.getElementById('pa-edit-cid').value;
+  const type = document.getElementById('pa-edit-type').value;
   const points = document.getElementById('pa-edit-points').value;
   const reason = document.getElementById('pa-edit-reason').value;
   const errEl = document.getElementById('pa-edit-err');
@@ -286,7 +289,9 @@ function submitEditPA() {
   body.append('points', points);
   body.append('reason', reason);
 
-  fetch('/api/point_adjustments/' + adjId + '/update', {
+  const url = type === 'add' ? '/api/point_adjustments/' + adjId + '/update' : '/api/transactions/' + adjId + '/update_deduct';
+
+  fetch(url, {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
     body: body.toString()

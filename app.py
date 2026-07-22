@@ -906,6 +906,43 @@ def delete_transaction(txn_id):
     db.commit()
     return {"status": "ok"}
 
+@app.route("/api/transactions/<int:txn_id>/update_deduct", methods=["POST"])
+def update_transaction_deduct(txn_id):
+    db = get_db()
+    if not (session.get("manager_authed") or session.get("main_authed")):
+        return {"status": "error", "message": "Unauthorized"}, 403
+
+    old_txn = db.execute("SELECT customer_id, entry_mode, coins_redeemed FROM transactions WHERE id=?", (txn_id,)).fetchone()
+    if not old_txn or old_txn["entry_mode"] != "coin_deduct":
+        return {"status": "error", "message": "找不到此扣點紀錄"}, 404
+        
+    try:
+        new_points = int(request.form.get("points", "0") or 0)
+    except ValueError:
+        new_points = 0
+    new_reason = request.form.get("reason", "").strip()
+
+    if new_points <= 0:
+        return {"status": "error", "message": "點數必須大於 0"}, 400
+
+    old_points = int(old_txn["coins_redeemed"])
+    customer_id = int(old_txn["customer_id"])
+
+    # Revert old impact and apply new impact
+    diff = old_points - new_points
+    
+    db.execute(
+        "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
+        (diff, customer_id)
+    )
+    db.execute(
+        "UPDATE transactions SET coins_redeemed = ?, note = ? WHERE id=?",
+        (new_points, new_reason, txn_id)
+    )
+    db.commit()
+    return {"status": "ok"}
+
+
 
 @app.route("/manager/unlock", methods=["POST"])
 def manager_unlock():
@@ -1142,11 +1179,36 @@ def add_points(customer_id):
 @app.route("/api/customers/<int:customer_id>/point_adjustments")
 def get_point_adjustments(customer_id):
     db = get_db()
-    rows = db.execute(
-        "SELECT id, points, reason, operator, created_at FROM point_adjustments WHERE customer_id=? ORDER BY created_at DESC, id DESC",
+    adjustments = db.execute(
+        "SELECT id, points, reason, operator, created_at FROM point_adjustments WHERE customer_id=?",
         (customer_id,),
     ).fetchall()
-    return {"adjustments": [dict(r) for r in rows]}
+    deducts = db.execute(
+        "SELECT id, coins_redeemed as points, note as reason, created_at FROM transactions WHERE customer_id=? AND entry_mode='coin_deduct'",
+        (customer_id,),
+    ).fetchall()
+
+    combined = []
+    for r in adjustments:
+        combined.append({
+            "id": r["id"],
+            "type": "add",
+            "points": r["points"],
+            "reason": r["reason"],
+            "operator": r["operator"],
+            "created_at": r["created_at"]
+        })
+    for r in deducts:
+        combined.append({
+            "id": r["id"],
+            "type": "deduct",
+            "points": r["points"],
+            "reason": r["reason"] or "點數扣除",
+            "operator": "staff",
+            "created_at": r["created_at"]
+        })
+    combined.sort(key=lambda x: x["created_at"], reverse=True)
+    return {"adjustments": combined}
 
 
 @app.route("/api/point_adjustments/<int:adj_id>/update", methods=["POST"])
