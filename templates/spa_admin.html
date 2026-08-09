@@ -60,9 +60,9 @@
       </td>
       <td>
         {% if b.customer_type == 'new' %}
-        <span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:0.8em;">新客</span>
+        <span class="badge-pill badge-pill-warning">新客</span>
         {% else %}
-        <span style="background:#f3f4f6;color:#555;padding:2px 6px;border-radius:4px;font-size:0.8em;">舊客</span>
+        <span class="badge-pill badge-pill-neutral">舊客</span>
         {% endif %}
       </td>
       <td>
@@ -74,24 +74,24 @@
       <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ b.note }}">{{ b.note }}</td>
       <td id="status-{{ b.id }}">
         {% if b.status == 'confirmed' %}
-        <span style="color:#059669;font-weight:700;">✅ 已確認</span>
+        <span class="badge-pill badge-pill-success">✅ 已確認</span>
         {% elif b.status == 'cancelled' %}
-        <span style="color:#dc2626;font-weight:700;">❌ 已取消</span>
+        <span class="badge-pill badge-pill-danger">❌ 已取消</span>
         {% else %}
-        <span style="color:#d97706;font-weight:700;">⏳ 待確認</span>
+        <span class="badge-pill badge-pill-warning">⏳ 待確認</span>
         {% endif %}
       </td>
       <td>
         {% if b.status == 'pending' %}
-        <button onclick="confirmBooking({{ b.id }})" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;">確認</button>
+        <button onclick="confirmBooking({{ b.id }})" style="background:var(--success);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;box-shadow:none;min-height:unset;">確認</button>
         {% endif %}
-        <button onclick="openEditModal({{ b.id }}, '{{ b.store_id }}', '{{ b.store_name }}', '{{ b.booking_date }}', '{{ b.booking_time }}')" style="background:#3b82f6;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;">修改時段</button>
-        <button onclick="deleteBooking({{ b.id }})" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;">刪除</button>
+        <button onclick="openEditModal({{ b.id }}, '{{ b.store_id }}', '{{ b.store_name }}', '{{ b.booking_date }}', '{{ b.booking_time }}')" style="background:var(--tier-s);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;box-shadow:none;min-height:unset;">修改時段</button>
+        <button onclick="deleteBooking({{ b.id }})" style="background:var(--danger);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;box-shadow:none;min-height:unset;">刪除</button>
       </td>
     </tr>
     {% else %}
     <tr>
-      <td colspan="10" style="text-align:center; padding:2rem; color:#888;">尚無預約資料</td>
+      <td colspan="10" class="text-muted" style="text-align:center; padding:2rem;">尚無預約資料</td>
     </tr>
     {% endfor %}
     </tbody>

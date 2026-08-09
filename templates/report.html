@@ -76,21 +76,21 @@
       </select>
     </div>
     <div style="display:flex; gap:8px; align-items:flex-end; padding-top: 4px; flex-wrap:wrap;">
-      <button type="submit" style="background:linear-gradient(135deg,#6c3fc5,#a855f7);color:#fff;flex:1;">🔍 查詢</button>
+      <button type="submit" style="background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;flex:1;">🔍 查詢</button>
       <button type="submit" formaction="/report/export.csv" formtarget="_blank"
-        style="background:#059669;color:#fff;white-space:nowrap;">📥 匯出目前條件</button>
+        style="background:var(--success);color:#fff;white-space:nowrap;">📥 匯出目前條件</button>
       <a href="/report/export.csv?month_from=2000-01&month_to=2099-12" target="_blank">
         <button type="button" style="background:#0d9488;color:#fff;white-space:nowrap;">📥 匯出全部資料</button>
       </a>
-      <a href="/report"><button type="button" style="background:#f3f4f6;color:#555;border:1px solid #ddd;">清除</button></a>
+      <a href="/report"><button type="button" style="background:#f3f4f6;color:var(--text-muted);border:1px solid var(--border-strong);">清除</button></a>
     </div>
   </form>
-  <p style="font-size:0.8rem; color:#888; margin:6px 0 0;">「匯出目前條件」依表單目前填的月份／分店／關鍵字等條件匯出；「匯出全部資料」不管表單內容，直接匯出所有歷史交易。</p>
+  <p class="text-muted" style="font-size:0.8rem; margin:6px 0 0;">「匯出目前條件」依表單目前填的月份／分店／關鍵字等條件匯出；「匯出全部資料」不管表單內容，直接匯出所有歷史交易。</p>
 </div>
 
 <div class="card">
   <h3>📋 日明細（{{ month_label }}）</h3>
-  <p style="font-size:0.85rem; color:#888; margin:0 0 8px;">共 {{ detail_rows|length }} 筆</p>
+  <p class="text-muted" style="font-size:0.85rem; margin:0 0 8px;">共 {{ detail_rows|length }} 筆</p>
   <div class="table-wrap"><table id="detail-table">
     <thead>
       <tr>
@@ -110,17 +110,11 @@
       <td class="view-cell">{{ r.customer_name }}</td>
       <td class="view-cell">{{ r.birthday }}</td>
       <td class="view-cell">
-        <span style="
-          display:inline-block; padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700;
-          {% if r.vip_tier == 'A級美咖' %}background:#fef3c7;color:#92400e;
-          {% elif r.vip_tier == 'P級美咖' %}background:#ede9fe;color:#5b21b6;
-          {% elif r.vip_tier == 'S級美咖' %}background:#d1fae5;color:#065f46;
-          {% else %}background:#f3f4f6;color:#555;{% endif %}
-        ">{{ r.vip_tier }}</span>
+        <span class="tier-badge tier-{{ r.vip_tier }}">{{ r.vip_tier }}</span>
       </td>
-      <td class="view-cell" style="text-align:right;">{{ '%.0f'|format(r.amount) }}</td>
-      <td class="view-cell" style="text-align:right; font-weight:600;">{{ '%.0f'|format(r.final_amount) }}</td>
-      <td class="view-cell" style="color:#7c3aed;font-weight:700; text-align:right;">
+      <td class="view-cell font-mono" style="text-align:right;">{{ '%.0f'|format(r.amount) }}</td>
+      <td class="view-cell font-mono" style="text-align:right;">{{ '%.0f'|format(r.final_amount) }}</td>
+      <td class="view-cell font-mono" style="color:var(--primary); text-align:right;">
         {% if r.entry_mode == 'birthday_recharge' %}
           +{{ r.coins_earned }}🎂
         {% elif r.entry_mode == 'coin_deduct' %}
@@ -130,18 +124,18 @@
         {% endif %}
       </td>
       <td class="view-cell">
-        {% if r.entry_mode == 'birthday_recharge' %}<span style="color:#d97706;">壽星充值</span>
-        {% elif r.entry_mode == 'coin_deduct' %}<span style="color:#dc2626;">點數扣除</span>
-        {% else %}一般消費{% endif %}
+        {% if r.entry_mode == 'birthday_recharge' %}<span class="badge-pill badge-pill-warning">壽星充值</span>
+        {% elif r.entry_mode == 'coin_deduct' %}<span class="badge-pill badge-pill-danger">點數扣除</span>
+        {% else %}<span class="badge-pill badge-pill-neutral">一般消費</span>{% endif %}
       </td>
-      <td class="view-cell" style="text-align:right;">{{ r.cust_total_earned }}</td>
-      <td class="view-cell" style="text-align:right;">{{ r.cust_total_redeemed }}</td>
-      <td class="view-cell" style="text-align:right; font-weight:700; color:#059669;">{{ r.cust_coin_balance }}</td>
+      <td class="view-cell font-mono" style="text-align:right;">{{ r.cust_total_earned }}</td>
+      <td class="view-cell font-mono" style="text-align:right;">{{ r.cust_total_redeemed }}</td>
+      <td class="view-cell font-mono" style="text-align:right; color:var(--success);">{{ r.cust_coin_balance }}</td>
       <td class="view-cell" style="white-space:nowrap;">
         <button type="button" onclick="startEdit({{ r.id }}, '{{ r.txn_date }}', '{{ r.store_id }}', '{{ r.customer_name|replace("'", "\\'") }}', '{{ r.birthday }}', {{ r.amount }}, {{ r.final_amount }})"
-          style="background:#ede9fe;color:#6c3fc5;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;margin-right:4px;">✏️ 修改</button>
+          style="background:var(--primary-bg);color:var(--primary);border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-right:4px;box-shadow:none;">✏️ 修改</button>
         <button type="button" onclick="deleteTxn({{ r.id }})"
-          style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;">🗑️ 刪除</button>
+          style="background:var(--danger-bg);color:var(--danger);border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;box-shadow:none;">🗑️ 刪除</button>
       </td>
 
       <!-- Edit mode cells (hidden by default) -->
@@ -159,9 +153,9 @@
           <div><label style="font-size:12px;margin:0;">實收金額</label><br><input type="number" id="e-cash-{{ r.id }}" value="{{ r.final_amount }}" style="width:100px;max-width:none;" min="0"></div>
           <div style="display:flex;gap:6px;align-items:flex-end;">
             <button type="button" onclick="saveEdit({{ r.id }})"
-              style="background:#6c3fc5;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;">💾 儲存</button>
+              style="background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);padding:6px 14px;cursor:pointer;">💾 儲存</button>
             <button type="button" onclick="cancelEdit({{ r.id }})"
-              style="background:#aaa;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;">取消</button>
+              style="background:var(--text-muted);color:#fff;border:none;border-radius:var(--radius-sm);padding:6px 12px;cursor:pointer;">取消</button>
           </div>
         </div>
       </td>
@@ -177,7 +171,7 @@
     <thead><tr><th>分店</th><th>客戶</th><th>生日</th><th style="text-align:right;">{% if month_from == month_to %}月累計金額{% else %}期間累計金額{% endif %}</th></tr></thead>
     <tbody>
     {% for r in monthly_by_customer %}
-    <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td style="text-align:right; font-weight:600;">{{ '%.0f'|format(r.month_total) }}</td></tr>
+    <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td class="font-mono" style="text-align:right;">{{ '%.0f'|format(r.month_total) }}</td></tr>
     {% endfor %}
     </tbody>
   </table></div>
@@ -189,7 +183,7 @@
     <thead><tr><th>分店</th><th>客戶</th><th>生日</th><th style="text-align:right;">年累計金額</th></tr></thead>
     <tbody>
     {% for r in yearly_by_customer %}
-    <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td style="text-align:right; font-weight:600;">{{ '%.0f'|format(r.year_total) }}</td></tr>
+    <tr><td>{{ r.store_name }}</td><td>{{ r.customer_name }}</td><td>{{ r.birthday }}</td><td class="font-mono" style="text-align:right;">{{ '%.0f'|format(r.year_total) }}</td></tr>
     {% endfor %}
     </tbody>
   </table></div>
@@ -199,11 +193,12 @@
 #detail-table tr.editing .view-cell { display: none; }
 #detail-table tr.editing .edit-cell { display: table-cell !important; }
 .quick-month-btn {
-  background: #f3f4f6; color: #333; border: 1px solid #ddd; border-radius: 6px;
+  background: #f3f4f6; color: var(--text-color); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   padding: 4px 10px; font-size: 13px; cursor: pointer; white-space: nowrap;
+  box-shadow: none; min-height: unset;
   transition: all 0.15s;
 }
-.quick-month-btn:hover { background: #6c3fc5; color: #fff; border-color: #6c3fc5; }
+.quick-month-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
 </style>
 
 <script>

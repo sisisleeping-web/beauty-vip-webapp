@@ -3,18 +3,18 @@
 <div class="card">
   <h3>🔐 主管儀表板</h3>
   <div style="margin:0 0 16px; display:flex; gap:16px; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; flex-wrap:wrap;">
-    <a href="/manager/logout" style="color:#dc2626; font-size:0.9rem; text-decoration:none;">🚪 登出主管頁</a>
-    <a href="/manager/backup" style="background:#059669; color:#fff; padding:6px 14px; border-radius:8px; font-size:0.85rem; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:6px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+    <a href="/manager/logout" style="color:var(--danger); font-size:0.9rem; text-decoration:none;">🚪 登出主管頁</a>
+    <a href="/manager/backup" style="background:var(--success); color:#fff; padding:6px 14px; border-radius:var(--radius-sm); font-size:0.85rem; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:6px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
       📥 下載最新雲端備份 (.db)
     </a>
     <form method="POST" action="/manager/reevaluate_expired" style="margin:0;"
           onsubmit="return confirm('重新評估所有效期已屆滿的 S/P/A 會員？沒來店的會員平常顯示的等級已經是即時算好的正確結果，這個按鈕只是把 customers 資料表裡存的狀態同步更新，不影響任何人看到的等級。');">
-      <button type="submit" style="background:#7c3aed; color:#fff; padding:6px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; border:none; cursor:pointer;">
+      <button type="submit" style="background:var(--primary); color:#fff; padding:6px 14px; border-radius:var(--radius-sm); font-size:0.85rem; font-weight:600; border:none; cursor:pointer;">
         🔄 重新評估到期會員
       </button>
     </form>
     {% if request.args.get('reevaluated_count') %}
-    <span style="font-size:0.85rem; color:#059669;">✓ 已重新評估 {{ request.args.get('reevaluated_count') }} 位會員</span>
+    <span class="badge-pill badge-pill-success">✓ 已重新評估 {{ request.args.get('reevaluated_count') }} 位會員</span>
     {% endif %}
   </div>
   <form method="get" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
@@ -40,12 +40,12 @@
       <input type="text" name="q" value="{{ filters.q }}" placeholder="如：陳小明 / 09xx" style="max-width:180px;">
     </div>
     <div style="align-self:flex-end;">
-      <button type="submit" style="background:linear-gradient(135deg,#6c3fc5,#a855f7);color:#fff;">🔍 查詢</button>
-      <a href="/manager"><button type="button" style="background:#f3f4f6;color:#555;border:1px solid #ddd;margin-left:4px;">清除</button></a>
+      <button type="submit" style="background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;">🔍 查詢</button>
+      <a href="/manager"><button type="button" style="background:#f3f4f6;color:var(--text-muted);border:1px solid var(--border-strong);margin-left:4px;">清除</button></a>
     </div>
   </form>
   <div style="margin-top:10px;">
-    <label style="font-size:0.85rem; color:#666;">快速選擇</label>
+    <label class="text-muted" style="font-size:0.85rem;">快速選擇</label>
     <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
       <button type="button" class="quick-month-btn" onclick="setMgrRange(1,1)">1月</button>
       <button type="button" class="quick-month-btn" onclick="setMgrRange(2,2)">2月</button>
@@ -87,21 +87,21 @@
     {% for r in store_stats %}
     <tr>
       <td><strong>{{ r.store_name }}</strong></td>
-      <td style="text-align:right; font-size:1.1rem; font-weight:700; color:#6c3fc5;">
+      <td class="font-mono" style="text-align:right; font-size:1.1rem; color:var(--primary);">
         {{ '%.0f'|format(r.month_revenue or 0) }}
       </td>
-      <td style="text-align:right; font-size:1.1rem; font-weight:700; color:#0e7fa8;">
+      <td class="font-mono" style="text-align:right; font-size:1.1rem; color:var(--tier-s);">
         {{ '%.0f'|format(r.year_revenue or 0) }}
       </td>
     </tr>
     {% endfor %}
     {% if store_stats %}
-    <tr style="background:#f0ebff; font-weight:700;">
+    <tr style="background:var(--primary-bg-soft); font-weight:700;">
       <td>🔢 合計</td>
-      <td style="text-align:right; color:#6c3fc5;">
+      <td class="font-mono" style="text-align:right; color:var(--primary);">
         {{ '%.0f'|format(store_stats|sum(attribute='month_revenue') or 0) }}
       </td>
-      <td style="text-align:right; color:#0e7fa8;">
+      <td class="font-mono" style="text-align:right; color:var(--tier-s);">
         {{ '%.0f'|format(store_stats|sum(attribute='year_revenue') or 0) }}
       </td>
     </tr>
@@ -114,14 +114,14 @@
 <div class="card">
   <h3>👤 顧客消費與美咖幣明細
     {% if filters.store_id %}
-      <span style="background:#ede9fe;color:#6c3fc5;font-size:0.8rem;padding:2px 10px;border-radius:12px;font-weight:500;margin-left:8px;">
+      <span class="badge-pill" style="background:var(--primary-bg);color:var(--primary);margin-left:8px;">
         {% for s in stores %}{% if s.id == filters.store_id %}{{ s.name }}{% endif %}{% endfor %}
       </span>
     {% else %}
-      <span style="background:#f3f4f6;color:#666;font-size:0.8rem;padding:2px 10px;border-radius:12px;font-weight:500;margin-left:8px;">全部分店</span>
+      <span class="badge-pill badge-pill-neutral" style="margin-left:8px;">全部分店</span>
     {% endif %}
   </h3>
-  <p style="font-size:0.85rem; color:#888; margin:0 0 8px;">共 {{ customer_stats|length }} 位顧客</p>
+  <p class="text-muted" style="font-size:0.85rem; margin:0 0 8px;">共 {{ customer_stats|length }} 位顧客</p>
   <div class="table-wrap"><table>
     <thead>
       <tr>
@@ -142,12 +142,12 @@
       <td><strong>{{ c.name }}</strong></td>
       <td>{{ c.phone or '-' }}</td>
       <td>{{ c.birthday }}</td>
-      <td style="font-size:0.9em; color:#555;">{{ c.stores or '-' }}</td>
-      <td style="text-align:right; font-weight:600;">{{ '%.0f'|format(c.month_spend or 0) }}</td>
-      <td style="text-align:right; font-weight:600; color:#0e7fa8;">{{ '%.0f'|format(c.year_spend or 0) }}</td>
-      <td style="text-align:right;">{{ c.total_coins_earned or 0 }}</td>
-      <td style="text-align:right;">{{ c.total_coins_redeemed or 0 }}</td>
-      <td style="text-align:right; color:#059669; font-weight:700; font-size:1.05rem;">🪙 {{ c.coin_balance or 0 }}</td>
+      <td class="text-muted" style="font-size:0.9em;">{{ c.stores or '-' }}</td>
+      <td class="font-mono" style="text-align:right;">{{ '%.0f'|format(c.month_spend or 0) }}</td>
+      <td class="font-mono" style="text-align:right; color:var(--tier-s);">{{ '%.0f'|format(c.year_spend or 0) }}</td>
+      <td class="font-mono" style="text-align:right;">{{ c.total_coins_earned or 0 }}</td>
+      <td class="font-mono" style="text-align:right;">{{ c.total_coins_redeemed or 0 }}</td>
+      <td class="font-mono" style="text-align:right; color:var(--success); font-size:1.05rem;">🪙 {{ c.coin_balance or 0 }}</td>
     </tr>
     {% endfor %}
     </tbody>
@@ -156,11 +156,12 @@
 
 <style>
 .quick-month-btn {
-  background: #f3f4f6; color: #333; border: 1px solid #ddd; border-radius: 6px;
+  background: #f3f4f6; color: var(--text-color); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   padding: 4px 10px; font-size: 13px; cursor: pointer; white-space: nowrap;
+  box-shadow: none; min-height: unset;
   transition: all 0.15s;
 }
-.quick-month-btn:hover { background: #6c3fc5; color: #fff; border-color: #6c3fc5; }
+.quick-month-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
 </style>
 
 <script>

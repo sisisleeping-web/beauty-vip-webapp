@@ -60,16 +60,16 @@
   </form>
 
   <!-- Delivered Stats Summary -->
-  <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:12px; padding:12px 16px; margin-top:16px; display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
-    <span style="font-weight:700; color:#065f46; font-size:0.95rem;">📊 區間內已發送統計：</span>
+  <div style="background:var(--success-bg); border:1px solid var(--success); border-radius:var(--radius-md); padding:12px 16px; margin-top:16px; display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+    <span style="font-weight:700; color:var(--success); font-size:0.95rem;">📊 區間內已發送統計：</span>
     {% if delivered_tier_counts %}
       {% for tier, count in delivered_tier_counts.items() %}
-        <span style="background:#fff; padding:4px 12px; border-radius:20px; font-size:0.85rem; color:#059669; border:1px solid #6ee7b7; box-shadow:0 1px 2px rgba(5,150,105,0.05);">
-          {{ tier }} <strong style="font-size:1rem; margin-left:4px;">{{ count }}</strong> 份
+        <span class="badge-pill badge-pill-success" style="background:#fff; border:1px solid var(--success);">
+          {{ tier }} <strong class="font-mono" style="font-size:1rem; margin-left:4px;">{{ count }}</strong> 份
         </span>
       {% endfor %}
     {% else %}
-      <span style="color:#059669; font-size:0.85rem;">尚無已送達資料</span>
+      <span style="color:var(--success); font-size:0.85rem;">尚無已送達資料</span>
     {% endif %}
   </div>
 </div>
@@ -90,8 +90,10 @@
           <strong>{{ u.customer_name }}</strong>
           {% if u.customer_phone %}<span style="color:#666; font-size:0.85rem; margin-left:6px;">{{ u.customer_phone }}</span>{% endif %}
         </p>
-        <p style="margin:0 0 6px; font-size:1rem;">
-          {{ u.tier_before }} → <strong style="color:#d97706; font-size:1.1rem;">{{ u.tier_after }}</strong>
+        <p style="margin:0 0 6px; font-size:1rem; display:flex; align-items:center; gap:6px;">
+          <span class="tier-badge tier-{{ u.tier_before }}">{{ u.tier_before }}</span>
+          →
+          <span class="tier-badge tier-{{ u.tier_after }}">{{ u.tier_after }}</span>
         </p>
         <p style="margin:0; font-size:0.85rem; color:#666;">
           📅 升級日期：{{ u.upgrade_date }}
@@ -135,11 +137,11 @@
             </button>
           </form>
         {% elif u.gift_status == 'delivered' %}
-          <span style="display:inline-block; background:#d1fae5; color:#065f46; padding:4px 10px; border-radius:12px; font-size:0.8rem; text-align:center;">
+          <span class="badge-pill badge-pill-success" style="display:block; text-align:center;">
             ✅ 已送達
           </span>
         {% elif u.gift_status == 'skipped' %}
-          <span style="display:inline-block; background:#f3f4f6; color:#6b7280; padding:4px 10px; border-radius:12px; font-size:0.8rem; text-align:center;">
+          <span class="badge-pill badge-pill-neutral" style="display:block; text-align:center;">
             ⏭️ 已略過
           </span>
           <form method="post" action="/api/upgrades/{{ u.id }}/reopen" style="margin:0;">

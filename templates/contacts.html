@@ -46,12 +46,12 @@
       <input type="date" name="last_to" value="{{ filters.last_to }}">
     </div>
     <div style="display:flex; gap:8px; align-items:flex-end; padding-top:4px;">
-      <button type="submit" style="background:linear-gradient(135deg,#6c3fc5,#a855f7);color:#fff;flex:1;">🔍 查詢</button>
-      <a href="/contacts"><button type="button" style="background:#f3f4f6;color:#555;border:1px solid #ddd;">清除</button></a>
+      <button type="submit" style="background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;flex:1;">🔍 查詢</button>
+      <a href="/contacts"><button type="button" style="background:#f3f4f6;color:var(--text-muted);border:1px solid var(--border-strong);">清除</button></a>
     </div>
   </form>
 
-  <p style="font-size:0.85rem; color:#888; margin: 0 0 8px;">共 {{ customers|length }} 筆顧客資料</p>
+  <p class="text-muted" style="font-size:0.85rem; margin: 0 0 8px;">共 {{ customers|length }} 筆顧客資料</p>
 
   <div class="table-wrap"><table>
     <thead>
@@ -79,30 +79,26 @@
       <td>{{ c.phone or '-' }}</td>
       <td>{{ c.birthday }}</td>
       <td>
-        <span style="display:inline-block; padding:2px 10px; border-radius:999px; font-size:0.82em; font-weight:600;
-          {% if c.tier == 'A級美咖' %}background:linear-gradient(135deg,#fde68a,#fbbf24); color:#78350f;
-          {% elif c.tier == 'P級美咖' %}background:#fef3c7; color:#b45309;
-          {% elif c.tier == 'S級美咖' %}background:#dbeafe; color:#1d4ed8;
-          {% else %}background:#f3f4f6; color:#6b7280;{% endif %}">{{ c.tier }}</span>
+        <span class="tier-badge tier-{{ c.tier }}">{{ c.tier }}</span>
       </td>
-      <td style="font-size:0.85em; color:#888;">{{ c.tier_effective_date or '-' }}</td>
-      <td style="font-size:0.85em; color:#888;">{{ c.tier_expires_date or '-' }}</td>
-      <td style="font-size:0.9em; color:#555;">{{ c.stores or '無記錄' }}</td>
-      <td style="text-align:right; font-weight:600;">{{ '%.0f'|format(c.total_spend or 0) }}</td>
-      <td style="text-align:right; color:#7c3aed;">{{ c.total_coins_earned or 0 }}</td>
-      <td style="text-align:right; color:#dc2626;">{{ c.total_coins_redeemed or 0 }}</td>
-      <td style="text-align:right; font-weight:700; color:#059669;">{{ c.coin_balance or 0 }}</td>
+      <td class="text-muted" style="font-size:0.85em;">{{ c.tier_effective_date or '-' }}</td>
+      <td class="text-muted" style="font-size:0.85em;">{{ c.tier_expires_date or '-' }}</td>
+      <td class="text-muted" style="font-size:0.9em;">{{ c.stores or '無記錄' }}</td>
+      <td class="font-mono" style="text-align:right;">{{ '%.0f'|format(c.total_spend or 0) }}</td>
+      <td class="font-mono" style="text-align:right; color:var(--primary);">{{ c.total_coins_earned or 0 }}</td>
+      <td class="font-mono" style="text-align:right; color:var(--danger);">{{ c.total_coins_redeemed or 0 }}</td>
+      <td class="font-mono" style="text-align:right; color:var(--success);">{{ c.coin_balance or 0 }}</td>
       <td>{{ c.last_txn_date or '-' }}</td>
-      <td style="font-size:0.85em; color:#888;">{{ c.created_at[:10] }}</td>
+      <td class="text-muted" style="font-size:0.85em;">{{ c.created_at[:10] }}</td>
       <td style="text-align:center; white-space:nowrap;">
         <button type="button" onclick="openAddPoints({{ c.id }})"
-          style="background:#fef3c7;color:#b45309;border:none;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer;margin-right:4px;">🎁 贈點</button>
+          style="background:var(--warning-bg);color:var(--warning);border:none;border-radius:var(--radius-sm);padding:5px 12px;font-size:13px;cursor:pointer;margin-right:4px;box-shadow:none;">🎁 贈點</button>
         <button type="button" onclick="openEdit({{ c.id }})"
-          style="background:#ede9fe;color:#6c3fc5;border:none;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer;margin-right:4px;">✏️ 修改</button>
+          style="background:var(--primary-bg);color:var(--primary);border:none;border-radius:var(--radius-sm);padding:5px 12px;font-size:13px;cursor:pointer;margin-right:4px;box-shadow:none;">✏️ 修改</button>
         <form method="post" action="/api/customers/{{ c.id }}/delete" style="display:inline;"
               onsubmit="return confirm('確定要刪除顧客「{{ c.name }}」及其所有消費紀錄嗎？此動作無法復原。');">
           <button type="submit"
-            style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer;">🗑️ 刪除</button>
+            style="background:var(--danger-bg);color:var(--danger);border:none;border-radius:var(--radius-sm);padding:5px 12px;font-size:13px;cursor:pointer;box-shadow:none;">🗑️ 刪除</button>
         </form>
       </td>
     </tr>
@@ -169,7 +165,7 @@
   </table></div>
 
   {% if not customers %}
-    <p style="text-align:center; color:#999; padding:20px;">目前沒有符合的資料。</p>
+    <p class="text-muted" style="text-align:center; padding:20px;">目前沒有符合的資料。</p>
   {% endif %}
 </div>
 

@@ -3,20 +3,20 @@
 <div class="card">
   <h3>美容師快速輸入 {% for s in stores %}{% if selected_store==s.id %}- {{s.name}}{% endif %}{% endfor %}</h3>
   {% if error %}
-  <p style="color: red; font-weight: bold; background: #ffe6e6; padding: 8px; border-radius: 4px;">{{ error }}</p>
+  <p style="color: var(--danger); font-weight: bold; background: var(--danger-bg); padding: 8px; border-radius: var(--radius-sm);">{{ error }}</p>
   {% endif %}
   {% if not selected_store %}
-  <p style="color: red;">請先從首頁選擇分店！</p>
+  <p style="color: var(--danger);">請先從首頁選擇分店！</p>
   {% else %}
 
   <!-- 模式切換 Tab -->
-  <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #2d6cdf;">
+  <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--primary);">
     <button type="button" id="tab-normal" onclick="switchMode('normal')"
-      style="padding:8px 16px;border:none;border-radius:4px 4px 0 0;cursor:pointer;font-size:14px;">一般消費</button>
+      style="padding:8px 16px;border:none;border-radius:var(--radius-sm) var(--radius-sm) 0 0;cursor:pointer;font-size:14px;box-shadow:none;min-height:unset;">一般消費</button>
     <button type="button" id="tab-coin_deduct" onclick="switchMode('coin_deduct')"
-      style="padding:8px 16px;border:none;border-radius:4px 4px 0 0;cursor:pointer;font-size:14px;">點數扣除</button>
+      style="padding:8px 16px;border:none;border-radius:var(--radius-sm) var(--radius-sm) 0 0;cursor:pointer;font-size:14px;box-shadow:none;min-height:unset;">點數扣除</button>
     <button type="button" id="tab-birthday_recharge" onclick="switchMode('birthday_recharge')"
-      style="padding:8px 16px;border:none;border-radius:4px 4px 0 0;cursor:pointer;font-size:14px;">🎂 壽星充值</button>
+      style="padding:8px 16px;border:none;border-radius:var(--radius-sm) var(--radius-sm) 0 0;cursor:pointer;font-size:14px;box-shadow:none;min-height:unset;">🎂 壽星充值</button>
   </div>
 
   <form method="post" id="entry-form">
@@ -54,7 +54,7 @@
       <input type="number" name="coins_deduct" id="coins_deduct" min="1" step="1" placeholder="請輸入要扣除的點數">
       <label>扣點說明（選填）</label>
       <input type="text" name="deduct_note" id="deduct_note" placeholder="例如：兌換療程、課程或產品">
-      <p style="color:#666;font-size:13px;">※ 純點數扣除，不記入消費金額</p>
+      <p class="text-muted" style="font-size:13px;">※ 純點數扣除，不記入消費金額</p>
     </div>
 
     <!-- 壽星充值欄位 -->
@@ -62,16 +62,16 @@
       <label>壽星充值方案</label>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
         {% for plan in birthday_recharge_plans %}
-        <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;padding:8px;border:1px solid #ddd;border-radius:6px;">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;padding:8px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);">
           <input type="radio" name="recharge_plan" value="{{ plan.amount }}">
-          <span>儲值 <strong>{{ '{:,}'.format(plan.amount) }}</strong> 元 → 贈 <strong style="color:#e06c00;">{{ plan.coins }}</strong> 點</span>
+          <span>儲值 <strong class="font-mono">{{ '{:,}'.format(plan.amount) }}</strong> 元 → 贈 <strong class="font-mono" style="color:var(--warning);">{{ plan.coins }}</strong> 點</span>
         </label>
         {% endfor %}
       </div>
-      <p style="color:#888;font-size:13px;margin-top:8px;">※ 僅限當月壽星參加，無需消費即可辦理</p>
+      <p class="text-muted" style="font-size:13px;margin-top:8px;">※ 僅限當月壽星參加，無需消費即可辦理</p>
     </div>
 
-    <div style="margin-top:12px;"><button type="submit" id="submit-btn">送出</button></div>
+    <div style="margin-top:12px;"><button type="submit" id="submit-btn" style="background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;">送出</button></div>
   </form>
   {% endif %}
 </div>
@@ -81,31 +81,31 @@
   {% if result.mode == 'birthday_recharge' %}
     <h3 class="ok">🎂 壽星充值完成</h3>
     <p>顧客：{{ result.name }}</p>
-    <p>儲值金額：{{ '{:,.0f}'.format(result.recharge_amount) }} 元</p>
-    <p>獲得點數：<strong style="color:#e06c00;">{{ result.coins_earned }}</strong> 點</p>
-    <p>目前點數餘額：{{ result.coin_balance }} 點</p>
+    <p>儲值金額：<span class="font-mono">{{ '{:,.0f}'.format(result.recharge_amount) }}</span> 元</p>
+    <p>獲得點數：<strong class="font-mono" style="color:var(--warning);">{{ result.coins_earned }}</strong> 點</p>
+    <p>目前點數餘額：<span class="font-mono">{{ result.coin_balance }}</span> 點</p>
   {% elif result.mode == 'coin_deduct' %}
     <h3 class="ok">點數扣除完成</h3>
     <p>顧客：{{ result.name }}</p>
-    <p>扣除點數：{{ result.coins_redeemed }} 點</p>
+    <p>扣除點數：<span class="font-mono">{{ result.coins_redeemed }}</span> 點</p>
     {% if result.deduct_note %}<p>說明：{{ result.deduct_note }}</p>{% endif %}
-    <p>剩餘點數：{{ result.coin_balance }} 點</p>
+    <p>剩餘點數：<span class="font-mono">{{ result.coin_balance }}</span> 點</p>
   {% else %}
     <h3 class="ok">已完成入帳</h3>
     <p>顧客：{{ result.name }}</p>
-    <p>原始金額：{{ '%.2f'|format(result.amount) }}</p>
-    <p>實收金額：{{ '%.2f'|format(result.final_amount) }}</p>
-    <p>本月累計：{{ '%.2f'|format(result.monthly_total) }}</p>
-    <p>目前等級：{{ result.tier.name }}</p>
-    <p>本筆回饋金：{{ '%.2f'|format(result.cashback) }}</p>
-    <p>本筆點數：{{ result.points }}</p>
-    <p>本筆獲得硬幣：<strong style="color:#e06c00;">{{ result.coins_earned }}</strong> 點</p>
-    <p>目前點數餘額：{{ result.coin_balance }} 點</p>
+    <p>原始金額：<span class="font-mono">{{ '%.2f'|format(result.amount) }}</span></p>
+    <p>實收金額：<span class="font-mono">{{ '%.2f'|format(result.final_amount) }}</span></p>
+    <p>本月累計：<span class="font-mono">{{ '%.2f'|format(result.monthly_total) }}</span></p>
+    <p>目前等級：<span class="tier-badge tier-{{ result.tier.name }}">{{ result.tier.name }}</span></p>
+    <p>本筆回饋金：<span class="font-mono">{{ '%.2f'|format(result.cashback) }}</span></p>
+    <p>本筆點數：<span class="font-mono">{{ result.points }}</span></p>
+    <p>本筆獲得硬幣：<strong class="font-mono" style="color:var(--warning);">{{ result.coins_earned }}</strong> 點</p>
+    <p>目前點數餘額：<span class="font-mono">{{ result.coin_balance }}</span> 點</p>
     {% if result.upgrades %}
-    <div style="margin-top:12px; padding:12px 16px; background:linear-gradient(135deg,#fef3c7,#fde68a); border-radius:10px; border:2px solid #f59e0b;">
+    <div style="margin-top:12px; padding:12px 16px; background:linear-gradient(135deg,#fef3c7,#fde68a); border-radius:var(--radius-md); border:2px solid var(--warning);">
       {% for up in result.upgrades %}
       <p style="margin:4px 0; font-size:1.1rem;">
-        🎉 <strong>恭喜升級！</strong> {{ up['from'] }} → <strong style="color:#d97706;">{{ up['to'] }}</strong>
+        🎉 <strong>恭喜升級！</strong> {{ up['from'] }} → <strong style="color:var(--warning);">{{ up['to'] }}</strong>
       </p>
       <p style="margin:2px 0; font-size:0.9rem; color:#92400e;">
         📦 {{ up.gift }} 已列入待發放清單，請安排送出實體禮物。
@@ -127,7 +127,7 @@ function switchMode(mode) {
     const tab = document.getElementById('tab-' + m);
     if (sec) sec.style.display = (m === mode) ? '' : 'none';
     if (tab) {
-      tab.style.background = (m === mode) ? '#2d6cdf' : '#f0f0f0';
+      tab.style.background = (m === mode) ? '#6c3fc5' : '#f0f0f0';
       tab.style.color = (m === mode) ? '#fff' : '#333';
       tab.style.fontWeight = (m === mode) ? 'bold' : 'normal';
     }

@@ -6,24 +6,75 @@
   <title>美咖美容 VIP 管理系統</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
+    /* ========================================================================
+       Design tokens — 詳見專案根目錄 DESIGN.md，改顏色/圓角/陰影前先查那份文件，
+       不要在個別頁面臨時發明新數值。
+       ======================================================================== */
+    :root {
+      /* Brand（既有紫色品牌，不變） */
+      --primary: #6c3fc5;
+      --primary-light: #a855f7;
+      --accent: #ec4899;
+      --primary-bg: #ede9fe;      /* 品牌淡底：選中狀態、篩選 chip */
+      --primary-bg-soft: #f8f6ff; /* 更淡：表頭、hover 底 */
+
+      /* Surface */
+      --bg-color: #f4f6fb;
+      --card-bg: #ffffff;
+      --border-color: #ede9ff;
+      --border-strong: #d4c9f0;
+
+      /* Text */
+      --text-color: #1a1a2e;
+      --text-heading: #2d1b69;
+      --text-muted: #6b7280;
+
+      /* Semantic */
+      --success: #059669;
+      --success-bg: rgba(5, 150, 105, .12);
+      --danger: #dc2626;
+      --danger-bg: rgba(220, 38, 38, .12);
+      --warning: #d97706;
+      --warning-bg: rgba(217, 119, 6, .12);
+      --tier-s: #1d4ed8;
+      --tier-s-bg: #dbeafe;
+      --tier-p: #b45309;
+      --tier-p-bg: #fef3c7;
+      --tier-a-text: #78350f;
+      --tier-a-bg: linear-gradient(135deg, #fde68a, #fbbf24);
+
+      /* Radius scale（統一取代原本 4/6/10/12/14/16/20px 混用） */
+      --radius-sm: 8px;   /* 輸入框、小按鈕 */
+      --radius-md: 12px;  /* 次要卡片、篩選 chip */
+      --radius-lg: 16px;  /* 主要卡片 */
+      --radius-pill: 999px; /* 徽章、狀態標籤 */
+
+      /* Shadow depth（由淺到深，越常互動的元件陰影越明顯） */
+      --shadow-card: 0 4px 20px rgba(108,63,197,.07), 0 1px 3px rgba(108,63,197,.08);
+      --shadow-btn: 0 4px 12px rgba(108,63,197,.12), 0 1px 3px rgba(108,63,197,.08);
+      --shadow-header: 0 4px 18px rgba(108,63,197,.25);
+    }
+
     /* === Base === */
     *, *::before, *::after { box-sizing: border-box; }
     body {
       font-family: 'Noto Sans TC', '微軟正黑體', Arial, sans-serif;
       margin: 0;
-      color: #1a1a2e;
-      background: #f4f6fb;
+      color: var(--text-color);
+      background: var(--bg-color);
       min-height: 100vh;
     }
+    /* 金額／點數數字專用等寬字體，只用在數字本身，不要用在一般文字或標籤 */
+    .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 700; }
 
     /* === Header Bar === */
     .site-header {
-      background: linear-gradient(135deg, #6c3fc5 0%, #a855f7 60%, #ec4899 100%);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 60%, var(--accent) 100%);
       color: #fff;
       padding: 0 20px;
-      box-shadow: 0 4px 18px rgba(108,63,197,0.25);
+      box-shadow: var(--shadow-header);
     }
     .header-inner {
       max-width: 1100px;
@@ -49,7 +100,7 @@
       background: rgba(255,255,255,0.25);
       font-size: 0.7rem;
       padding: 2px 10px;
-      border-radius: 20px;
+      border-radius: var(--radius-pill);
       font-weight: 500;
       letter-spacing: 0;
     }
@@ -66,7 +117,7 @@
       background: rgba(255,255,255,0.15);
       color: #fff;
       border: 1.5px solid rgba(255,255,255,0.35);
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       padding: 7px 16px;
       font-size: 15px;
       font-family: inherit;
@@ -79,11 +130,12 @@
       border-color: rgba(255,255,255,0.7);
       transform: translateY(-1px);
     }
+    nav a .nav-btn:active { transform: translateY(0); }
     .nav-btn-reload {
       background: rgba(255,255,255,0.08);
       color: rgba(255,255,255,0.8);
       border: 1.5px solid rgba(255,255,255,0.2);
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       padding: 7px 14px;
       font-size: 15px;
       font-family: inherit;
@@ -99,38 +151,39 @@
       padding: 20px 16px 40px;
     }
 
-    h2 { font-size: 1.35rem; margin-bottom: 10px; color: #1a1a2e; }
-    h3 { font-size: 1.15rem; margin: 0 0 12px; color: #2d1b69; font-weight: 700; }
-    h4 { font-size: 1rem; margin: 0 0 8px; color: #444; }
+    h2 { font-size: 1.35rem; margin-bottom: 10px; color: var(--text-color); }
+    h3 { font-size: 1.15rem; margin: 0 0 12px; color: var(--text-heading); font-weight: 700; }
+    h4 { font-size: 1rem; margin: 0 0 8px; color: var(--text-muted); }
 
     /* === Cards === */
     .card {
-      background: #fff;
-      border-radius: 14px;
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
       padding: 20px 22px;
       margin: 14px 0;
-      box-shadow: 0 2px 12px rgba(108,63,197,0.08);
-      border: 1px solid #ede9ff;
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border-color);
     }
 
     /* === Forms === */
-    label { display: block; margin-top: 10px; font-size: 0.88rem; color: #555; font-weight: 500; }
+    label { display: block; margin-top: 10px; font-size: 0.88rem; color: var(--text-muted); font-weight: 500; }
     input, select, textarea {
       padding: 10px 12px;
       margin-top: 5px;
       width: 100%;
       max-width: 420px;
       font-size: 16px;
-      border: 1.5px solid #d4c9f0;
-      border-radius: 8px;
+      border: 1.5px solid var(--border-strong);
+      border-radius: var(--radius-sm);
       font-family: inherit;
-      background: #fafaf9;
+      background: #fbfaff;
+      box-shadow: inset 0 2px 4px rgba(108,63,197,.04);
       transition: border-color 0.18s, box-shadow 0.18s;
     }
     input:focus, select:focus, textarea:focus {
       outline: none;
-      border-color: #a855f7;
-      box-shadow: 0 0 0 3px rgba(168,85,247,0.12);
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(168,85,247,0.16);
     }
     button {
       padding: 10px 20px;
@@ -138,31 +191,55 @@
       font-family: inherit;
       font-weight: 600;
       cursor: pointer;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       border: none;
       min-height: 42px;
-      transition: opacity 0.18s, transform 0.1s;
+      box-shadow: var(--shadow-btn);
+      transition: opacity 0.18s, transform 0.1s, box-shadow 0.18s;
     }
-    button:hover { opacity: 0.88; transform: translateY(-1px); }
-    button:active { transform: translateY(0); }
+    button:hover { opacity: 0.9; transform: translateY(-1px); }
+    button:active { transform: translateY(0); box-shadow: inset 0 2px 4px rgba(0,0,0,.12); }
 
     /* === Tables === */
     .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
     table { border-collapse: collapse; width: 100%; margin-top: 8px; min-width: 480px; font-size: 14px; }
-    th, td { border: 1px solid #e8e4f3; padding: 9px 12px; white-space: nowrap; }
-    th { background: linear-gradient(135deg, #f0ebff 0%, #f8f4ff 100%); color: #4a2d8c; font-weight: 700; }
-    tr:nth-child(even) td { background: #fdfbff; }
-    tr:hover td { background: #f5f0ff; }
+    th, td { border: 1px solid var(--border-color); padding: 9px 12px; white-space: nowrap; }
+    th { background: linear-gradient(135deg, var(--primary-bg) 0%, var(--primary-bg-soft) 100%); color: var(--text-heading); font-weight: 700; }
+    tr:nth-child(even) td { background: var(--primary-bg-soft); }
+    tr:hover td { background: var(--primary-bg); }
+
+    /* === Badge Pill（統一的狀態標籤元件，取代各頁面各自寫的內嵌樣式） === */
+    .badge-pill {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 0.8rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-pill-success { background: var(--success-bg); color: var(--success); }
+    .badge-pill-danger  { background: var(--danger-bg); color: var(--danger); }
+    .badge-pill-warning { background: var(--warning-bg); color: var(--warning); }
+    .badge-pill-neutral { background: #f3f4f6; color: var(--text-muted); }
+
+    /* VIP 等級徽章：四個等級統一色碼（原本 report.html／contacts.html／my.html 三處各自
+       寫了不同的顏色組合，同一個「S級美咖」在不同頁面顯示不同顏色，這裡統一成一套） */
+    .tier-badge {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 0.8rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .tier-一般會員 { background: #f3f4f6; color: var(--text-muted); }
+    .tier-S級美咖  { background: var(--tier-s-bg); color: var(--tier-s); }
+    .tier-P級美咖  { background: var(--tier-p-bg); color: var(--tier-p); }
+    .tier-A級美咖  { background: var(--tier-a-bg); color: var(--tier-a-text); }
 
     /* === Misc === */
-    .ok { color: #0a7a2d; }
-    .badge-vip {
-      display: inline-block;
-      padding: 2px 9px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-    }
+    .ok { color: var(--success); }
+    .text-muted { color: var(--text-muted); }
 
     /* === Mobile tweaks === */
     @media (max-width: 600px) {
