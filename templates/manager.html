@@ -7,6 +7,15 @@
     <a href="/manager/backup" style="background:#059669; color:#fff; padding:6px 14px; border-radius:8px; font-size:0.85rem; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:6px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
       📥 下載最新雲端備份 (.db)
     </a>
+    <form method="POST" action="/manager/reevaluate_expired" style="margin:0;"
+          onsubmit="return confirm('重新評估所有效期已屆滿的 S/P/A 會員？沒來店的會員平常顯示的等級已經是即時算好的正確結果，這個按鈕只是把 customers 資料表裡存的狀態同步更新，不影響任何人看到的等級。');">
+      <button type="submit" style="background:#7c3aed; color:#fff; padding:6px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; border:none; cursor:pointer;">
+        🔄 重新評估到期會員
+      </button>
+    </form>
+    {% if request.args.get('reevaluated_count') %}
+    <span style="font-size:0.85rem; color:#059669;">✓ 已重新評估 {{ request.args.get('reevaluated_count') }} 位會員</span>
+    {% endif %}
   </div>
   <form method="get" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
     <div>

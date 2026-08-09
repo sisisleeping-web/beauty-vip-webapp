@@ -4,7 +4,7 @@ import json
 import os
 import sqlite3
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -208,21 +208,26 @@ def init_db() -> None:
     )
 
     # Migrate existing DBs
-    for col, typedef in [
-        ("coin_balance", "INTEGER NOT NULL DEFAULT 0"),
-        ("coins_earned", "INTEGER NOT NULL DEFAULT 0"),
-        ("coins_redeemed", "INTEGER NOT NULL DEFAULT 0"),
-        ("recharge_plan", "TEXT DEFAULT NULL"),
-        ("recharge_amount", "REAL DEFAULT NULL"),
-        ("entry_mode", "TEXT NOT NULL DEFAULT 'normal'"),
-        ("note", "TEXT DEFAULT ''"),
+    for table, col, typedef in [
+        ("customers", "coin_balance", "INTEGER NOT NULL DEFAULT 0"),
+        ("transactions", "coins_earned", "INTEGER NOT NULL DEFAULT 0"),
+        ("transactions", "coins_redeemed", "INTEGER NOT NULL DEFAULT 0"),
+        ("transactions", "recharge_plan", "TEXT DEFAULT NULL"),
+        ("transactions", "recharge_amount", "REAL DEFAULT NULL"),
+        ("transactions", "entry_mode", "TEXT NOT NULL DEFAULT 'normal'"),
+        ("transactions", "note", "TEXT DEFAULT ''"),
         # 2026美咖會員制度V3 Phase 0：交易改軟刪除（作廢保留稽核紀錄），不再硬刪除。
-        ("voided_at", "TEXT DEFAULT NULL"),
-        ("void_reason", "TEXT DEFAULT ''"),
-        ("voided_by", "TEXT DEFAULT ''"),
+        ("transactions", "voided_at", "TEXT DEFAULT NULL"),
+        ("transactions", "void_reason", "TEXT DEFAULT ''"),
+        ("transactions", "voided_by", "TEXT DEFAULT ''"),
+        # 2026美咖會員制度V3 Phase 1：會員年度制（S/P/A 效期自正式升等日起一年，到期重判）。
+        ("customers", "member_tier", "TEXT NOT NULL DEFAULT '一般會員'"),
+        ("customers", "tier_effective_date", "TEXT DEFAULT NULL"),
+        ("customers", "tier_expires_date", "TEXT DEFAULT NULL"),
+        ("customers", "pending_tier", "TEXT DEFAULT NULL"),
+        ("customers", "pending_effective_date", "TEXT DEFAULT NULL"),
     ]:
         try:
-            table = "customers" if col == "coin_balance" else "transactions"
             cur.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typedef}")
         except Exception:
             pass
@@ -277,6 +282,137 @@ def calc_tier(single_amount: float, annual_amount: float, rules: dict[str, Any])
     return TierRule("一般會員", 0, 0, 0, 0)
 
 
+# ── 2026美咖會員制度V3 Phase 1：會員年度制 ──────────────────────────────────
+
+def _add_days(date_str: str, n: int) -> str:
+    return (date.fromisoformat(date_str) + timedelta(days=n)).isoformat()
+
+
+def _add_years(date_str: str, n: int) -> str:
+    d = date.fromisoformat(date_str)
+    try:
+        return d.replace(year=d.year + n).isoformat()
+    except ValueError:
+        # 閏年 2/29 在非閏年目標年份不存在，退到 2/28
+        return d.replace(year=d.year + n, day=28).isoformat()
+
+
+def _tier_rule_by_name(tier_name: str, rules: dict[str, Any]) -> TierRule:
+    for t in rules["vip_tiers"]:
+        if t["name"] == tier_name:
+            return TierRule(
+                name=t["name"], monthly_threshold=0,
+                cashback_rate=t["cashback_rate"], points_rate=t["points_rate"],
+                upgrade_gift=t["upgrade_gift"],
+            )
+    return TierRule("一般會員", 0, 0, 0, 0)
+
+
+def _tier_from_window_total(window_total: float) -> str:
+    """會員年度效期屆滿的重新判定（V3 §6）：只看該年度累計，沒有單筆門檻這個選項。"""
+    if window_total >= 60000:
+        return "A級美咖"
+    if window_total >= 24000:
+        return "P級美咖"
+    if window_total >= 15000:
+        return "S級美咖"
+    return "一般會員"
+
+
+def _window_total(db: sqlite3.Connection, customer_id: int, window_start: str, window_end: str) -> float:
+    row = db.execute(
+        "SELECT COALESCE(SUM(final_amount),0) AS total FROM transactions "
+        "WHERE customer_id=? AND txn_date>=? AND txn_date<? AND final_amount>=1000 AND voided_at IS NULL",
+        (customer_id, window_start, window_end),
+    ).fetchone()
+    return float(row["total"] or 0)
+
+
+def _is_backdated_entry(db: sqlite3.Connection, customer_id: int, txn_day: date) -> bool:
+    """這筆交易日期是否早於顧客現有交易紀錄——店員補登過去單子時，不能讓等級時間軸倒著跑。"""
+    row = db.execute(
+        "SELECT MAX(txn_date) AS latest FROM transactions WHERE customer_id=? AND voided_at IS NULL",
+        (customer_id,),
+    ).fetchone()
+    latest = row["latest"] if row else None
+    return bool(latest) and txn_day.isoformat() < latest
+
+
+def _project_tier_state(db: sqlite3.Connection, customer_id: int, as_of: str) -> dict | None:
+    """純讀取：算出 as_of 這天套用「pending 升等生效」與「會員年度到期重判」後的等級狀態，不寫入。"""
+    row = db.execute(
+        "SELECT member_tier, tier_effective_date, tier_expires_date, pending_tier, pending_effective_date "
+        "FROM customers WHERE id=?",
+        (customer_id,),
+    ).fetchone()
+    if not row:
+        return None
+    state = dict(row)
+
+    # 套用已到期的 pending 升等
+    if state["pending_tier"] and as_of >= state["pending_effective_date"]:
+        state["member_tier"] = state["pending_tier"]
+        state["tier_effective_date"] = state["pending_effective_date"]
+        state["tier_expires_date"] = _add_years(state["pending_effective_date"], 1)
+        state["pending_tier"] = None
+        state["pending_effective_date"] = None
+
+    # 會員年度到期重判（只有 S/P/A 有效期；最多跑5輪避免極端案例卡住）
+    iterations = 0
+    while (
+        state["member_tier"] != "一般會員"
+        and state["tier_expires_date"]
+        and as_of > state["tier_expires_date"]
+        and iterations < 5
+    ):
+        window_total = _window_total(db, customer_id, state["tier_effective_date"], state["tier_expires_date"])
+        new_tier = _tier_from_window_total(window_total)
+        if new_tier == "一般會員":
+            state["member_tier"] = "一般會員"
+            state["tier_effective_date"] = None
+            state["tier_expires_date"] = None
+        else:
+            state["member_tier"] = new_tier
+            state["tier_effective_date"] = state["tier_expires_date"]  # 新一期接續上一期到期日
+            state["tier_expires_date"] = _add_years(state["tier_effective_date"], 1)
+        iterations += 1
+
+    return state
+
+
+def _persist_tier_state(db: sqlite3.Connection, customer_id: int, state: dict) -> None:
+    db.execute(
+        "UPDATE customers SET member_tier=?, tier_effective_date=?, tier_expires_date=?, "
+        "pending_tier=?, pending_effective_date=? WHERE id=?",
+        (
+            state["member_tier"], state["tier_effective_date"], state["tier_expires_date"],
+            state["pending_tier"], state["pending_effective_date"], customer_id,
+        ),
+    )
+
+
+def get_effective_tier(db: sqlite3.Connection, customer_id: int, as_of: date | None = None) -> str:
+    """給其他頁面（report/my/contacts）顯示用：只算不寫，顧客沒來店不會被寫入變動，
+    但顯示的等級仍然是「如果現在重新判定」會得到的正確結果。"""
+    as_of_str = (as_of or date.today()).isoformat()
+    state = _project_tier_state(db, customer_id, as_of_str)
+    return state["member_tier"] if state else "一般會員"
+
+
+_EMPTY_TIER_STATE = {
+    "member_tier": "一般會員", "tier_effective_date": None, "tier_expires_date": None,
+    "pending_tier": None, "pending_effective_date": None,
+}
+
+
+def reevaluate_and_persist_tier(db: sqlite3.Connection, customer_id: int, as_of: date) -> dict:
+    """entry() 記一筆之前、或管理後台手動批次重新評估時呼叫：把最新狀態寫回 customers，回傳完整狀態。"""
+    state = _project_tier_state(db, customer_id, as_of.isoformat())
+    if state:
+        _persist_tier_state(db, customer_id, state)
+    return state or dict(_EMPTY_TIER_STATE)
+
+
 def get_or_create_customer(db: sqlite3.Connection, name: str, birthday: str, phone: str = "") -> int:
     row = db.execute(
         "SELECT id FROM customers WHERE name=? AND birthday=?", (name, birthday)
@@ -324,16 +460,6 @@ def get_customer_coin_balance(db: sqlite3.Connection, customer_id: int) -> int:
     return int(row["coin_balance"] or 0) if row else 0
 
 
-def _tier_name_from_totals(max_single: float, year_total: float) -> str:
-    if max_single >= 30000 or year_total >= 60000:
-        return "A級美咖"
-    if max_single >= 12000 or year_total >= 24000:
-        return "P級美咖"
-    if max_single >= 8000 or year_total >= 15000:
-        return "S級美咖"
-    return "一般會員"
-
-
 def has_column(db: sqlite3.Connection, table: str, column: str) -> bool:
     try:
         rows = db.execute(f"PRAGMA table_info({table})").fetchall()
@@ -343,18 +469,10 @@ def has_column(db: sqlite3.Connection, table: str, column: str) -> bool:
 
 
 def get_customer_tier_map(db: sqlite3.Connection, year: str) -> dict[int, str]:
-    rows = db.execute(
-        """
-        SELECT c.id AS customer_id,
-               COALESCE(MAX(t.final_amount),0) AS max_single,
-               COALESCE(SUM(CASE WHEN substr(t.txn_date,1,4)=? AND t.final_amount>=1000 THEN t.final_amount ELSE 0 END),0) AS year_total
-        FROM customers c
-        LEFT JOIN transactions t ON t.customer_id = c.id AND t.voided_at IS NULL
-        GROUP BY c.id
-        """,
-        (year,),
-    ).fetchall()
-    return {int(r["customer_id"]): _tier_name_from_totals(float(r["max_single"] or 0), float(r["year_total"] or 0)) for r in rows}
+    """回傳每位顧客「現在」的有效等級（V3 Phase 1 起用 get_effective_tier 現算，不寫入）。
+    year 參數保留給既有呼叫端相容，但等級一律代表現況，不是某個歷史日曆年的回推。"""
+    customer_ids = [int(r["id"]) for r in db.execute("SELECT id FROM customers").fetchall()]
+    return {cid: get_effective_tier(db, cid) for cid in customer_ids}
 
 
 @app.route("/")
@@ -519,7 +637,34 @@ def entry():
                 year_total_so_far = customer_year_total(db, customer_id, year_str)
                 past_max_single = get_past_max_single(db, customer_id)
 
-                tier_before = calc_tier(past_max_single, year_total_so_far, rules)
+                # 會員年度制（V3 Phase 1）：先確認這筆補登日期沒有早於既有交易，
+                # 再套用到期的 pending 升等／會員年度到期重判，取得「這筆交易當下」該用的等級。
+                backdated = _is_backdated_entry(db, customer_id, txn_day)
+                if backdated:
+                    cur = db.execute(
+                        "SELECT member_tier, tier_effective_date, tier_expires_date FROM customers WHERE id=?",
+                        (customer_id,),
+                    ).fetchone()
+                    tier_before_name = cur["member_tier"]
+                    window_start, window_end = cur["tier_effective_date"], cur["tier_expires_date"]
+                    db.execute(
+                        "INSERT INTO review_flags(item_type, item_key, status, note, updated_at) "
+                        "VALUES(?,?,?,?,?)",
+                        (
+                            "backdated_entry",
+                            f"cust{customer_id}_{txn_day.isoformat()}_{datetime.now().timestamp()}",
+                            "unreviewed",
+                            f"{name} 補登 {txn_day.isoformat()} 的交易，晚於既有交易紀錄，"
+                            f"等級未自動重新評估，請人工複核",
+                            datetime.now().isoformat(timespec="seconds"),
+                        ),
+                    )
+                else:
+                    tier_state = reevaluate_and_persist_tier(db, customer_id, txn_day)
+                    tier_before_name = tier_state["member_tier"]
+                    window_start, window_end = tier_state["tier_effective_date"], tier_state["tier_expires_date"]
+
+                tier_before = _tier_rule_by_name(tier_before_name, rules)
                 cashback = round(final_amount * tier_before.cashback_rate, 2)
                 points = int(final_amount * tier_before.points_rate)
 
@@ -556,24 +701,39 @@ def entry():
                     )
                 monthly_total = customer_month_total(db, customer_id, month_key)
                 new_max_single = max(past_max_single, final_amount)
-                new_year_total = year_total_so_far + (final_amount if final_amount >= 1000 else 0)
-                tier_after = calc_tier(new_max_single, new_year_total, rules)
+
+                if window_start:
+                    # 已有會員年度視窗：達標偵測用視窗累計（V3 §3「本會員年度累計」）
+                    accum_total = _window_total(db, customer_id, window_start, window_end)
+                else:
+                    # 一般會員尚無視窗：沿用日曆年累計判斷是否首次達標
+                    accum_total = year_total_so_far + (final_amount if final_amount >= 1000 else 0)
+
+                candidate_tier = calc_tier(new_max_single, accum_total, rules)
                 coin_balance = get_customer_coin_balance(db, customer_id)
 
                 # Get the txn_id we just inserted
                 last_txn_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
 
-                # Detect tier upgrade (including multi-level jumps)
+                # Detect tier upgrade (including multi-level jumps within one day).
+                # 補登過去日期的交易不做升等偵測——時間序不可靠，交由人工複核（review_flags）。
                 upgrades_recorded = []
-                if tier_after.name != tier_before.name:
-                    idx_before = TIER_ORDER.index(tier_before.name) if tier_before.name in TIER_ORDER else 0
-                    idx_after = TIER_ORDER.index(tier_after.name) if tier_after.name in TIER_ORDER else 0
+                tier_after = tier_before
+                if not backdated and candidate_tier.name != tier_before.name:
+                    # 同一天內已經排過 pending（例如今天稍早的另一筆已經達標到 S，還沒生效），
+                    # 這筆的升等偵測要接續那個基準，避免同一天內重複記錄同一段升等。
+                    existing_pending = db.execute(
+                        "SELECT pending_tier FROM customers WHERE id=?", (customer_id,)
+                    ).fetchone()["pending_tier"]
+                    baseline_name = existing_pending or tier_before.name
+                    idx_before = TIER_ORDER.index(baseline_name) if baseline_name in TIER_ORDER else 0
+                    idx_after = TIER_ORDER.index(candidate_tier.name) if candidate_tier.name in TIER_ORDER else 0
                     if idx_after > idx_before:
                         # Determine trigger reason
                         if new_max_single > past_max_single and new_max_single >= final_amount:
                             reason = f"單筆消費 {int(new_max_single):,} 元達標"
                         else:
-                            reason = f"年度累計 {int(new_year_total):,} 元達標"
+                            reason = f"年度累計 {int(accum_total):,} 元達標"
                         now_str_up = datetime.now().isoformat(timespec="seconds")
                         # Record each intermediate upgrade level
                         for step in range(idx_before + 1, idx_after + 1):
@@ -598,6 +758,13 @@ def entry():
                                 "pending", now_str_up,
                             ))
                             upgrades_recorded.append({"from": step_from, "to": step_to, "gift": gift_name})
+
+                        # 達標當筆仍用舊等級（tier_before 已經是這樣），新等級排到隔天正式生效。
+                        db.execute(
+                            "UPDATE customers SET pending_tier=?, pending_effective_date=? WHERE id=?",
+                            (candidate_tier.name, _add_days(txn_day.isoformat(), 1), customer_id),
+                        )
+                        tier_after = candidate_tier
 
                 db.commit()
 
@@ -975,6 +1142,27 @@ def manager_unlock():
 def manager_logout():
     session.pop("manager_authed", None)
     return redirect(url_for("manager_dashboard"))
+
+
+@app.route("/manager/reevaluate_expired", methods=["POST"])
+def manager_reevaluate_expired():
+    """手動批次：把所有效期已屆滿的 S/P/A 會員重新判定一次。這是操作面安全網，
+    不是正確性的唯一來源（沒觸發這個按鈕，get_effective_tier 顯示時一樣算得出正確等級，
+    只是 customers.member_tier 欄位本身要等這位顧客下次來店或按這個按鈕才會真的寫入更新）。"""
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
+    db = get_db()
+    today_str = date.today().isoformat()
+    expired = db.execute(
+        "SELECT id FROM customers WHERE tier_expires_date IS NOT NULL AND tier_expires_date < ?",
+        (today_str,),
+    ).fetchall()
+    count = 0
+    for row in expired:
+        reevaluate_and_persist_tier(db, int(row["id"]), date.today())
+        count += 1
+    db.commit()
+    return redirect(url_for("manager_dashboard", _anchor="reevaluated", reevaluated_count=count))
 
 
 @app.route("/manager")
@@ -1706,9 +1894,14 @@ def _build_customer_result(cid: int) -> dict | None:
     customer = dict(row)
     year_str = date.today().strftime("%Y")
 
-    max_single = get_past_max_single(db, cid)
-    year_total = customer_year_total(db, cid, year_str)
-    customer["tier"] = _tier_name_from_totals(max_single, year_total)
+    customer["tier"] = get_effective_tier(db, cid)
+    tier_row = db.execute(
+        "SELECT tier_effective_date, tier_expires_date FROM customers WHERE id=?", (cid,)
+    ).fetchone()
+    if tier_row["tier_effective_date"]:
+        year_total = _window_total(db, cid, tier_row["tier_effective_date"], tier_row["tier_expires_date"])
+    else:
+        year_total = customer_year_total(db, cid, year_str)
     customer["year_total"] = year_total
 
     points_row = db.execute(
