@@ -1383,7 +1383,12 @@ def contacts():
         sql += " HAVING " + " AND ".join(having)
 
     sql += " ORDER BY c.name"
-    customers = db.execute(sql, params).fetchall()
+    customer_rows = db.execute(sql, params).fetchall()
+    customers = []
+    for row in customer_rows:
+        d = dict(row)
+        d["tier"] = get_effective_tier(db, int(row["id"]))
+        customers.append(d)
     stores = db.execute("SELECT id,name FROM stores ORDER BY name").fetchall()
 
     filters = {
