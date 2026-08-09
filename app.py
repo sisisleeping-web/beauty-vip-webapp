@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 import csv
 import io
 import json
@@ -205,6 +206,30 @@ def init_db() -> None:
             operator TEXT NOT NULL DEFAULT 'staff',
             created_at TEXT NOT NULL,
             FOREIGN KEY(customer_id) REFERENCES customers(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS coin_batches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            source_txn_id INTEGER,
+            source_adjustment_id INTEGER,
+            earned_amount INTEGER NOT NULL,
+            remaining_amount INTEGER NOT NULL,
+            credit_date TEXT NOT NULL,
+            expires_date TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'active',
+            is_legacy INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(customer_id) REFERENCES customers(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS coin_redemptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            redeem_txn_id INTEGER NOT NULL,
+            batch_id INTEGER NOT NULL,
+            amount INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(batch_id) REFERENCES coin_batches(id)
         );
         """
     )
@@ -524,6 +549,226 @@ def get_customer_coin_balance(db: sqlite3.Connection, customer_id: int) -> int:
     return int(row["coin_balance"] or 0) if row else 0
 
 
+# ── 2026美咖會員制度V3 Phase 3：美咖幣分筆效期帳本 ──────────────────────────
+
+def _add_one_month(d: date) -> date:
+    if d.month == 12:
+        y, m = d.year + 1, 1
+    else:
+        y, m = d.year, d.month + 1
+    last_day = calendar.monthrange(y, m)[1]
+    return date(y, m, min(d.day, last_day))
+
+
+def create_coin_batch(
+    db: sqlite3.Connection, customer_id: int, amount: int, txn_day: date,
+    source_txn_id: int | None = None, source_adjustment_id: int | None = None,
+    immediate: bool = False,
+) -> None:
+    """建立一筆點數批次。immediate=True 用於手動贈點（立即可用）；一般消費/壽星充值
+    賺的點數依 V3 §7.4 次月才入帳可用（credit_date = txn_day + 1個月）。"""
+    if amount <= 0:
+        return
+    credit_date = txn_day if immediate else _add_one_month(txn_day)
+    expires_date = _add_years(credit_date.isoformat(), 1)
+    db.execute(
+        "INSERT INTO coin_batches(customer_id, source_txn_id, source_adjustment_id, earned_amount, "
+        "remaining_amount, credit_date, expires_date, status, is_legacy, created_at) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?)",
+        (
+            customer_id, source_txn_id, source_adjustment_id, amount, amount,
+            credit_date.isoformat(), expires_date, "active", 0,
+            datetime.now().isoformat(timespec="seconds"),
+        ),
+    )
+
+
+def get_usable_coin_total(db: sqlite3.Connection, customer_id: int, as_of: date | None = None) -> int:
+    as_of_str = (as_of or date.today()).isoformat()
+    row = db.execute(
+        "SELECT COALESCE(SUM(remaining_amount),0) AS total FROM coin_batches "
+        "WHERE customer_id=? AND status='active' AND credit_date<=? AND expires_date>=?",
+        (customer_id, as_of_str, as_of_str),
+    ).fetchone()
+    return int(row["total"] or 0)
+
+
+def redeem_coins_fifo(
+    db: sqlite3.Connection, customer_id: int, amount: int, redeem_txn_id: int, as_of: date | None = None,
+) -> bool:
+    """依 credit_date（舊到新）FIFO 扣點。點數不足回傳 False、不做任何寫入。"""
+    if amount <= 0:
+        return True
+    as_of_str = (as_of or date.today()).isoformat()
+    usable = db.execute(
+        "SELECT id, remaining_amount FROM coin_batches WHERE customer_id=? AND status='active' "
+        "AND credit_date<=? AND expires_date>=? AND remaining_amount>0 ORDER BY credit_date, id",
+        (customer_id, as_of_str, as_of_str),
+    ).fetchall()
+    if sum(int(b["remaining_amount"]) for b in usable) < amount:
+        return False
+
+    remaining_to_deduct = amount
+    now_str = datetime.now().isoformat(timespec="seconds")
+    for b in usable:
+        if remaining_to_deduct <= 0:
+            break
+        take = min(remaining_to_deduct, int(b["remaining_amount"]))
+        db.execute("UPDATE coin_batches SET remaining_amount = remaining_amount - ? WHERE id=?", (take, b["id"]))
+        db.execute(
+            "INSERT INTO coin_redemptions(redeem_txn_id, batch_id, amount, created_at) VALUES(?,?,?,?)",
+            (redeem_txn_id, b["id"], take, now_str),
+        )
+        remaining_to_deduct -= take
+    return True
+
+
+def reverse_redemption(db: sqlite3.Connection, redeem_txn_id: int) -> None:
+    """把某筆扣點交易動用過的批次還原（即使批次現在已過期也要還——這些點數
+    原本就會過期，行為正確）。作廢/調整扣點交易時呼叫。"""
+    rows = db.execute(
+        "SELECT id, batch_id, amount FROM coin_redemptions WHERE redeem_txn_id=?", (redeem_txn_id,)
+    ).fetchall()
+    for r in rows:
+        db.execute(
+            "UPDATE coin_batches SET remaining_amount = remaining_amount + ? WHERE id=?",
+            (r["amount"], r["batch_id"]),
+        )
+        db.execute("DELETE FROM coin_redemptions WHERE id=?", (r["id"],))
+
+
+def reverse_earning(
+    db: sqlite3.Connection, customer_id: int,
+    source_txn_id: int | None = None, source_adjustment_id: int | None = None,
+) -> None:
+    """把某筆賺點交易/手動贈點對應的批次作廢。完全沒被動用過才自動作廢；已被部分
+    消費就不自動扣回，寫 review_flags 交人工複核（V3 §18.4 提案）。"""
+    if source_txn_id is not None:
+        where_clause, key = "source_txn_id=?", source_txn_id
+    elif source_adjustment_id is not None:
+        where_clause, key = "source_adjustment_id=?", source_adjustment_id
+    else:
+        return
+    batches = db.execute(
+        f"SELECT id, earned_amount, remaining_amount FROM coin_batches WHERE {where_clause} AND status='active'",
+        (key,),
+    ).fetchall()
+    for b in batches:
+        if int(b["remaining_amount"]) == int(b["earned_amount"]):
+            db.execute("UPDATE coin_batches SET status='voided' WHERE id=?", (b["id"],))
+        else:
+            db.execute(
+                "INSERT INTO review_flags(item_type, item_key, status, note, updated_at) VALUES(?,?,?,?,?)",
+                (
+                    "coin_batch_partial_use_on_void",
+                    f"batch{b['id']}_{datetime.now().timestamp()}",
+                    "unreviewed",
+                    f"點數批次 id={b['id']}（來源交易/贈點 id={key}）已被部分使用"
+                    f"（剩餘{b['remaining_amount']}/原{b['earned_amount']}），無法自動扣回，請人工複核",
+                    datetime.now().isoformat(timespec="seconds"),
+                ),
+            )
+
+
+def adjust_coin_batch_for_edit(
+    db: sqlite3.Connection, source_txn_id: int, new_earned_amount: int, customer_id: int, txn_day: date,
+) -> None:
+    """交易被編輯（金額/日期變動）後調整對應點數批次。批次完全沒被動用過才直接調整
+    金額與 credit_date／expires_date；已被部分消費就不自動改，寫 review_flags。
+    原本沒有批次但新金額 > 0 時，視同新賺一筆（適用於原本 0 元改成有金額的情況）。"""
+    batch = db.execute(
+        "SELECT id, earned_amount, remaining_amount FROM coin_batches WHERE source_txn_id=? AND status='active'",
+        (source_txn_id,),
+    ).fetchone()
+    if not batch:
+        if new_earned_amount > 0:
+            create_coin_batch(db, customer_id, new_earned_amount, txn_day, source_txn_id=source_txn_id)
+        return
+    if int(batch["remaining_amount"]) != int(batch["earned_amount"]):
+        db.execute(
+            "INSERT INTO review_flags(item_type, item_key, status, note, updated_at) VALUES(?,?,?,?,?)",
+            (
+                "coin_batch_partial_use_on_edit",
+                f"batch{batch['id']}_txn{source_txn_id}_{datetime.now().timestamp()}",
+                "unreviewed",
+                f"交易 id={source_txn_id} 被編輯，但對應點數批次 id={batch['id']} 已被部分使用"
+                f"（剩餘{batch['remaining_amount']}/原{batch['earned_amount']}），沒有自動調整批次金額，請人工複核",
+                datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+        return
+    if new_earned_amount <= 0:
+        db.execute("UPDATE coin_batches SET status='voided' WHERE id=?", (batch["id"],))
+    else:
+        credit_date = _add_one_month(txn_day)
+        expires_date = _add_years(credit_date.isoformat(), 1)
+        db.execute(
+            "UPDATE coin_batches SET earned_amount=?, remaining_amount=?, credit_date=?, expires_date=? WHERE id=?",
+            (new_earned_amount, new_earned_amount, credit_date.isoformat(), expires_date, batch["id"]),
+        )
+
+
+def adjust_coin_batch_for_adjustment_edit(
+    db: sqlite3.Connection, source_adjustment_id: int, new_points: int, customer_id: int,
+) -> None:
+    """手動贈點紀錄被編輯後調整對應批次，邏輯同 adjust_coin_batch_for_edit，
+    但贈點批次是立即入帳，沒有 credit_date 要跟著改的問題。"""
+    batch = db.execute(
+        "SELECT id, earned_amount, remaining_amount FROM coin_batches "
+        "WHERE source_adjustment_id=? AND status='active'",
+        (source_adjustment_id,),
+    ).fetchone()
+    if not batch:
+        if new_points > 0:
+            create_coin_batch(
+                db, customer_id, new_points, date.today(),
+                source_adjustment_id=source_adjustment_id, immediate=True,
+            )
+        return
+    if int(batch["remaining_amount"]) != int(batch["earned_amount"]):
+        db.execute(
+            "INSERT INTO review_flags(item_type, item_key, status, note, updated_at) VALUES(?,?,?,?,?)",
+            (
+                "coin_batch_partial_use_on_edit",
+                f"batch{batch['id']}_adj{source_adjustment_id}_{datetime.now().timestamp()}",
+                "unreviewed",
+                f"贈點紀錄 id={source_adjustment_id} 被編輯，但對應點數批次 id={batch['id']} 已被部分使用"
+                f"（剩餘{batch['remaining_amount']}/原{batch['earned_amount']}），沒有自動調整批次金額，請人工複核",
+                datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+        return
+    if new_points <= 0:
+        db.execute("UPDATE coin_batches SET status='voided' WHERE id=?", (batch["id"],))
+    else:
+        db.execute(
+            "UPDATE coin_batches SET earned_amount=?, remaining_amount=? WHERE id=?",
+            (new_points, new_points, batch["id"]),
+        )
+
+
+def sync_coin_balance(db: sqlite3.Connection, customer_id: int, as_of: date | None = None) -> int:
+    balance = get_usable_coin_total(db, customer_id, as_of)
+    db.execute("UPDATE customers SET coin_balance=? WHERE id=?", (balance, customer_id))
+    return balance
+
+
+def sync_all_coin_balances(db: sqlite3.Connection, as_of: date | None = None) -> None:
+    """效期是時間到了自動失效、不是靠事件觸發，manager/contacts/report 這些直接讀
+    customers.coin_balance 欄位顯示的頁面，渲染前要先跑這個重新整理。"""
+    as_of_str = (as_of or date.today()).isoformat()
+    db.execute(
+        """
+        UPDATE customers SET coin_balance = (
+            SELECT COALESCE(SUM(remaining_amount),0) FROM coin_batches
+            WHERE coin_batches.customer_id = customers.id
+            AND status='active' AND credit_date<=? AND expires_date>=?
+        )
+        """,
+        (as_of_str, as_of_str),
+    )
+
+
 def has_column(db: sqlite3.Connection, table: str, column: str) -> bool:
     try:
         rows = db.execute(f"PRAGMA table_info({table})").fetchall()
@@ -620,11 +865,10 @@ def entry():
                                 plan_coins, 0, recharge_plan_str, plan_amount, "birthday_recharge",
                             ),
                         )
-                        # Credit coins to customer
-                        db.execute(
-                            "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
-                            (plan_coins, customer_id),
-                        )
+                        recharge_txn_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+                        # 美咖幣次月才入帳可用（V3 §7.4），跟一般消費賺點同一套規則
+                        create_coin_batch(db, customer_id, plan_coins, txn_day, source_txn_id=recharge_txn_id)
+                        sync_coin_balance(db, customer_id, txn_day)
                         db.commit()
                         coin_balance = get_customer_coin_balance(db, customer_id)
                         result = {
@@ -649,9 +893,9 @@ def entry():
                 error_message = "扣點數量必須大於 0！"
             else:
                 customer_id = get_or_create_customer(db, name, birthday, phone)
-                current_coins = get_customer_coin_balance(db, customer_id)
-                if coins_to_deduct > current_coins:
-                    error_message = f"點數不足！目前餘額：{current_coins} 點，欲扣：{coins_to_deduct} 點。"
+                usable_coins = get_usable_coin_total(db, customer_id, txn_day)
+                if coins_to_deduct > usable_coins:
+                    error_message = f"點數不足！目前可用：{usable_coins} 點，欲扣：{coins_to_deduct} 點。"
                 else:
                     month_key = current_month_key(txn_day)
                     now_str = datetime.now().isoformat(timespec="seconds")
@@ -669,10 +913,9 @@ def entry():
                             0, coins_to_deduct, "coin_deduct", deduct_note,
                         ),
                     )
-                    db.execute(
-                        "UPDATE customers SET coin_balance = coin_balance - ? WHERE id=?",
-                        (coins_to_deduct, customer_id),
-                    )
+                    deduct_txn_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+                    redeem_coins_fifo(db, customer_id, coins_to_deduct, deduct_txn_id, txn_day)
+                    sync_coin_balance(db, customer_id, txn_day)
                     db.commit()
                     coin_balance = get_customer_coin_balance(db, customer_id)
                     result = {
@@ -757,12 +1000,14 @@ def entry():
                         "normal",
                     ),
                 )
-                # Update coin balance
+                # Get the txn_id we just inserted
+                last_txn_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+                # 美咖幣次月才入帳可用（V3 §7.4），建一筆點數批次而不是直接加總數
                 if coins_earned > 0:
-                    db.execute(
-                        "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
-                        (coins_earned, customer_id),
-                    )
+                    create_coin_batch(db, customer_id, coins_earned, txn_day, source_txn_id=last_txn_id)
+                sync_coin_balance(db, customer_id, txn_day)
+
                 monthly_total = customer_month_total(db, customer_id, month_key)
                 new_max_single = max(past_max_single, final_amount)
 
@@ -775,9 +1020,6 @@ def entry():
 
                 candidate_tier = calc_tier(new_max_single, accum_total, rules)
                 coin_balance = get_customer_coin_balance(db, customer_id)
-
-                # Get the txn_id we just inserted
-                last_txn_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
 
                 # Detect tier upgrade (including multi-level jumps within one day).
                 # 補登過去日期的交易不做升等偵測——時間序不可靠，交由人工複核（review_flags）。
@@ -966,6 +1208,8 @@ def _build_report_detail_rows(db: sqlite3.Connection, f: dict[str, str]) -> list
 @app.route("/report")
 def report():
     db = get_db()
+    sync_all_coin_balances(db)
+    db.commit()
     f = _parse_report_filters()
     month_from, month_to = f["month_from"], f["month_to"]
 
@@ -1030,6 +1274,8 @@ def report_export_csv():
     if not (session.get("manager_authed") or session.get("main_authed")):
         return "Unauthorized", 403
     db = get_db()
+    sync_all_coin_balances(db)
+    db.commit()
     f = _parse_report_filters()
     detail_rows = _build_report_detail_rows(db, f)
 
@@ -1093,16 +1339,9 @@ def update_transaction(txn_id):
 
     old_mode = old_txn["entry_mode"] or "normal"
     old_coins_earned = int(old_txn["coins_earned"] or 0)
-    old_coins_redeemed = int(old_txn["coins_redeemed"] or 0)
     old_customer_id = int(old_txn["customer_id"])
 
-    # 2. Revert old coin balance impact
-    if old_mode in ("normal", "birthday_recharge") and old_coins_earned > 0:
-        db.execute("UPDATE customers SET coin_balance = coin_balance - ? WHERE id=?", (old_coins_earned, old_customer_id))
-    elif old_mode == "coin_deduct" and old_coins_redeemed > 0:
-        db.execute("UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?", (old_coins_redeemed, old_customer_id))
-
-    # 3. Update customer basic info (if changed)
+    # 2. Update customer basic info (if changed)
     db.execute(
         "UPDATE customers SET name=?, birthday=? WHERE id=?",
         (name, birthday, old_customer_id),
@@ -1110,9 +1349,11 @@ def update_transaction(txn_id):
 
     month_key = current_month_key(d)
     new_final_amount = cash_received if cash_received is not None else amount
-    new_coins_earned = 0
+    # 這個路由沒有欄位可以改壽星充值／扣點金額，只有 normal 模式的金額會變，
+    # 其他模式沿用舊的 coins_earned，不要把它寫壞成 0。
+    new_coins_earned = old_coins_earned
 
-    # 4. Recalculate coins if it's a normal transaction
+    # 3. Recalculate coins if it's a normal transaction
     if old_mode == "normal":
         rules = load_rules()
         year_str = d.strftime("%Y")
@@ -1121,7 +1362,7 @@ def update_transaction(txn_id):
         tier = calc_tier(past_max_single, year_total_so_far, rules)
         new_coins_earned = int(new_final_amount * tier.points_rate)
 
-    # 5. Update transaction record
+    # 4. Update transaction record
     db.execute(
         """
         UPDATE transactions
@@ -1131,13 +1372,10 @@ def update_transaction(txn_id):
         (store_id, d.isoformat(), month_key, amount, new_final_amount, new_coins_earned, txn_id),
     )
 
-    # 6. Apply new coin balance impact
-    if old_mode == "normal" and new_coins_earned > 0:
-        db.execute("UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?", (new_coins_earned, old_customer_id))
-    elif old_mode == "birthday_recharge":
-        db.execute("UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?", (old_coins_earned, old_customer_id))
-    elif old_mode == "coin_deduct":
-        db.execute("UPDATE customers SET coin_balance = coin_balance - ? WHERE id=?", (old_coins_redeemed, old_customer_id))
+    # 5. 調整對應的點數批次（normal/birthday_recharge 才有批次；coin_deduct 這個路由不會動）
+    if old_mode in ("normal", "birthday_recharge"):
+        adjust_coin_batch_for_edit(db, txn_id, new_coins_earned, old_customer_id, d)
+    sync_coin_balance(db, old_customer_id)
 
     db.commit()
     return {"status": "ok"}
@@ -1170,19 +1408,12 @@ def delete_transaction(txn_id):
         (datetime.now().isoformat(timespec="seconds"), void_reason, voided_by, txn_id),
     )
 
-    # Revert coin_balance impact
+    # Revert coin_balance impact（透過批次帳本，不直接動 customers.coin_balance）
     if mode in ("normal", "birthday_recharge") and coins_earned > 0:
-        # Coins were credited — take them back
-        db.execute(
-            "UPDATE customers SET coin_balance = coin_balance - ? WHERE id=?",
-            (coins_earned, customer_id),
-        )
+        reverse_earning(db, customer_id, source_txn_id=txn_id)
     elif mode == "coin_deduct" and coins_redeemed > 0:
-        # Coins were debited — give them back
-        db.execute(
-            "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
-            (coins_redeemed, customer_id),
-        )
+        reverse_redemption(db, txn_id)
+    sync_coin_balance(db, customer_id)
 
     # V3 Phase 2：normal 交易作廢後，扣除的金額可能讓等級撐不住，重新判定（可能即時降級）。
     # 其他模式（coin_deduct/birthday_recharge）不計入會員年度累計，不影響等級。
@@ -1214,20 +1445,18 @@ def update_transaction_deduct(txn_id):
     if new_points <= 0:
         return {"status": "error", "message": "點數必須大於 0"}, 400
 
-    old_points = int(old_txn["coins_redeemed"])
     customer_id = int(old_txn["customer_id"])
 
-    # Revert old impact and apply new impact
-    diff = old_points - new_points
-    
-    db.execute(
-        "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
-        (diff, customer_id)
-    )
+    # 先把舊的扣點動用還原回批次，再依新點數重新 FIFO 扣一次
+    reverse_redemption(db, txn_id)
+    if not redeem_coins_fifo(db, customer_id, new_points, txn_id, date.today()):
+        db.rollback()
+        return {"status": "error", "message": "點數不足，無法調整成這個數量"}, 400
     db.execute(
         "UPDATE transactions SET coins_redeemed = ?, note = ? WHERE id=?",
         (new_points, new_reason, txn_id)
     )
+    sync_coin_balance(db, customer_id)
     db.commit()
     return {"status": "ok"}
 
@@ -1275,6 +1504,8 @@ def manager_dashboard():
         return render_template("manager_lock.html", error=None)
 
     db = get_db()
+    sync_all_coin_balances(db)
+    db.commit()
     default_month = date.today().strftime("%Y-%m")
     month_from = request.args.get("month_from", "").strip() or request.args.get("month", default_month)
     month_to = request.args.get("month_to", "").strip() or month_from
@@ -1368,6 +1599,8 @@ def manager_backup():
 @app.route("/contacts")
 def contacts():
     db = get_db()
+    sync_all_coin_balances(db)
+    db.commit()
     query = request.args.get("q", "").strip()
     store_id = request.args.get("store_id", "").strip()
     birthday_month = request.args.get("birthday_month", "").strip()
@@ -1487,10 +1720,10 @@ def add_points(customer_id):
         "INSERT INTO point_adjustments(customer_id, points, reason, operator, created_at) VALUES(?,?,?,?,?)",
         (customer_id, points, reason, operator, now_str),
     )
-    db.execute(
-        "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
-        (points, customer_id),
-    )
+    adj_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+    # 手動贈點立即可用，不用等次月入帳（不是消費觸發的，是店家直接發放）
+    create_coin_batch(db, customer_id, points, date.today(), source_adjustment_id=adj_id, immediate=True)
+    sync_coin_balance(db, customer_id)
     db.commit()
     return redirect(url_for("contacts"))
 
@@ -1554,16 +1787,12 @@ def update_point_adjustment(adj_id):
     if not new_reason:
         return {"status": "error", "message": "原因不能為空"}, 400
 
-    diff = new_points - int(old["points"])
     db.execute(
         "UPDATE point_adjustments SET points=?, reason=? WHERE id=?",
         (new_points, new_reason, adj_id),
     )
-    if diff != 0:
-        db.execute(
-            "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
-            (diff, old["customer_id"]),
-        )
+    adjust_coin_batch_for_adjustment_edit(db, adj_id, new_points, int(old["customer_id"]))
+    sync_coin_balance(db, int(old["customer_id"]))
     db.commit()
     return {"status": "ok"}
 
@@ -1581,10 +1810,8 @@ def delete_point_adjustment(adj_id):
         return {"status": "error", "message": "找不到此紀錄"}, 404
 
     db.execute("DELETE FROM point_adjustments WHERE id=?", (adj_id,))
-    db.execute(
-        "UPDATE customers SET coin_balance = coin_balance - ? WHERE id=?",
-        (old["points"], old["customer_id"]),
-    )
+    reverse_earning(db, int(old["customer_id"]), source_adjustment_id=adj_id)
+    sync_coin_balance(db, int(old["customer_id"]))
     db.commit()
     return {"status": "ok"}
 
@@ -1772,23 +1999,21 @@ def merge_customers():
     if keep_id == absorb_id or not keep_id or not absorb_id:
         return "請選擇兩個不同的顧客", 400
 
-    keep = db.execute("SELECT id, name, phone, birthday, coin_balance FROM customers WHERE id=?", (keep_id,)).fetchone()
-    absorb = db.execute("SELECT id, name, phone, birthday, coin_balance FROM customers WHERE id=?", (absorb_id,)).fetchone()
+    keep = db.execute("SELECT id, name, phone, birthday FROM customers WHERE id=?", (keep_id,)).fetchone()
+    absorb = db.execute("SELECT id, name, phone, birthday FROM customers WHERE id=?", (absorb_id,)).fetchone()
 
     if not keep or not absorb:
         return "找不到指定顧客", 404
 
     # Move all transactions from absorb → keep
     db.execute("UPDATE transactions SET customer_id=? WHERE customer_id=?", (keep_id, absorb_id))
+    # 點數批次也要一起搬過去，不然餘額會對不上（coin_balance 是從批次算出來的）
+    db.execute("UPDATE coin_batches SET customer_id=? WHERE customer_id=?", (keep_id, absorb_id))
 
-    # Merge coin balance
-    merged_coins = int(keep["coin_balance"] or 0) + int(absorb["coin_balance"] or 0)
     # Keep the more complete phone (prefer non-empty)
     merged_phone = keep["phone"] or absorb["phone"] or ""
-    db.execute(
-        "UPDATE customers SET coin_balance=?, phone=? WHERE id=?",
-        (merged_coins, merged_phone, keep_id),
-    )
+    db.execute("UPDATE customers SET phone=? WHERE id=?", (merged_phone, keep_id))
+    sync_coin_balance(db, keep_id)
 
     # Delete absorbed customer
     db.execute("DELETE FROM customers WHERE id=?", (absorb_id,))
@@ -1997,6 +2222,8 @@ def customer_lookup():
 def _build_customer_result(cid: int) -> dict | None:
     """Build the full customer result dict for display."""
     db = get_db()
+    sync_coin_balance(db, cid)
+    db.commit()
     row = db.execute(
         "SELECT id, name, phone, birthday, coin_balance, created_at FROM customers WHERE id=?",
         (cid,),

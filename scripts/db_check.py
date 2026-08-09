@@ -40,26 +40,16 @@ if mismatch > 0:
 else:
     print(f"[OK] normal 交易 final_amount == amount: 全部一致")
 
-# ─── Check 3: coin_balance 完整性（已作廢交易不列入計算，需含手動加點）─────
+# ─── Check 3（資訊性，Phase 3 起改由 Check 7 做真正的一致性驗證）──────────
+# 這個總和只是「歷史累計賺點/扣點」，Phase 3 之後 coins_earned 在交易當下就寫入
+# transactions 了，但點數要到 credit_date（次月）才真的入帳可用，兩者本來就會
+# 暫時對不上（正常現象），所以這裡不再當硬性一致性檢查，只印出來當參考數字。
 customers = conn.execute("SELECT id, name, coin_balance FROM customers").fetchall()
-bad_balances = []
-for c in customers:
-    row = conn.execute("""
-        SELECT
-          COALESCE(SUM(CASE WHEN entry_mode IN ('normal','birthday_recharge') THEN coins_earned ELSE 0 END),0) AS earned,
-          COALESCE(SUM(CASE WHEN entry_mode='coin_deduct' THEN coins_redeemed ELSE 0 END),0) AS redeemed
-        FROM transactions WHERE customer_id=? AND voided_at IS NULL
-    """, (c["id"],)).fetchone()
-    adj_row = conn.execute(
-        "SELECT COALESCE(SUM(points),0) AS adj FROM point_adjustments WHERE customer_id=?", (c["id"],)
-    ).fetchone()
-    expected = int(row["earned"]) - int(row["redeemed"]) + int(adj_row["adj"])
-    if expected != c["coin_balance"]:
-        bad_balances.append(f"  {c['name']}: balance={c['coin_balance']} expected={expected} (Δ{expected - c['coin_balance']:+d})")
-if bad_balances:
-    errors.append(f"[ERROR] {len(bad_balances)} 位顧客 coin_balance 不一致：\n" + "\n".join(bad_balances))
-else:
-    print(f"[OK] coin_balance: {len(customers)} 位顧客全部一致")
+lifetime_earned = conn.execute("""
+    SELECT COALESCE(SUM(CASE WHEN entry_mode IN ('normal','birthday_recharge') THEN coins_earned ELSE 0 END),0)
+    FROM transactions WHERE voided_at IS NULL
+""").fetchone()[0]
+print(f"[INFO] 全體歷史累計賺點（含尚未入帳生效的批次）：{int(lifetime_earned):,}")
 
 # ─── Check 4: coin_balance 不應為負 ──────────────────────────────────────
 neg = conn.execute("SELECT COUNT(*) FROM customers WHERE coin_balance < 0").fetchone()[0]
@@ -86,6 +76,30 @@ under_min = conn.execute("""
     SELECT COUNT(*) FROM transactions WHERE entry_mode='normal' AND amount < 1000 AND voided_at IS NULL
 """).fetchone()[0]
 print(f"[INFO] {under_min} 筆 normal 交易金額 < 1000（正常，僅提示：這些交易不列入會員年度累計）")
+
+# ─── Check 7: coin_batches 分筆帳本總和應等於 customers.coin_balance ──────
+# customers.coin_balance 是從 coin_batches 算出來的快取值，兩邊要隨時一致
+# （Phase 3 起 coin_balance 不再是唯一真相來源，coin_batches 才是）。
+today = conn.execute("SELECT date('now')").fetchone()[0]
+batch_mismatch = []
+for c in customers:
+    usable = conn.execute("""
+        SELECT COALESCE(SUM(remaining_amount),0) FROM coin_batches
+        WHERE customer_id=? AND status='active' AND credit_date<=? AND expires_date>=?
+    """, (c["id"], today, today)).fetchone()[0]
+    if int(usable) != c["coin_balance"]:
+        batch_mismatch.append(f"  {c['name']}: coin_balance={c['coin_balance']} 批次可用總和={usable}")
+if batch_mismatch:
+    errors.append(f"[ERROR] {len(batch_mismatch)} 位顧客 coin_balance 跟 coin_batches 對不上：\n" + "\n".join(batch_mismatch))
+else:
+    print(f"[OK] coin_batches 分筆帳本：{len(customers)} 位顧客跟 coin_balance 快取值一致")
+
+# ─── Check 8: coin_batches 不應出現負的 remaining_amount ─────────────────
+neg_batches = conn.execute("SELECT COUNT(*) FROM coin_batches WHERE remaining_amount < 0").fetchone()[0]
+if neg_batches > 0:
+    errors.append(f"[ERROR] {neg_batches} 筆點數批次 remaining_amount < 0")
+else:
+    print(f"[OK] coin_batches: 無負的 remaining_amount")
 
 # ─── Summary（不含已作廢交易）─────────────────────────────────────────────
 total = conn.execute("SELECT COUNT(*) FROM transactions WHERE voided_at IS NULL").fetchone()[0]
