@@ -226,6 +226,8 @@ def init_db() -> None:
         ("customers", "tier_expires_date", "TEXT DEFAULT NULL"),
         ("customers", "pending_tier", "TEXT DEFAULT NULL"),
         ("customers", "pending_effective_date", "TEXT DEFAULT NULL"),
+        # 2026美咖會員制度V3 Phase 2：退款回溯完整化，tier_upgrades 也記錄非「達標升等」的事件。
+        ("tier_upgrades", "event_type", "TEXT NOT NULL DEFAULT 'upgrade'"),
     ]:
         try:
             cur.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typedef}")
@@ -411,6 +413,66 @@ def reevaluate_and_persist_tier(db: sqlite3.Connection, customer_id: int, as_of:
     if state:
         _persist_tier_state(db, customer_id, state)
     return state or dict(_EMPTY_TIER_STATE)
+
+
+def reevaluate_tier_after_void(
+    db: sqlite3.Connection, customer_id: int, rules: dict[str, Any], as_of: date,
+    trigger_txn_id: int, void_reason: str,
+) -> None:
+    """V3 Phase 2：作廢一筆 normal 交易後，用扣除該筆之後的累計重新判定等級——
+    可能造成即時降級（跟 Phase 1 的到期重判是兩回事，這個是退款觸發，不等窗口到期）。
+    降級會寫入 tier_upgrades（event_type='downgrade'）留稽核紀錄，但不擋退款本身。"""
+    state = reevaluate_and_persist_tier(db, customer_id, as_of)  # 先正常化狀態（套用到期的pending等）
+    current_tier_name = state["member_tier"]
+
+    new_max_single = get_past_max_single(db, customer_id)
+    if state["tier_effective_date"]:
+        accum_total = _window_total(db, customer_id, state["tier_effective_date"], state["tier_expires_date"])
+    else:
+        accum_total = customer_year_total(db, customer_id, as_of.strftime("%Y"))
+    recomputed = calc_tier(new_max_single, accum_total, rules)
+
+    idx_current = TIER_ORDER.index(current_tier_name) if current_tier_name in TIER_ORDER else 0
+    idx_recomputed = TIER_ORDER.index(recomputed.name) if recomputed.name in TIER_ORDER else 0
+    if idx_recomputed >= idx_current:
+        return  # 扣除這筆之後，累計仍然支撐得起現有等級，不用動
+
+    now_str = datetime.now().isoformat(timespec="seconds")
+    reason = f"作廢交易 id={trigger_txn_id} 後累計降為 {int(accum_total):,} 元" + (
+        f"（{void_reason}）" if void_reason else ""
+    )
+    for step in range(idx_current, idx_recomputed, -1):
+        step_from = TIER_ORDER[step]
+        step_to = TIER_ORDER[step - 1]
+        db.execute(
+            """
+            INSERT INTO tier_upgrades(
+                customer_id, upgrade_date, tier_before, tier_after,
+                trigger_txn_id, trigger_reason, gift_name,
+                gift_status, event_type, created_at
+            ) VALUES(?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                customer_id, as_of.isoformat(),
+                step_from, step_to,
+                trigger_txn_id, reason, "",
+                "skipped", "downgrade", now_str,
+            ),
+        )
+
+    if recomputed.name == "一般會員":
+        db.execute(
+            "UPDATE customers SET member_tier=?, tier_effective_date=NULL, tier_expires_date=NULL, "
+            "pending_tier=NULL, pending_effective_date=NULL WHERE id=?",
+            (recomputed.name, customer_id),
+        )
+    else:
+        new_expires = _add_years(as_of.isoformat(), 1)
+        db.execute(
+            "UPDATE customers SET member_tier=?, tier_effective_date=?, tier_expires_date=?, "
+            "pending_tier=NULL, pending_effective_date=NULL WHERE id=?",
+            (recomputed.name, as_of.isoformat(), new_expires, customer_id),
+        )
 
 
 def get_or_create_customer(db: sqlite3.Connection, name: str, birthday: str, phone: str = "") -> int:
@@ -1084,6 +1146,11 @@ def delete_transaction(txn_id):
             "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
             (coins_redeemed, customer_id),
         )
+
+    # V3 Phase 2：normal 交易作廢後，扣除的金額可能讓等級撐不住，重新判定（可能即時降級）。
+    # 其他模式（coin_deduct/birthday_recharge）不計入會員年度累計，不影響等級。
+    if mode == "normal":
+        reevaluate_tier_after_void(db, customer_id, load_rules(), date.today(), txn_id, void_reason)
 
     db.commit()
     return {"status": "ok"}
