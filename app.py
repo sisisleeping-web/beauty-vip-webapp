@@ -367,16 +367,19 @@ def _is_backdated_entry(db: sqlite3.Connection, customer_id: int, txn_day: date)
     return bool(latest) and txn_day.isoformat() < latest
 
 
-def _project_tier_state(db: sqlite3.Connection, customer_id: int, as_of: str) -> dict | None:
-    """純讀取：算出 as_of 這天套用「pending 升等生效」與「會員年度到期重判」後的等級狀態，不寫入。"""
+def _project_tier_state(db: sqlite3.Connection, customer_id: int, as_of: str) -> tuple[dict, list[dict]] | tuple[None, list]:
+    """純讀取：算出 as_of 這天套用「pending 升等生效」與「會員年度到期重判」後的等級狀態，不寫入。
+    第二個回傳值是效期重判觸發的事件清單（renewal/downgrade/reset），呼叫端要不要拿來寫
+    tier_upgrades 稽核紀錄／觸發 Phase 4 續會禮，由呼叫端決定（get_effective_tier 就直接丟棄）。"""
     row = db.execute(
         "SELECT member_tier, tier_effective_date, tier_expires_date, pending_tier, pending_effective_date "
         "FROM customers WHERE id=?",
         (customer_id,),
     ).fetchone()
     if not row:
-        return None
+        return None, []
     state = dict(row)
+    events: list[dict] = []
 
     # 套用已到期的 pending 升等
     if state["pending_tier"] and as_of >= state["pending_effective_date"]:
@@ -394,19 +397,31 @@ def _project_tier_state(db: sqlite3.Connection, customer_id: int, as_of: str) ->
         and as_of > state["tier_expires_date"]
         and iterations < 5
     ):
+        old_tier = state["member_tier"]
         window_total = _window_total(db, customer_id, state["tier_effective_date"], state["tier_expires_date"])
         new_tier = _tier_from_window_total(window_total)
+        event_date = state["tier_expires_date"]
+
         if new_tier == "一般會員":
             state["member_tier"] = "一般會員"
             state["tier_effective_date"] = None
             state["tier_expires_date"] = None
+            event_type = "reset"
         else:
             state["member_tier"] = new_tier
             state["tier_effective_date"] = state["tier_expires_date"]  # 新一期接續上一期到期日
             state["tier_expires_date"] = _add_years(state["tier_effective_date"], 1)
+            idx_old = TIER_ORDER.index(old_tier) if old_tier in TIER_ORDER else 0
+            idx_new = TIER_ORDER.index(new_tier) if new_tier in TIER_ORDER else 0
+            event_type = "renewal" if idx_new >= idx_old else "downgrade"
+
+        events.append({
+            "date": event_date, "tier_before": old_tier, "tier_after": new_tier,
+            "window_total": window_total, "event_type": event_type,
+        })
         iterations += 1
 
-    return state
+    return state, events
 
 
 def _persist_tier_state(db: sqlite3.Connection, customer_id: int, state: dict) -> None:
@@ -424,8 +439,20 @@ def get_effective_tier(db: sqlite3.Connection, customer_id: int, as_of: date | N
     """給其他頁面（report/my/contacts）顯示用：只算不寫，顧客沒來店不會被寫入變動，
     但顯示的等級仍然是「如果現在重新判定」會得到的正確結果。"""
     as_of_str = (as_of or date.today()).isoformat()
-    state = _project_tier_state(db, customer_id, as_of_str)
+    state, _events = _project_tier_state(db, customer_id, as_of_str)
     return state["member_tier"] if state else "一般會員"
+
+
+def get_effective_tier_state(db: sqlite3.Connection, customer_id: int, as_of: date | None = None) -> dict:
+    """跟 get_effective_tier 一樣只算不寫，但連會員年度起訖日一起回傳——
+    給通訊名單／我的頁面顯示「升等日期」「到期日」用。一般會員兩個日期都是 None。"""
+    as_of_str = (as_of or date.today()).isoformat()
+    state, _events = _project_tier_state(db, customer_id, as_of_str)
+    return {
+        "tier": state["member_tier"] if state else "一般會員",
+        "tier_effective_date": state["tier_effective_date"] if state else None,
+        "tier_expires_date": state["tier_expires_date"] if state else None,
+    }
 
 
 _EMPTY_TIER_STATE = {
@@ -434,11 +461,48 @@ _EMPTY_TIER_STATE = {
 }
 
 
+def _log_tier_events(db: sqlite3.Connection, customer_id: int, events: list[dict]) -> None:
+    """把會員年度到期重判觸發的事件寫入 tier_upgrades（V3 §15.7 稽核要求）。
+    只有「續會/重新達到 A級」才有禮（V3 §11.2 A級續會禮 1,500點），比照現有升等禮的
+    workflow 只記錄 pending，實際點數入帳仍是店家用手動贈點處理（跟其他升等禮一致，
+    不引進新的自動入帳行為）。其他情況（維持S/P、降級、回一般會員）沒有禮，直接記
+    skipped，純稽核留痕。"""
+    now_str = datetime.now().isoformat(timespec="seconds")
+    for e in events:
+        if e["event_type"] == "renewal" and e["tier_after"] == "A級美咖":
+            gift_name, gift_status = "A級續會禮", "pending"
+            reason = f"會員年度效期屆滿，續會達 A級美咖（本期年度累計 {int(e['window_total']):,} 元）"
+        elif e["event_type"] == "renewal":
+            gift_name, gift_status = "", "skipped"
+            reason = f"會員年度效期屆滿，續會維持 {e['tier_after']}（本期年度累計 {int(e['window_total']):,} 元）"
+        elif e["event_type"] == "downgrade":
+            gift_name, gift_status = "", "skipped"
+            reason = f"會員年度效期屆滿，依累計降為 {e['tier_after']}（本期年度累計 {int(e['window_total']):,} 元）"
+        else:  # reset
+            gift_name, gift_status = "", "skipped"
+            reason = f"會員年度效期屆滿，累計未達門檻降回一般會員（本期年度累計 {int(e['window_total']):,} 元）"
+        db.execute(
+            """
+            INSERT INTO tier_upgrades(
+                customer_id, upgrade_date, tier_before, tier_after,
+                trigger_txn_id, trigger_reason, gift_name,
+                gift_status, event_type, created_at
+            ) VALUES(?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                customer_id, e["date"], e["tier_before"], e["tier_after"],
+                None, reason, gift_name, gift_status, e["event_type"], now_str,
+            ),
+        )
+
+
 def reevaluate_and_persist_tier(db: sqlite3.Connection, customer_id: int, as_of: date) -> dict:
-    """entry() 記一筆之前、或管理後台手動批次重新評估時呼叫：把最新狀態寫回 customers，回傳完整狀態。"""
-    state = _project_tier_state(db, customer_id, as_of.isoformat())
+    """entry() 記一筆之前、或管理後台手動批次重新評估時呼叫：把最新狀態寫回 customers，
+    並把效期重判事件記進 tier_upgrades，回傳完整狀態。"""
+    state, events = _project_tier_state(db, customer_id, as_of.isoformat())
     if state:
         _persist_tier_state(db, customer_id, state)
+        _log_tier_events(db, customer_id, events)
     return state or dict(_EMPTY_TIER_STATE)
 
 
@@ -1658,7 +1722,10 @@ def contacts():
     customers = []
     for row in customer_rows:
         d = dict(row)
-        d["tier"] = get_effective_tier(db, int(row["id"]))
+        tier_state = get_effective_tier_state(db, int(row["id"]))
+        d["tier"] = tier_state["tier"]
+        d["tier_effective_date"] = tier_state["tier_effective_date"]
+        d["tier_expires_date"] = tier_state["tier_expires_date"]
         if vip_tier and d["tier"] != vip_tier:
             continue
         customers.append(d)
@@ -2234,12 +2301,12 @@ def _build_customer_result(cid: int) -> dict | None:
     customer = dict(row)
     year_str = date.today().strftime("%Y")
 
-    customer["tier"] = get_effective_tier(db, cid)
-    tier_row = db.execute(
-        "SELECT tier_effective_date, tier_expires_date FROM customers WHERE id=?", (cid,)
-    ).fetchone()
-    if tier_row["tier_effective_date"]:
-        year_total = _window_total(db, cid, tier_row["tier_effective_date"], tier_row["tier_expires_date"])
+    tier_state = get_effective_tier_state(db, cid)
+    customer["tier"] = tier_state["tier"]
+    customer["tier_effective_date"] = tier_state["tier_effective_date"]
+    customer["tier_expires_date"] = tier_state["tier_expires_date"]
+    if tier_state["tier_effective_date"]:
+        year_total = _window_total(db, cid, tier_state["tier_effective_date"], tier_state["tier_expires_date"])
     else:
         year_total = customer_year_total(db, cid, year_str)
     customer["year_total"] = year_total

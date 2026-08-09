@@ -264,6 +264,11 @@
       <p style="font-size:0.85rem; color:#888; margin:4px 0 0;">
         加入日期：{{ c.created_at[:10] if c.created_at else '-' }}
       </p>
+      {% if c.tier_expires_date %}
+      <p style="font-size:0.85rem; color:#888; margin:2px 0 0;">
+        目前等級效期：{{ c.tier_effective_date }} ～ {{ c.tier_expires_date }}
+      </p>
+      {% endif %}
 
       <div class="stats-grid">
         <div class="stat-item highlight">

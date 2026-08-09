@@ -60,6 +60,8 @@
         <th>手機號碼</th>
         <th>生日</th>
         <th>目前等級</th>
+        <th>升等日期</th>
+        <th>等級到期日</th>
         <th>所屬分店</th>
         <th style="text-align:right;">累計消費</th>
         <th style="text-align:right;">累積點數</th>
@@ -83,6 +85,8 @@
           {% elif c.tier == 'S級美咖' %}background:#dbeafe; color:#1d4ed8;
           {% else %}background:#f3f4f6; color:#6b7280;{% endif %}">{{ c.tier }}</span>
       </td>
+      <td style="font-size:0.85em; color:#888;">{{ c.tier_effective_date or '-' }}</td>
+      <td style="font-size:0.85em; color:#888;">{{ c.tier_expires_date or '-' }}</td>
       <td style="font-size:0.9em; color:#555;">{{ c.stores or '無記錄' }}</td>
       <td style="text-align:right; font-weight:600;">{{ '%.0f'|format(c.total_spend or 0) }}</td>
       <td style="text-align:right; color:#7c3aed;">{{ c.total_coins_earned or 0 }}</td>

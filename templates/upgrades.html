@@ -97,11 +97,17 @@
           📅 升級日期：{{ u.upgrade_date }}
         </p>
         <p style="margin:2px 0; font-size:0.85rem; color:#666;">
-          💡 升級原因：{{ u.trigger_reason }}
+          💡 {% if u.event_type == 'downgrade' %}降級原因{% elif u.event_type == 'reset' %}回一般會員原因{% elif u.event_type == 'renewal' %}續會原因{% else %}升級原因{% endif %}：{{ u.trigger_reason }}
         </p>
+        {% if u.gift_name %}
         <p style="margin:2px 0; font-size:0.85rem; color:#666;">
-          🎁 升級禮：<strong>{{ u.gift_name }}</strong>
+          🎁 {% if u.event_type == 'renewal' %}續會禮{% else %}升級禮{% endif %}：<strong>{{ u.gift_name }}</strong>
         </p>
+        {% elif u.event_type and u.event_type != 'upgrade' %}
+        <p style="margin:2px 0; font-size:0.85rem; color:#9ca3af;">
+          （{% if u.event_type == 'downgrade' %}降級{% elif u.event_type == 'reset' %}回一般會員{% else %}續會維持原等級{% endif %}，無贈禮，純稽核紀錄）
+        </p>
+        {% endif %}
         {% if u.gift_status == 'delivered' %}
         <p style="margin:2px 0; font-size:0.85rem; color:#059669;">
           ✅ 已送達：{{ u.gift_delivered_at }}
