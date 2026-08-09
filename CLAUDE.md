@@ -124,6 +124,12 @@ beauty-vip-webapp/
 
 ### 部署流程（程式碼）
 
+**一鍵部署（2026-08-09 起）**：`scripts/deploy.sh` — 用 PA 官方 API（token 認證，設定在
+`~/.config/beauty-vip/pythonanywhere.env`，不進 git）自動 push → 建立/喚醒 PA console →
+`git pull --ff-only` → reload web app，全程免手動操作 PA 網頁。舊版腳本靠寫死的 console id
++ CDP 瀏覽器連線，console 閒置過久會被 PA 自動關閉而失效，已淘汰。
+
+手動備援（腳本不可用時）：
 1. 本機：`git push origin main`
 2. PA Bash console：`cd ~/beauty-vip-webapp && git pull --ff-only && touch /var/www/sisisleeping_pythonanywhere_com_wsgi.py`
 
