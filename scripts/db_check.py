@@ -40,7 +40,7 @@ if mismatch > 0:
 else:
     print(f"[OK] normal 交易 final_amount == amount: 全部一致")
 
-# ─── Check 3: coin_balance 完整性（已作廢交易不列入計算）───────────────────
+# ─── Check 3: coin_balance 完整性（已作廢交易不列入計算，需含手動加點）─────
 customers = conn.execute("SELECT id, name, coin_balance FROM customers").fetchall()
 bad_balances = []
 for c in customers:
@@ -50,7 +50,10 @@ for c in customers:
           COALESCE(SUM(CASE WHEN entry_mode='coin_deduct' THEN coins_redeemed ELSE 0 END),0) AS redeemed
         FROM transactions WHERE customer_id=? AND voided_at IS NULL
     """, (c["id"],)).fetchone()
-    expected = int(row["earned"]) - int(row["redeemed"])
+    adj_row = conn.execute(
+        "SELECT COALESCE(SUM(points),0) AS adj FROM point_adjustments WHERE customer_id=?", (c["id"],)
+    ).fetchone()
+    expected = int(row["earned"]) - int(row["redeemed"]) + int(adj_row["adj"])
     if expected != c["coin_balance"]:
         bad_balances.append(f"  {c['name']}: balance={c['coin_balance']} expected={expected} (Δ{expected - c['coin_balance']:+d})")
 if bad_balances:
