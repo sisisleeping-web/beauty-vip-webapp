@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 import json
 import os
 import sqlite3
@@ -856,50 +858,46 @@ def entry():
     )
 
 
-@app.route("/report")
-def report():
-    db = get_db()
+def _parse_report_filters() -> dict[str, str]:
+    """/report 與 /report/export.csv 共用的篩選條件解析（都從 request.args 讀）。"""
     default_month = date.today().strftime("%Y-%m")
     month_from = request.args.get("month_from", "").strip() or request.args.get("month", default_month)
     month_to = request.args.get("month_to", "").strip() or month_from
-    # Ensure month_to >= month_from
     if month_to < month_from:
         month_to = month_from
-    year = request.args.get("year", month_from[:4])
-    store_id = request.args.get("store_id", "").strip()
-    q = request.args.get("q", "").strip()
-    start_date = request.args.get("start_date", "").strip()
-    end_date = request.args.get("end_date", "").strip()
-    birthday_month = request.args.get("birthday_month", "").strip()
-    vip_tier = request.args.get("vip_tier", "").strip()
+    return {
+        "month_from": month_from,
+        "month_to": month_to,
+        "year": request.args.get("year", month_from[:4]),
+        "store_id": request.args.get("store_id", "").strip(),
+        "q": request.args.get("q", "").strip(),
+        "start_date": request.args.get("start_date", "").strip(),
+        "end_date": request.args.get("end_date", "").strip(),
+        "birthday_month": request.args.get("birthday_month", "").strip(),
+        "vip_tier": request.args.get("vip_tier", "").strip(),
+    }
 
-    # Build human-readable month label
-    if month_from == month_to:
-        month_label = month_from
-    else:
-        month_label = f"{month_from} ~ {month_to}"
 
-    where = ["t.voided_at IS NULL"]
-    params: list[Any] = []
+def _build_report_detail_rows(db: sqlite3.Connection, f: dict[str, str]) -> list[dict]:
+    """/report 與 /report/export.csv 共用：依篩選條件查出的交易明細（含 VIP 等級／累計點數）。"""
+    where = ["t.voided_at IS NULL", "t.month_key >= ? AND t.month_key <= ?"]
+    params: list[Any] = [f["month_from"], f["month_to"]]
 
-    where.append("t.month_key >= ? AND t.month_key <= ?")
-    params.extend([month_from, month_to])
-
-    if store_id:
+    if f["store_id"]:
         where.append("t.store_id = ?")
-        params.append(store_id)
-    if q:
+        params.append(f["store_id"])
+    if f["q"]:
         where.append("c.name LIKE ?")
-        params.append(f"%{q}%")
-    if start_date:
+        params.append(f"%{f['q']}%")
+    if f["start_date"]:
         where.append("t.txn_date >= ?")
-        params.append(start_date)
-    if end_date:
+        params.append(f["start_date"])
+    if f["end_date"]:
         where.append("t.txn_date <= ?")
-        params.append(end_date)
-    if birthday_month:
+        params.append(f["end_date"])
+    if f["birthday_month"]:
         where.append("substr(c.birthday,6,2) = ?")
-        params.append(birthday_month.zfill(2))
+        params.append(f["birthday_month"].zfill(2))
 
     coins_earned_expr = "t.coins_earned" if has_column(db, 'transactions', 'coins_earned') else "0"
     coins_redeemed_expr = "t.coins_redeemed" if has_column(db, 'transactions', 'coins_redeemed') else "0"
@@ -924,7 +922,7 @@ def report():
     """
     detail_rows_raw = db.execute(sql, params).fetchall()
 
-    tier_map = get_customer_tier_map(db, year)
+    tier_map = get_customer_tier_map(db, f["year"])
 
     # Build per-customer coin summary
     customer_ids_in_result = set(int(r["customer_id"]) for r in detail_rows_raw)
@@ -955,13 +953,29 @@ def report():
     for r in detail_rows_raw:
         d = dict(r)
         d["vip_tier"] = tier_map.get(int(r["customer_id"]), "一般會員")
-        if vip_tier and d["vip_tier"] != vip_tier:
+        if f["vip_tier"] and d["vip_tier"] != f["vip_tier"]:
             continue
         cs = coin_summary_map.get(int(r["customer_id"]), {})
         d["cust_total_earned"] = cs.get("total_earned", 0)
         d["cust_total_redeemed"] = cs.get("total_redeemed", 0)
         d["cust_coin_balance"] = cs.get("coin_balance", 0)
         detail_rows.append(d)
+    return detail_rows
+
+
+@app.route("/report")
+def report():
+    db = get_db()
+    f = _parse_report_filters()
+    month_from, month_to = f["month_from"], f["month_to"]
+
+    # Build human-readable month label
+    if month_from == month_to:
+        month_label = month_from
+    else:
+        month_label = f"{month_from} ~ {month_to}"
+
+    detail_rows = _build_report_detail_rows(db, f)
 
     monthly_by_customer = db.execute(
         """
@@ -988,22 +1002,12 @@ def report():
         GROUP BY s.name, c.name, c.birthday
         ORDER BY s.name, year_total DESC
         """,
-        (year,),
+        (f["year"],),
     ).fetchall()
 
     stores = db.execute("SELECT id,name FROM stores ORDER BY name").fetchall()
 
-    filters = {
-        "store_id": store_id,
-        "q": q,
-        "start_date": start_date,
-        "end_date": end_date,
-        "birthday_month": birthday_month,
-        "vip_tier": vip_tier,
-        "year": year,
-        "month_from": month_from,
-        "month_to": month_to,
-    }
+    filters = dict(f)
 
     return render_template(
         "report.html",
@@ -1017,6 +1021,39 @@ def report():
         stores=stores,
         filters=filters,
     )
+
+
+@app.route("/report/export.csv")
+def report_export_csv():
+    """匯出報表明細成 CSV，套用跟 /report 完全一樣的篩選條件——
+    不帶任何篩選參數就是「完整」報表，帶了篩選參數就是「有條件」報表。"""
+    if not (session.get("manager_authed") or session.get("main_authed")):
+        return "Unauthorized", 403
+    db = get_db()
+    f = _parse_report_filters()
+    detail_rows = _build_report_detail_rows(db, f)
+
+    mode_label = {"normal": "一般消費", "birthday_recharge": "壽星充值", "coin_deduct": "點數扣除"}
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "日期", "分店", "客戶", "生日", "VIP等級", "原始金額", "實收金額",
+        "獲得點數", "扣除點數", "模式", "累計獲得", "累計折抵", "點數餘額",
+    ])
+    for r in detail_rows:
+        writer.writerow([
+            r["txn_date"], r["store_name"], r["customer_name"], r["birthday"], r["vip_tier"],
+            f"{r['amount']:.0f}", f"{r['final_amount']:.0f}",
+            r["coins_earned"], r["coins_redeemed"],
+            mode_label.get(r["entry_mode"], r["entry_mode"]),
+            r["cust_total_earned"], r["cust_total_redeemed"], r["cust_coin_balance"],
+        ])
+
+    # 加 UTF-8 BOM 讓 Excel 開啟中文不亂碼
+    mem = io.BytesIO(b"\xef\xbb\xbf" + buf.getvalue().encode("utf-8"))
+    mem.seek(0)
+    filename = f"beauty_vip_report_{f['month_from']}_{f['month_to']}.csv"
+    return send_file(mem, as_attachment=True, download_name=filename, mimetype="text/csv")
 
 
 @app.route("/api/transactions/<int:txn_id>/update", methods=["POST"])
@@ -1338,6 +1375,7 @@ def contacts():
     max_spend = request.args.get("max_spend", "").strip()
     last_from = request.args.get("last_from", "").strip()
     last_to = request.args.get("last_to", "").strip()
+    vip_tier = request.args.get("vip_tier", "").strip()
 
     sql = """
         SELECT c.id, c.name, c.phone, c.birthday, c.created_at, c.coin_balance,
@@ -1388,6 +1426,8 @@ def contacts():
     for row in customer_rows:
         d = dict(row)
         d["tier"] = get_effective_tier(db, int(row["id"]))
+        if vip_tier and d["tier"] != vip_tier:
+            continue
         customers.append(d)
     stores = db.execute("SELECT id,name FROM stores ORDER BY name").fetchall()
 
@@ -1399,6 +1439,7 @@ def contacts():
         "max_spend": max_spend,
         "last_from": last_from,
         "last_to": last_to,
+        "vip_tier": vip_tier,
     }
 
     return render_template("contacts.html", customers=customers, query=query, stores=stores, filters=filters)

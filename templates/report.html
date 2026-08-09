@@ -75,11 +75,17 @@
         {% endfor %}
       </select>
     </div>
-    <div style="display:flex; gap:8px; align-items:flex-end; padding-top: 4px;">
+    <div style="display:flex; gap:8px; align-items:flex-end; padding-top: 4px; flex-wrap:wrap;">
       <button type="submit" style="background:linear-gradient(135deg,#6c3fc5,#a855f7);color:#fff;flex:1;">🔍 查詢</button>
+      <button type="submit" formaction="/report/export.csv" formtarget="_blank"
+        style="background:#059669;color:#fff;white-space:nowrap;">📥 匯出目前條件</button>
+      <a href="/report/export.csv?month_from=2000-01&month_to=2099-12" target="_blank">
+        <button type="button" style="background:#0d9488;color:#fff;white-space:nowrap;">📥 匯出全部資料</button>
+      </a>
       <a href="/report"><button type="button" style="background:#f3f4f6;color:#555;border:1px solid #ddd;">清除</button></a>
     </div>
   </form>
+  <p style="font-size:0.8rem; color:#888; margin:6px 0 0;">「匯出目前條件」依表單目前填的月份／分店／關鍵字等條件匯出；「匯出全部資料」不管表單內容，直接匯出所有歷史交易。</p>
 </div>
 
 <div class="card">

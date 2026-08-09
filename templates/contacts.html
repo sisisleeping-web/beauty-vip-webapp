@@ -21,6 +21,15 @@
       <input type="number" min="1" max="12" name="birthday_month" placeholder="例:3" value="{{ filters.birthday_month }}">
     </div>
     <div>
+      <label>VIP等級</label>
+      <select name="vip_tier">
+        <option value="">全部</option>
+        {% for t in ['一般會員','S級美咖','P級美咖','A級美咖'] %}
+        <option value="{{ t }}" {% if filters.vip_tier==t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
       <label>最低累計消費</label>
       <input type="number" name="min_spend" placeholder="最低" value="{{ filters.min_spend }}">
     </div>
