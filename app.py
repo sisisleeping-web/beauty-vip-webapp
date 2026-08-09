@@ -413,7 +413,13 @@ def _project_tier_state(db: sqlite3.Connection, customer_id: int, as_of: str) ->
             state["tier_expires_date"] = _add_years(state["tier_effective_date"], 1)
             idx_old = TIER_ORDER.index(old_tier) if old_tier in TIER_ORDER else 0
             idx_new = TIER_ORDER.index(new_tier) if new_tier in TIER_ORDER else 0
-            event_type = "renewal" if idx_new >= idx_old else "downgrade"
+            if idx_new > idx_old:
+                event_type = "upgrade"  # 效期屆滿重判「升到更高等級」跟「維持原等級續會」是兩回事，
+                # 只有真正同級續會才算 renewal（V3.1：只有 A→A 才是 A 級續會，P→A/S→A 是升等）
+            elif idx_new == idx_old:
+                event_type = "renewal"
+            else:
+                event_type = "downgrade"
 
         events.append({
             "date": event_date, "tier_before": old_tier, "tier_after": new_tier,
@@ -463,10 +469,12 @@ _EMPTY_TIER_STATE = {
 
 def _log_tier_events(db: sqlite3.Connection, customer_id: int, events: list[dict]) -> None:
     """把會員年度到期重判觸發的事件寫入 tier_upgrades（V3 §15.7 稽核要求）。
-    只有「續會/重新達到 A級」才有禮（V3 §11.2 A級續會禮 1,500點），比照現有升等禮的
-    workflow 只記錄 pending，實際點數入帳仍是店家用手動贈點處理（跟其他升等禮一致，
-    不引進新的自動入帳行為）。其他情況（維持S/P、降級、回一般會員）沒有禮，直接記
-    skipped，純稽核留痕。"""
+    A級續會禮（1,500點）只給「A→A」真正續會（V3.1 §6 明確定義：P→A、S→A 是升等不是續會）；
+    重判後等級真的比之前高（upgrade）比照一般升等禮，發對應等級的標準升級禮（V3.1 §5：
+    第一次達到 S/P/A 級都算，不限於透過單筆/年度消費達標，效期屆滿重判達到也算）。
+    比照現有升等禮 workflow 只記錄 pending，實際點數入帳仍是店家用手動贈點處理，不引進
+    新的自動入帳行為。其他情況（維持S/P、降級、回一般會員）沒有禮，直接記 skipped，
+    純稽核留痕。"""
     now_str = datetime.now().isoformat(timespec="seconds")
     for e in events:
         if e["event_type"] == "renewal" and e["tier_after"] == "A級美咖":
@@ -475,6 +483,12 @@ def _log_tier_events(db: sqlite3.Connection, customer_id: int, events: list[dict
         elif e["event_type"] == "renewal":
             gift_name, gift_status = "", "skipped"
             reason = f"會員年度效期屆滿，續會維持 {e['tier_after']}（本期年度累計 {int(e['window_total']):,} 元）"
+        elif e["event_type"] == "upgrade":
+            gift_name, gift_status = f"{e['tier_after']} 升級禮", "pending"
+            reason = (
+                f"會員年度效期屆滿重新判定，由 {e['tier_before']} 升為 {e['tier_after']}"
+                f"（本期年度累計 {int(e['window_total']):,} 元）"
+            )
         elif e["event_type"] == "downgrade":
             gift_name, gift_status = "", "skipped"
             reason = f"會員年度效期屆滿，依累計降為 {e['tier_after']}（本期年度累計 {int(e['window_total']):,} 元）"
