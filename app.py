@@ -216,6 +216,10 @@ def init_db() -> None:
         ("recharge_amount", "REAL DEFAULT NULL"),
         ("entry_mode", "TEXT NOT NULL DEFAULT 'normal'"),
         ("note", "TEXT DEFAULT ''"),
+        # 2026美咖會員制度V3 Phase 0：交易改軟刪除（作廢保留稽核紀錄），不再硬刪除。
+        ("voided_at", "TEXT DEFAULT NULL"),
+        ("void_reason", "TEXT DEFAULT ''"),
+        ("voided_by", "TEXT DEFAULT ''"),
     ]:
         try:
             table = "customers" if col == "coin_balance" else "transactions"
@@ -290,8 +294,10 @@ def get_or_create_customer(db: sqlite3.Connection, name: str, birthday: str, pho
 
 
 def customer_year_total(db: sqlite3.Connection, customer_id: int, year_str: str) -> float:
+    # 單筆未滿 NT$1,000 不列入會員年度累計（V3 §8.2），但該筆交易仍正常建檔、正常賺美咖幣。
     row = db.execute(
-        "SELECT COALESCE(SUM(final_amount),0) AS total FROM transactions WHERE customer_id=? AND substr(txn_date,1,4)=?",
+        "SELECT COALESCE(SUM(final_amount),0) AS total FROM transactions "
+        "WHERE customer_id=? AND substr(txn_date,1,4)=? AND final_amount>=1000 AND voided_at IS NULL",
         (customer_id, year_str),
     ).fetchone()
     return float(row["total"] or 0)
@@ -299,7 +305,7 @@ def customer_year_total(db: sqlite3.Connection, customer_id: int, year_str: str)
 
 def get_past_max_single(db: sqlite3.Connection, customer_id: int) -> float:
     row = db.execute(
-        "SELECT COALESCE(MAX(final_amount),0) AS max_amt FROM transactions WHERE customer_id=?",
+        "SELECT COALESCE(MAX(final_amount),0) AS max_amt FROM transactions WHERE customer_id=? AND voided_at IS NULL",
         (customer_id,),
     ).fetchone()
     return float(row["max_amt"] or 0)
@@ -307,7 +313,7 @@ def get_past_max_single(db: sqlite3.Connection, customer_id: int) -> float:
 
 def customer_month_total(db: sqlite3.Connection, customer_id: int, month_key: str) -> float:
     row = db.execute(
-        "SELECT COALESCE(SUM(final_amount),0) AS total FROM transactions WHERE customer_id=? AND month_key=?",
+        "SELECT COALESCE(SUM(final_amount),0) AS total FROM transactions WHERE customer_id=? AND month_key=? AND voided_at IS NULL",
         (customer_id, month_key),
     ).fetchone()
     return float(row["total"] or 0)
@@ -341,9 +347,9 @@ def get_customer_tier_map(db: sqlite3.Connection, year: str) -> dict[int, str]:
         """
         SELECT c.id AS customer_id,
                COALESCE(MAX(t.final_amount),0) AS max_single,
-               COALESCE(SUM(CASE WHEN substr(t.txn_date,1,4)=? THEN t.final_amount ELSE 0 END),0) AS year_total
+               COALESCE(SUM(CASE WHEN substr(t.txn_date,1,4)=? AND t.final_amount>=1000 THEN t.final_amount ELSE 0 END),0) AS year_total
         FROM customers c
-        LEFT JOIN transactions t ON t.customer_id = c.id
+        LEFT JOIN transactions t ON t.customer_id = c.id AND t.voided_at IS NULL
         GROUP BY c.id
         """,
         (year,),
@@ -503,116 +509,113 @@ def entry():
                 amount = 0.0
 
             if store_id and name and birthday and amount > 0:
-                if amount < 1000:
-                    error_message = "消費金額未達1000元，無法建檔！請確認金額。"
-                else:
-                    customer_id = get_or_create_customer(db, name, birthday, phone)
-                    month_key = current_month_key(txn_day)
-                    year_str = txn_day.strftime("%Y")
+                customer_id = get_or_create_customer(db, name, birthday, phone)
+                month_key = current_month_key(txn_day)
+                year_str = txn_day.strftime("%Y")
 
-                    discount_applied = False
-                    final_amount = amount
+                discount_applied = False
+                final_amount = amount
 
-                    year_total_so_far = customer_year_total(db, customer_id, year_str)
-                    past_max_single = get_past_max_single(db, customer_id)
+                year_total_so_far = customer_year_total(db, customer_id, year_str)
+                past_max_single = get_past_max_single(db, customer_id)
 
-                    tier_before = calc_tier(past_max_single, year_total_so_far, rules)
-                    cashback = round(final_amount * tier_before.cashback_rate, 2)
-                    points = int(final_amount * tier_before.points_rate)
+                tier_before = calc_tier(past_max_single, year_total_so_far, rules)
+                cashback = round(final_amount * tier_before.cashback_rate, 2)
+                points = int(final_amount * tier_before.points_rate)
 
-                    # Coins earned = same as points for now
-                    coins_earned = points
+                # Coins earned = same as points for now
+                coins_earned = points
 
+                db.execute(
+                    """
+                    INSERT INTO transactions(
+                        customer_id, store_id, txn_date, month_key, amount,
+                        birthday_discount_applied, final_amount, cashback, created_at,
+                        coins_earned, entry_mode
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        customer_id,
+                        store_id,
+                        txn_day.isoformat(),
+                        month_key,
+                        amount,
+                        1 if discount_applied else 0,
+                        round(final_amount, 2),
+                        cashback,
+                        datetime.now().isoformat(timespec="seconds"),
+                        coins_earned,
+                        "normal",
+                    ),
+                )
+                # Update coin balance
+                if coins_earned > 0:
                     db.execute(
-                        """
-                        INSERT INTO transactions(
-                            customer_id, store_id, txn_date, month_key, amount,
-                            birthday_discount_applied, final_amount, cashback, created_at,
-                            coins_earned, entry_mode
-                        ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
-                        """,
-                        (
-                            customer_id,
-                            store_id,
-                            txn_day.isoformat(),
-                            month_key,
-                            amount,
-                            1 if discount_applied else 0,
-                            round(final_amount, 2),
-                            cashback,
-                            datetime.now().isoformat(timespec="seconds"),
-                            coins_earned,
-                            "normal",
-                        ),
+                        "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
+                        (coins_earned, customer_id),
                     )
-                    # Update coin balance
-                    if coins_earned > 0:
-                        db.execute(
-                            "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
-                            (coins_earned, customer_id),
-                        )
-                    monthly_total = customer_month_total(db, customer_id, month_key)
-                    new_max_single = max(past_max_single, final_amount)
-                    new_year_total = year_total_so_far + final_amount
-                    tier_after = calc_tier(new_max_single, new_year_total, rules)
-                    coin_balance = get_customer_coin_balance(db, customer_id)
+                monthly_total = customer_month_total(db, customer_id, month_key)
+                new_max_single = max(past_max_single, final_amount)
+                new_year_total = year_total_so_far + (final_amount if final_amount >= 1000 else 0)
+                tier_after = calc_tier(new_max_single, new_year_total, rules)
+                coin_balance = get_customer_coin_balance(db, customer_id)
 
-                    # Get the txn_id we just inserted
-                    last_txn_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+                # Get the txn_id we just inserted
+                last_txn_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
 
-                    # Detect tier upgrade (including multi-level jumps)
-                    upgrades_recorded = []
-                    if tier_after.name != tier_before.name:
-                        idx_before = TIER_ORDER.index(tier_before.name) if tier_before.name in TIER_ORDER else 0
-                        idx_after = TIER_ORDER.index(tier_after.name) if tier_after.name in TIER_ORDER else 0
-                        if idx_after > idx_before:
-                            # Determine trigger reason
-                            if new_max_single > past_max_single and new_max_single >= final_amount:
-                                reason = f"單筆消費 {int(new_max_single):,} 元達標"
-                            else:
-                                reason = f"年度累計 {int(new_year_total):,} 元達標"
-                            now_str_up = datetime.now().isoformat(timespec="seconds")
-                            # Record each intermediate upgrade level
-                            for step in range(idx_before + 1, idx_after + 1):
-                                step_from = TIER_ORDER[step - 1]
-                                step_to = TIER_ORDER[step]
-                                # Look up gift name from rules
-                                gift_name = ""
-                                for t in rules["vip_tiers"]:
-                                    if t["name"] == step_to:
-                                        gift_name = f"{step_to} 升級禮"
-                                        break
-                                db.execute("""
-                                    INSERT INTO tier_upgrades(
-                                        customer_id, upgrade_date, tier_before, tier_after,
-                                        trigger_txn_id, trigger_reason, gift_name,
-                                        gift_status, created_at
-                                    ) VALUES(?,?,?,?,?,?,?,?,?)
-                                """, (
-                                    customer_id, txn_day.isoformat(),
-                                    step_from, step_to,
-                                    last_txn_id, reason, gift_name,
-                                    "pending", now_str_up,
-                                ))
-                                upgrades_recorded.append({"from": step_from, "to": step_to, "gift": gift_name})
+                # Detect tier upgrade (including multi-level jumps)
+                upgrades_recorded = []
+                if tier_after.name != tier_before.name:
+                    idx_before = TIER_ORDER.index(tier_before.name) if tier_before.name in TIER_ORDER else 0
+                    idx_after = TIER_ORDER.index(tier_after.name) if tier_after.name in TIER_ORDER else 0
+                    if idx_after > idx_before:
+                        # Determine trigger reason
+                        if new_max_single > past_max_single and new_max_single >= final_amount:
+                            reason = f"單筆消費 {int(new_max_single):,} 元達標"
+                        else:
+                            reason = f"年度累計 {int(new_year_total):,} 元達標"
+                        now_str_up = datetime.now().isoformat(timespec="seconds")
+                        # Record each intermediate upgrade level
+                        for step in range(idx_before + 1, idx_after + 1):
+                            step_from = TIER_ORDER[step - 1]
+                            step_to = TIER_ORDER[step]
+                            # Look up gift name from rules
+                            gift_name = ""
+                            for t in rules["vip_tiers"]:
+                                if t["name"] == step_to:
+                                    gift_name = f"{step_to} 升級禮"
+                                    break
+                            db.execute("""
+                                INSERT INTO tier_upgrades(
+                                    customer_id, upgrade_date, tier_before, tier_after,
+                                    trigger_txn_id, trigger_reason, gift_name,
+                                    gift_status, created_at
+                                ) VALUES(?,?,?,?,?,?,?,?,?)
+                            """, (
+                                customer_id, txn_day.isoformat(),
+                                step_from, step_to,
+                                last_txn_id, reason, gift_name,
+                                "pending", now_str_up,
+                            ))
+                            upgrades_recorded.append({"from": step_from, "to": step_to, "gift": gift_name})
 
-                    db.commit()
+                db.commit()
 
-                    result = {
-                        "mode": "normal",
-                        "name": name,
-                        "store_id": store_id,
-                        "amount": amount,
-                        "final_amount": round(final_amount, 2),
-                        "birthday_discount_applied": discount_applied,
-                        "monthly_total": round(monthly_total, 2),
-                        "tier": tier_after,
-                        "cashback": cashback,
-                        "points": points,
-                        "coins_earned": coins_earned,
-                        "coin_balance": coin_balance,
-                        "upgrades": upgrades_recorded,
-                    }
+                result = {
+                    "mode": "normal",
+                    "name": name,
+                    "store_id": store_id,
+                    "amount": amount,
+                    "final_amount": round(final_amount, 2),
+                    "birthday_discount_applied": discount_applied,
+                    "monthly_total": round(monthly_total, 2),
+                    "tier": tier_after,
+                    "cashback": cashback,
+                    "points": points,
+                    "coins_earned": coins_earned,
+                    "coin_balance": coin_balance,
+                    "upgrades": upgrades_recorded,
+                }
 
     return render_template(
         "entry.html",
@@ -647,7 +650,7 @@ def report():
     else:
         month_label = f"{month_from} ~ {month_to}"
 
-    where = ["1=1"]
+    where = ["t.voided_at IS NULL"]
     params: list[Any] = []
 
     where.append("t.month_key >= ? AND t.month_key <= ?")
@@ -706,7 +709,7 @@ def report():
                    COALESCE(SUM(t.coins_earned), 0) AS total_earned,
                    COALESCE(SUM(t.coins_redeemed), 0) AS total_redeemed
             FROM customers c
-            LEFT JOIN transactions t ON t.customer_id = c.id
+            LEFT JOIN transactions t ON t.customer_id = c.id AND t.voided_at IS NULL
             WHERE c.id IN ({placeholders})
             GROUP BY c.id
             """,
@@ -738,7 +741,7 @@ def report():
         FROM transactions t
         JOIN customers c ON c.id = t.customer_id
         JOIN stores s ON s.id = t.store_id
-        WHERE t.month_key >= ? AND t.month_key <= ?
+        WHERE t.month_key >= ? AND t.month_key <= ? AND t.voided_at IS NULL
         GROUP BY s.name, c.name, c.birthday
         ORDER BY s.name, month_total DESC
         """,
@@ -752,7 +755,7 @@ def report():
         FROM transactions t
         JOIN customers c ON c.id = t.customer_id
         JOIN stores s ON s.id = t.store_id
-        WHERE substr(t.txn_date,1,4) = ?
+        WHERE substr(t.txn_date,1,4) = ? AND t.voided_at IS NULL
         GROUP BY s.name, c.name, c.birthday
         ORDER BY s.name, year_total DESC
         """,
@@ -814,11 +817,13 @@ def update_transaction(txn_id):
 
     # 1. Fetch old transaction info to revert coins
     old_txn = db.execute(
-        "SELECT customer_id, entry_mode, coins_earned, coins_redeemed FROM transactions WHERE id=?",
+        "SELECT customer_id, entry_mode, coins_earned, coins_redeemed, voided_at FROM transactions WHERE id=?",
         (txn_id,),
     ).fetchone()
     if not old_txn:
         return {"status": "error", "message": "original transaction not found"}, 404
+    if old_txn["voided_at"]:
+        return {"status": "error", "message": "cannot edit a voided transaction"}, 400
 
     old_mode = old_txn["entry_mode"] or "normal"
     old_coins_earned = int(old_txn["coins_earned"] or 0)
@@ -845,8 +850,8 @@ def update_transaction(txn_id):
     if old_mode == "normal":
         rules = load_rules()
         year_str = d.strftime("%Y")
-        past_max_single = float(db.execute("SELECT COALESCE(MAX(final_amount),0) FROM transactions WHERE customer_id=? AND id < ?", (old_customer_id, txn_id)).fetchone()[0] or 0)
-        year_total_so_far = float(db.execute("SELECT COALESCE(SUM(final_amount),0) FROM transactions WHERE customer_id=? AND substr(txn_date,1,4)=? AND id < ?", (old_customer_id, year_str, txn_id)).fetchone()[0] or 0)
+        past_max_single = float(db.execute("SELECT COALESCE(MAX(final_amount),0) FROM transactions WHERE customer_id=? AND id < ? AND voided_at IS NULL", (old_customer_id, txn_id)).fetchone()[0] or 0)
+        year_total_so_far = float(db.execute("SELECT COALESCE(SUM(final_amount),0) FROM transactions WHERE customer_id=? AND substr(txn_date,1,4)=? AND id < ? AND final_amount>=1000 AND voided_at IS NULL", (old_customer_id, year_str, txn_id)).fetchone()[0] or 0)
         tier = calc_tier(past_max_single, year_total_so_far, rules)
         new_coins_earned = int(new_final_amount * tier.points_rate)
 
@@ -876,18 +881,28 @@ def update_transaction(txn_id):
 def delete_transaction(txn_id):
     db = get_db()
     txn = db.execute(
-        "SELECT entry_mode, coins_earned, coins_redeemed, customer_id FROM transactions WHERE id=?",
+        "SELECT entry_mode, coins_earned, coins_redeemed, customer_id, voided_at "
+        "FROM transactions WHERE id=?",
         (txn_id,),
     ).fetchone()
     if not txn:
         return {"status": "error", "message": "transaction not found"}, 404
+    if txn["voided_at"]:
+        return {"status": "error", "message": "transaction already voided"}, 400
 
     mode = txn["entry_mode"] or "normal"
     coins_earned = int(txn["coins_earned"] or 0)
     coins_redeemed = int(txn["coins_redeemed"] or 0)
     customer_id = int(txn["customer_id"])
+    void_reason = request.form.get("reason", "").strip()
+    voided_by = "manager" if session.get("manager_authed") else "staff"
 
-    db.execute("DELETE FROM transactions WHERE id=?", (txn_id,))
+    # 財務資料不做硬刪除，改標記作廢並保留原始紀錄（供稽核／退款回溯查詢），
+    # 所有統計/報表查詢都會排除 voided_at IS NOT NULL 的交易。
+    db.execute(
+        "UPDATE transactions SET voided_at=?, void_reason=?, voided_by=? WHERE id=?",
+        (datetime.now().isoformat(timespec="seconds"), void_reason, voided_by, txn_id),
+    )
 
     # Revert coin_balance impact
     if mode in ("normal", "birthday_recharge") and coins_earned > 0:
@@ -912,7 +927,10 @@ def update_transaction_deduct(txn_id):
     if not (session.get("manager_authed") or session.get("main_authed")):
         return {"status": "error", "message": "Unauthorized"}, 403
 
-    old_txn = db.execute("SELECT customer_id, entry_mode, coins_redeemed FROM transactions WHERE id=?", (txn_id,)).fetchone()
+    old_txn = db.execute(
+        "SELECT customer_id, entry_mode, coins_redeemed FROM transactions WHERE id=? AND voided_at IS NULL",
+        (txn_id,),
+    ).fetchone()
     if not old_txn or old_txn["entry_mode"] != "coin_deduct":
         return {"status": "error", "message": "找不到此扣點紀錄"}, 404
         
@@ -987,7 +1005,7 @@ def manager_dashboard():
                SUM(CASE WHEN t.month_key >= ? AND t.month_key <= ? THEN t.final_amount ELSE 0 END) AS month_revenue,
                SUM(CASE WHEN substr(t.txn_date,1,4) = ? THEN t.final_amount ELSE 0 END) AS year_revenue
         FROM stores s
-        LEFT JOIN transactions t ON s.id = t.store_id
+        LEFT JOIN transactions t ON s.id = t.store_id AND t.voided_at IS NULL
         GROUP BY s.name
         ORDER BY s.name
         """,
@@ -1015,7 +1033,7 @@ def manager_dashboard():
                COALESCE(SUM(t.coins_earned),0) AS total_coins_earned,
                COALESCE(SUM(t.coins_redeemed),0) AS total_coins_redeemed
         FROM customers c
-        LEFT JOIN transactions t ON c.id = t.customer_id {cust_where}
+        LEFT JOIN transactions t ON c.id = t.customer_id AND t.voided_at IS NULL {cust_where}
         LEFT JOIN stores s ON t.store_id = s.id
         GROUP BY c.id, c.name, c.phone, c.birthday
         HAVING year_spend > 0 OR month_spend > 0
@@ -1075,7 +1093,7 @@ def contacts():
                COALESCE(SUM(t.coins_earned),0) AS total_coins_earned,
                COALESCE(SUM(t.coins_redeemed),0) AS total_coins_redeemed
         FROM customers c
-        LEFT JOIN transactions t ON c.id = t.customer_id
+        LEFT JOIN transactions t ON c.id = t.customer_id AND t.voided_at IS NULL
         LEFT JOIN stores s ON t.store_id = s.id
         WHERE 1=1
     """
@@ -1184,7 +1202,8 @@ def get_point_adjustments(customer_id):
         (customer_id,),
     ).fetchall()
     deducts = db.execute(
-        "SELECT id, coins_redeemed as points, note as reason, created_at FROM transactions WHERE customer_id=? AND entry_mode='coin_deduct'",
+        "SELECT id, coins_redeemed as points, note as reason, created_at FROM transactions "
+        "WHERE customer_id=? AND entry_mode='coin_deduct' AND voided_at IS NULL",
         (customer_id,),
     ).fetchall()
 
@@ -1498,60 +1517,6 @@ def review_mark(item_type, item_key):
     return redirect(request.referrer or url_for("review_page"))
 
 
-@app.route("/admin/backfill_coins")
-def admin_backfill_coins():
-    """One-time route to back-fill coins_earned for historical transactions.
-    Only accessible when manager is logged in.
-    """
-    if not session.get("manager_authed"):
-        return "Unauthorized", 403
-
-    db = get_db()
-    rules = load_rules()
-
-    # Fetch normal transactions that have coins_earned == 0 and final_amount > 0
-    rows = db.execute(
-        """
-        SELECT t.id, t.final_amount, t.customer_id, t.txn_date,
-               c.birthday
-        FROM transactions t
-        JOIN customers c ON c.id = t.customer_id
-        WHERE t.entry_mode = 'normal' AND t.coins_earned = 0 AND t.final_amount > 0
-        """
-    ).fetchall()
-
-    updated = 0
-    for r in rows:
-        year_str = r["txn_date"][:4]
-        year_total = float(
-            db.execute(
-                "SELECT COALESCE(SUM(final_amount),0) AS t FROM transactions WHERE customer_id=? AND substr(txn_date,1,4)=? AND id < ?",
-                (r["customer_id"], year_str, r["id"]),
-            ).fetchone()["t"] or 0
-        )
-        max_single = float(
-            db.execute(
-                "SELECT COALESCE(MAX(final_amount),0) AS m FROM transactions WHERE customer_id=? AND id < ?",
-                (r["customer_id"], r["id"]),
-            ).fetchone()["m"] or 0
-        )
-        tier = calc_tier(max_single, year_total, rules)
-        coins = int(float(r["final_amount"]) * tier.points_rate)
-        if coins > 0:
-            db.execute(
-                "UPDATE transactions SET coins_earned=? WHERE id=?",
-                (coins, r["id"]),
-            )
-            db.execute(
-                "UPDATE customers SET coin_balance = coin_balance + ? WHERE id=?",
-                (coins, r["customer_id"]),
-            )
-            updated += 1
-
-    db.commit()
-    return f"<p>補填完成，共更新 {updated} 筆交易的 coins_earned。</p><p><a href='/report'>回報表查詢</a> | <a href='/manager'>回主管頁</a></p>"
-
-
 # ── Tier Upgrade Management ──────────────────────────────────────────────────
 
 @app.route("/upgrades")
@@ -1747,7 +1712,8 @@ def _build_customer_result(cid: int) -> dict | None:
     customer["year_total"] = year_total
 
     points_row = db.execute(
-        "SELECT COALESCE(SUM(coins_earned),0) AS earned, COALESCE(SUM(coins_redeemed),0) AS redeemed FROM transactions WHERE customer_id=?",
+        "SELECT COALESCE(SUM(coins_earned),0) AS earned, COALESCE(SUM(coins_redeemed),0) AS redeemed "
+        "FROM transactions WHERE customer_id=? AND voided_at IS NULL",
         (cid,),
     ).fetchone()
     customer["total_earned"] = int(points_row["earned"] or 0)
@@ -1760,7 +1726,7 @@ def _build_customer_result(cid: int) -> dict | None:
                t.recharge_plan, t.recharge_amount, t.note, t.created_at
         FROM transactions t
         JOIN stores s ON s.id = t.store_id
-        WHERE t.customer_id = ?
+        WHERE t.customer_id = ? AND t.voided_at IS NULL
         ORDER BY t.txn_date DESC, t.id DESC
         """,
         (cid,),

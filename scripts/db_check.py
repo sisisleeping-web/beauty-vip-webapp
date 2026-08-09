@@ -24,7 +24,7 @@ errors = []
 warnings = []
 
 # ─── Check 1: birthday_discount_applied 應全為 0 ──────────────────────────
-disc = conn.execute("SELECT COUNT(*) FROM transactions WHERE birthday_discount_applied=1").fetchone()[0]
+disc = conn.execute("SELECT COUNT(*) FROM transactions WHERE birthday_discount_applied=1 AND voided_at IS NULL").fetchone()[0]
 if disc > 0:
     errors.append(f"[ERROR] {disc} 筆 birthday_discount_applied=1（應為 0，折扣機制已移除）")
 else:
@@ -33,14 +33,14 @@ else:
 # ─── Check 2: normal 交易 final_amount 應等於 amount ─────────────────────
 mismatch = conn.execute("""
     SELECT COUNT(*) FROM transactions
-    WHERE entry_mode='normal' AND ABS(final_amount - amount) > 0.01
+    WHERE entry_mode='normal' AND ABS(final_amount - amount) > 0.01 AND voided_at IS NULL
 """).fetchone()[0]
 if mismatch > 0:
     errors.append(f"[ERROR] {mismatch} 筆 normal 交易 final_amount ≠ amount（不應有折扣）")
 else:
     print(f"[OK] normal 交易 final_amount == amount: 全部一致")
 
-# ─── Check 3: coin_balance 完整性 ────────────────────────────────────────
+# ─── Check 3: coin_balance 完整性（已作廢交易不列入計算）───────────────────
 customers = conn.execute("SELECT id, name, coin_balance FROM customers").fetchall()
 bad_balances = []
 for c in customers:
@@ -48,7 +48,7 @@ for c in customers:
         SELECT
           COALESCE(SUM(CASE WHEN entry_mode IN ('normal','birthday_recharge') THEN coins_earned ELSE 0 END),0) AS earned,
           COALESCE(SUM(CASE WHEN entry_mode='coin_deduct' THEN coins_redeemed ELSE 0 END),0) AS redeemed
-        FROM transactions WHERE customer_id=?
+        FROM transactions WHERE customer_id=? AND voided_at IS NULL
     """, (c["id"],)).fetchone()
     expected = int(row["earned"]) - int(row["redeemed"])
     if expected != c["coin_balance"]:
@@ -78,23 +78,23 @@ if invalid_recharge:
 else:
     print(f"[OK] 壽星充值日期: 全部在生日月份")
 
-# ─── Check 6: 最低消費 1000 元 ───────────────────────────────────────────
+# ─── Check 6: 未滿 1000 元交易（2026 V3 制度：可正常建檔賺點，只是不列入會員年度累計）───
 under_min = conn.execute("""
-    SELECT COUNT(*) FROM transactions WHERE entry_mode='normal' AND amount < 1000
+    SELECT COUNT(*) FROM transactions WHERE entry_mode='normal' AND amount < 1000 AND voided_at IS NULL
 """).fetchone()[0]
-if under_min > 0:
-    warnings.append(f"[WARN] {under_min} 筆 normal 交易金額 < 1000（低於門檻）")
-else:
-    print(f"[OK] 最低消費門檻: 無低於 1000 的 normal 交易")
+print(f"[INFO] {under_min} 筆 normal 交易金額 < 1000（正常，僅提示：這些交易不列入會員年度累計）")
 
-# ─── Summary ─────────────────────────────────────────────────────────────
-total = conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
+# ─── Summary（不含已作廢交易）─────────────────────────────────────────────
+total = conn.execute("SELECT COUNT(*) FROM transactions WHERE voided_at IS NULL").fetchone()[0]
+voided_total = conn.execute("SELECT COUNT(*) FROM transactions WHERE voided_at IS NOT NULL").fetchone()[0]
 cust_count = conn.execute("SELECT COUNT(*) FROM customers").fetchone()[0]
-total_rev = conn.execute("SELECT COALESCE(SUM(final_amount),0) FROM transactions WHERE entry_mode='normal'").fetchone()[0]
+total_rev = conn.execute(
+    "SELECT COALESCE(SUM(final_amount),0) FROM transactions WHERE entry_mode='normal' AND voided_at IS NULL"
+).fetchone()[0]
 
 print(f"\n=== 統計摘要 ===")
 print(f"顧客數：{cust_count}")
-print(f"交易筆數：{total}")
+print(f"交易筆數：{total}（另有 {voided_total} 筆已作廢，不計入）")
 print(f"正常消費總額：{total_rev:,.0f}")
 
 if warnings:
