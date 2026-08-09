@@ -112,7 +112,7 @@
         {% endif %}
         {% if u.gift_status == 'delivered' %}
         <p style="margin:2px 0; font-size:0.85rem; color:#059669;">
-          ✅ 已送達：{{ u.gift_delivered_at }}
+          ✅ 已送達：{{ u.gift_delivered_at or '-' }}
         </p>
         {% endif %}
         {% if u.note %}
