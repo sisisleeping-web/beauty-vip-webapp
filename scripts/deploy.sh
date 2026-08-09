@@ -48,7 +48,7 @@ browser-act --session "$BA_SESSION" browser open "$PYTHONANYWHERE_BROWSER_ACT_ID
     "https://www.pythonanywhere.com/user/${PYTHONANYWHERE_USERNAME}/consoles/${CONSOLE_ID}/" >/dev/null
 sleep 10
 
-REMOTE_CMD="cd ~/beauty-vip-webapp && git pull --ff-only && echo '__UPDATE_DONE__'"
+REMOTE_CMD="cd ~/beauty-vip-webapp && git pull --ff-only && python3 -c 'import app; app.init_db()' && echo '__UPDATE_DONE__'"
 
 curl -sS -X POST "${API_BASE}/consoles/${CONSOLE_ID}/send_input/" \
     -H "$AUTH_HEADER" \

@@ -118,9 +118,17 @@ beauty-vip-webapp/
 ### PythonAnywhere（生產環境）
 
 - 用戶：sisisleeping
-- WSGI：/var/www/sisisleeping_pythonanywhere_com_wsgi.py
+- WSGI：/var/www/sisisleeping_pythonanywhere_com_wsgi.py（內容只有
+  `from app import app as application`，**不會呼叫 `init_db()`**）
 - DB 路徑（PA）：~/beauty-vip-webapp/data/beauty_vip.db
 - Reload 方式：`touch /var/www/sisisleeping_pythonanywhere_com_wsgi.py`
+
+⚠️ **schema migration 不會自動套用**：`init_db()`（含 `ALTER TABLE` 補欄位的遷移迴圈）只在
+`app.py` 的 `if __name__=="__main__":`（本機 `python3 app.py` 開發模式）會執行，WSGI 正式環境
+永遠不會自動跑。2026-08-09 之前所有欄位遷移都是靠事後手動在 PA console 執行
+`python3 -c "import app; app.init_db()"` 補上的，deploy.sh 本身不會做這件事。
+`scripts/deploy.sh` 已在 2026-08-09 修正，`git pull` 後會自動接著跑這行，**之後只要用
+`scripts/deploy.sh` 部署就不會再漏**；但如果哪次改用手動流程部署，記得也要補這一步。
 
 ### 部署流程（程式碼）
 
