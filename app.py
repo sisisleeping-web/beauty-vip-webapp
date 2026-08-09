@@ -1889,11 +1889,14 @@ def update_customer(customer_id):
     name = request.form.get("name", "").strip()
     phone = request.form.get("phone", "").strip()
     birthday = request.form.get("birthday", "").strip()
+    tier_expires_date = request.form.get("tier_expires_date", "").strip()
     try:
         if birthday:
             datetime.strptime(birthday, "%Y-%m-%d")
+        if tier_expires_date:
+            datetime.strptime(tier_expires_date, "%Y-%m-%d")
     except ValueError:
-        return "生日格式錯誤，請使用 YYYY-MM-DD", 400
+        return "日期格式錯誤，請使用 YYYY-MM-DD", 400
 
     updates = []
     params: list[Any] = []
@@ -1929,6 +1932,29 @@ def update_customer(customer_id):
                         409,
                     )
             return f"<p style='color:red;padding:20px;'>儲存失敗：{err_msg}</p><p><a href='/contacts'>← 返回通訊錄</a></p>", 500
+
+    if tier_expires_date:
+        # tier_expires_date 是 get_effective_tier_state() 投影出的值，不是原始欄位；
+        # 先重新評估寫回，確保手動覆寫的起點跟畫面上看到的一致，再套用覆寫。
+        state = reevaluate_and_persist_tier(db, customer_id, date.today())
+        if not state.get("tier_effective_date"):
+            return (
+                "<p style='color:red;padding:20px;'>儲存失敗：此顧客目前為一般會員，沒有等級效期可調整。</p>"
+                "<p><a href='/contacts'>← 返回通訊錄</a></p>",
+                400,
+            )
+        if tier_expires_date <= state["tier_effective_date"]:
+            return (
+                f"<p style='color:red;padding:20px;'>儲存失敗：到期日必須晚於生效日（{state['tier_effective_date']}）。</p>"
+                "<p><a href='/contacts'>← 返回通訊錄</a></p>",
+                400,
+            )
+        db.execute(
+            "UPDATE customers SET tier_expires_date=? WHERE id=?",
+            (tier_expires_date, customer_id),
+        )
+        db.commit()
+
     return redirect(url_for("contacts"))
 
 

@@ -75,8 +75,8 @@
         {% endfor %}
       </select>
     </div>
-    <div style="display:flex; gap:8px; align-items:flex-end; padding-top: 4px; flex-wrap:wrap;">
-      <button type="submit" style="background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;flex:1;">🔍 查詢</button>
+    <div style="grid-column: 1 / -1; display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
+      <button type="submit" style="background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;">🔍 查詢</button>
       <button type="submit" formaction="/report/export.csv" formtarget="_blank"
         style="background:var(--success);color:#fff;white-space:nowrap;">📥 匯出目前條件</button>
       <a href="/report/export.csv?month_from=2000-01&month_to=2099-12" target="_blank">
