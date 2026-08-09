@@ -19,3 +19,6 @@ runtime.err.log
 # OS
 .DS_Store
 Thumbs.db
+
+# Backup files created before risky edits
+*.bak_*

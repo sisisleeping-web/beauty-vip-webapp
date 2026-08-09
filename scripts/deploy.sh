@@ -1,67 +1,80 @@
-#!/bin/bash
-# deploy.sh — 一鍵部署美咖美容 VIP 系統到 PythonAnywhere
-# 使用方式：./scripts/deploy.sh
-# 前提：本機要有 CDP 可連的 PA 瀏覽器 session（agent-browser 或 Gemini browser）
+#!/usr/bin/env bash
+# 把本機 beauty-vip-webapp 的最新變更推到 GitHub，再同步到 PythonAnywhere 正式環境。
+# 用法：scripts/deploy.sh
+set -euo pipefail
 
-set -e
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="$HOME/.config/beauty-vip/pythonanywhere.env"
 
-PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-CONSOLE_ID="46019051"
-PA_USER="sisisleeping"
-PA_DEPLOY_CMD="cd ~/beauty-vip-webapp && git pull --ff-only && touch /var/www/${PA_USER}_pythonanywhere_com_wsgi.py && echo DEPLOY_DONE"
+if [ ! -f "$ENV_FILE" ]; then
+    echo "找不到 $ENV_FILE，請先設定 PYTHONANYWHERE_USERNAME / PYTHONANYWHERE_DOMAIN / PYTHONANYWHERE_API_TOKEN / PYTHONANYWHERE_BROWSER_ACT_ID" >&2
+    exit 1
+fi
+# shellcheck disable=SC1090
+source "$ENV_FILE"
 
-echo "=== 美咖美容 VIP — 部署到 PythonAnywhere ==="
+: "${PYTHONANYWHERE_USERNAME:?missing}"
+: "${PYTHONANYWHERE_DOMAIN:?missing}"
+: "${PYTHONANYWHERE_API_TOKEN:?missing}"
+: "${PYTHONANYWHERE_BROWSER_ACT_ID:?missing}"
 
-# Step 1: git push
-cd "$PROJECT_DIR"
-echo "[1/2] git push origin main..."
+API_BASE="https://www.pythonanywhere.com/api/v0/user/${PYTHONANYWHERE_USERNAME}"
+AUTH_HEADER="Authorization: Token ${PYTHONANYWHERE_API_TOKEN}"
+BA_SESSION="beauty-vip-deploy-$$"
+
+cleanup() {
+    browser-act session close "$BA_SESSION" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+cd "$REPO_DIR"
+
+if [ -n "$(git status --porcelain)" ]; then
+    echo "提醒：本機還有未 commit 的修改（僅供參考，不會被推上去，git push 只送出已 commit 的內容）：" >&2
+    git status --short >&2
+fi
+
+echo "==> git push origin main"
 git push origin main
-echo "      OK"
 
-# Step 2: PA deploy via CDP
-echo "[2/2] 連接 PA Bash console 執行 git pull..."
-python3 - << PYEOF
-import subprocess, sys, json, time
+echo "==> 在 PythonAnywhere 建立 console"
+CONSOLE_ID=$(curl -sS -X POST "${API_BASE}/consoles/" \
+    -H "$AUTH_HEADER" \
+    -d "executable=bash" -d "arguments=" \
+    | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
 
-# Find CDP port from agent-browser
-import glob, os
-devtools_files = glob.glob("/var/folders/*/*/T/agent-browser-chrome-*/DevToolsActivePort")
-if not devtools_files:
-    print("找不到 CDP 瀏覽器，請手動在 PA console 執行：")
-    print("  cd ~/beauty-vip-webapp && git pull --ff-only && touch /var/www/${PA_USER}_pythonanywhere_com_wsgi.py")
-    sys.exit(1)
+echo "==> 喚醒 console（API 建立的 console 預設休眠，需開一次頁面才會啟動 pty）"
+browser-act --session "$BA_SESSION" browser open "$PYTHONANYWHERE_BROWSER_ACT_ID" \
+    "https://www.pythonanywhere.com/user/${PYTHONANYWHERE_USERNAME}/consoles/${CONSOLE_ID}/" >/dev/null
+sleep 10
 
-with open(devtools_files[0]) as f:
-    port = int(f.readline().strip())
+REMOTE_CMD="cd ~/beauty-vip-webapp && git pull --ff-only && echo '__UPDATE_DONE__'"
 
-from playwright.sync_api import sync_playwright
-CONSOLE_URL = f"https://www.pythonanywhere.com/user/${PA_USER}/consoles/${CONSOLE_ID}/"
-DEPLOY_CMD = "${PA_DEPLOY_CMD}"
+curl -sS -X POST "${API_BASE}/consoles/${CONSOLE_ID}/send_input/" \
+    -H "$AUTH_HEADER" \
+    --data-urlencode "input=${REMOTE_CMD}
+" > /dev/null
 
-with sync_playwright() as p:
-    browser = p.chromium.connect_over_cdp(f"http://localhost:{port}")
-    ctx = browser.contexts[0]
-    page = ctx.new_page()
-    page.goto(CONSOLE_URL, wait_until="domcontentloaded")
+echo "==> 等待遠端指令執行完成"
+for _ in $(seq 1 30); do
+    sleep 2
+    OUTPUT=$(curl -sS "${API_BASE}/consoles/${CONSOLE_ID}/get_latest_output/" \
+        -H "$AUTH_HEADER" | python3 -c "import sys,json; print(json.load(sys.stdin).get('output',''))" || true)
+    if echo "$OUTPUT" | grep -q "__UPDATE_DONE__"; then
+        echo "$OUTPUT"
+        break
+    fi
+done
 
-    for _ in range(20):
-        time.sleep(2)
-        try:
-            if "\$" in page.evaluate("document.body.innerText"): break
-        except: pass
+if ! echo "${OUTPUT:-}" | grep -q "__UPDATE_DONE__"; then
+    echo "遠端指令逾時或失敗，請人工檢查 console id=${CONSOLE_ID}" >&2
+    echo "https://www.pythonanywhere.com/user/${PYTHONANYWHERE_USERNAME}/consoles/${CONSOLE_ID}/" >&2
+    exit 1
+fi
 
-    time.sleep(1)
-    page.mouse.click(640, 300)
-    time.sleep(0.5)
-    page.keyboard.type(DEPLOY_CMD)
-    page.keyboard.press("Enter")
-    print("      指令已送出，等待執行...")
-    time.sleep(12)
-    page.screenshot(path="/tmp/beauty_deploy_result.png")
-    browser.close()
+curl -sS -X DELETE "${API_BASE}/consoles/${CONSOLE_ID}/" -H "$AUTH_HEADER" > /dev/null || true
 
-print("      PA 部署完成（截圖：/tmp/beauty_deploy_result.png）")
-PYEOF
-
-echo ""
-echo "✓ 部署完成：https://sisisleeping.pythonanywhere.com"
+echo "==> Reload web app"
+curl -sS -X POST "${API_BASE}/webapps/${PYTHONANYWHERE_DOMAIN}/reload/" -H "$AUTH_HEADER"
+echo
+echo "==> 完成。檢查 https://${PYTHONANYWHERE_DOMAIN}"
