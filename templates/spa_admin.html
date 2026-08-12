@@ -86,7 +86,7 @@
         <button onclick="confirmBooking({{ b.id }})" style="background:var(--success);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;box-shadow:none;min-height:unset;">確認</button>
         {% endif %}
         <button onclick="openEditModal({{ b.id }}, '{{ b.store_id }}', '{{ b.store_name }}', '{{ b.booking_date }}', '{{ b.booking_time }}')" style="background:var(--tier-s);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;box-shadow:none;min-height:unset;">修改時段</button>
-        <button onclick="deleteBooking({{ b.id }})" style="background:var(--danger);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;box-shadow:none;min-height:unset;">刪除</button>
+        {% if b.status != 'cancelled' %}<button onclick="deleteBooking({{ b.id }})" style="background:var(--danger);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;box-shadow:none;min-height:unset;">取消</button>{% endif %}
       </td>
     </tr>
     {% else %}
@@ -457,12 +457,12 @@ function saveCapacity() {
 }
 
 function deleteBooking(id) {
-  if(confirm("確定要刪除這筆預約嗎？(此操作無法復原)")) {
+  if(confirm("確定要取消這筆預約嗎？取消後仍會保留紀錄。")) {
     fetch(`/api/spa/bookings/${id}/delete`, { method: 'POST' })
       .then(res => res.json())
       .then(data => {
         if(data.status === 'success') location.reload();
-        else alert(data.error || '刪除失敗');
+        else alert(data.error || '取消失敗');
       })
       .catch(err => alert('發生錯誤'));
   }

@@ -5,11 +5,15 @@ import csv
 import io
 import json
 import os
+import re
 import sqlite3
+import threading
+import time
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from flask import Flask, g, redirect, render_template, request, session, url_for, send_file
 
@@ -17,15 +21,79 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "data" / "beauty_vip.db"
 RULES_PATH = BASE_DIR / "rules.json"
 
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.3.0"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("APP_SECRET_KEY", "beauty-vip-demo")
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.getenv("SESSION_COOKIE_SECURE", "1") != "0",
+    MAX_CONTENT_LENGTH=1 * 1024 * 1024,
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+)
 MANAGER_PIN = os.getenv("MANAGER_PIN", "1225")
 MAIN_PIN = os.getenv("MAIN_PIN", "27789254")
 
+AUTH_WINDOW_SECONDS = 300
+AUTH_MAX_FAILURES = 5
+_auth_failures: dict[str, list[float]] = {}
+_auth_lock = threading.Lock()
+
+
+def _client_key(scope: str) -> str:
+    # 不信任可由客戶端偽造的 X-Forwarded-For；PythonAnywhere 會提供 remote_addr。
+    address = request.remote_addr or "unknown"
+    return f"{scope}:{address}"
+
+
+def _auth_is_limited(scope: str) -> bool:
+    now = time.monotonic()
+    key = _client_key(scope)
+    with _auth_lock:
+        recent = [stamp for stamp in _auth_failures.get(key, []) if now - stamp < AUTH_WINDOW_SECONDS]
+        if recent:
+            _auth_failures[key] = recent
+        else:
+            _auth_failures.pop(key, None)
+        return len(recent) >= AUTH_MAX_FAILURES
+
+
+def _record_auth_failure(scope: str) -> None:
+    key = _client_key(scope)
+    with _auth_lock:
+        _auth_failures.setdefault(key, []).append(time.monotonic())
+
+
+def _clear_auth_failures(scope: str) -> None:
+    key = _client_key(scope)
+    with _auth_lock:
+        _auth_failures.pop(key, None)
+
+
+@app.after_request
+def add_security_headers(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "same-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; connect-src 'self'; "
+        "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+    )
+    if request.is_secure:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return response
+
 @app.before_request
 def require_main_auth():
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        origin = request.headers.get("Origin")
+        # 反向代理可能讓 Flask 看到 http、瀏覽器看到 https；比對 host 才不會誤擋正式站寫入。
+        if origin and urlsplit(origin).netloc.lower() != request.host.lower():
+            return {"status": "error", "message": "cross-site request rejected"}, 403
     if request.path.startswith("/static/"):
         return
     if request.path.startswith("/my"):
@@ -44,10 +112,15 @@ def require_main_auth():
 
 @app.route("/main_unlock", methods=["POST"])
 def main_unlock():
+    if _auth_is_limited("main"):
+        return render_template("main_lock.html", error="嘗試次數過多，請五分鐘後再試。"), 429
     pin = (request.form.get("pin") or "").strip()
     if pin == MAIN_PIN:
+        _clear_auth_failures("main")
         session["main_authed"] = True
+        session.permanent = True
         return redirect(url_for("index"))
+    _record_auth_failure("main")
     return render_template("main_lock.html", error="密碼錯誤，請再試一次。")
 
 @app.route("/main_logout")
@@ -104,6 +177,16 @@ def parse_date_or_today(value: str) -> date:
     if not value:
         return date.today()
     return datetime.strptime(value, "%Y-%m-%d").date()
+
+
+def get_spa_slots(store_id: str, booking_day: date) -> tuple[str, ...]:
+    """單一後端時段政策，避免 UI 與 API 各自維護後產生繞過漏洞。"""
+    weekday = booking_day.weekday()  # Monday=0, Sunday=6
+    if store_id == "store_a":
+        return ("09:00", "13:00", "15:00", "17:00") if weekday < 5 else ("09:00", "14:00", "16:00")
+    if store_id == "store_b":
+        return ("09:00", "13:00", "15:00", "17:00") if weekday < 6 else ()
+    return ()
 
 
 def init_db() -> None:
@@ -1542,10 +1625,15 @@ def update_transaction_deduct(txn_id):
 
 @app.route("/manager/unlock", methods=["POST"])
 def manager_unlock():
+    if _auth_is_limited("manager"):
+        return render_template("manager_lock.html", error="嘗試次數過多，請五分鐘後再試。"), 429
     pin = (request.form.get("pin") or "").strip()
     if pin == MANAGER_PIN:
+        _clear_auth_failures("manager")
         session["manager_authed"] = True
+        session.permanent = True
         return redirect(url_for("manager_dashboard"))
+    _record_auth_failure("manager")
     return render_template("manager_lock.html", error="密碼錯誤，請再試一次。")
 
 
@@ -1761,8 +1849,25 @@ def contacts():
 
 @app.route("/api/customers/<int:customer_id>/delete", methods=["POST"])
 def delete_customer(customer_id):
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
     db = get_db()
-    db.execute("DELETE FROM transactions WHERE customer_id=?", (customer_id,))
+    customer = db.execute("SELECT id FROM customers WHERE id=?", (customer_id,)).fetchone()
+    if not customer:
+        return "找不到此顧客", 404
+    ledger_count = db.execute(
+        "SELECT (SELECT COUNT(*) FROM transactions WHERE customer_id=?) + "
+        "(SELECT COUNT(*) FROM coin_batches WHERE customer_id=?) + "
+        "(SELECT COUNT(*) FROM point_adjustments WHERE customer_id=?) + "
+        "(SELECT COUNT(*) FROM tier_upgrades WHERE customer_id=?)",
+        (customer_id, customer_id, customer_id, customer_id),
+    ).fetchone()[0]
+    if ledger_count:
+        return "此顧客已有交易、點數或會員稽核紀錄，為保留帳務歷史不可刪除。", 409
+    db.execute(
+        "DELETE FROM review_flags WHERE item_type='birthday_suspicious' AND item_key=?",
+        (str(customer_id),),
+    )
     db.execute("DELETE FROM customers WHERE id=?", (customer_id,))
     db.commit()
     return redirect(url_for("contacts"))
@@ -2428,10 +2533,12 @@ def spa_booking():
 def spa_availability():
     store_id = request.args.get("store_id", "").strip()
     year_month = request.args.get("month", "").strip() # YYYY-MM
-    if not store_id or not year_month:
+    if not store_id or not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", year_month):
         return {"error": "Missing parameters"}, 400
         
     db = get_db()
+    if not db.execute("SELECT 1 FROM stores WHERE id=?", (store_id,)).fetchone():
+        return {"error": "Invalid store"}, 400
     # Find all bookings for this store in this month
     rows = db.execute(
         "SELECT booking_date, booking_time, COUNT(*) as cnt FROM spa_bookings WHERE store_id = ? AND booking_date LIKE ? AND status != 'cancelled' GROUP BY booking_date, booking_time",
@@ -2465,6 +2572,8 @@ def spa_availability():
 
 @app.route("/api/spa/capacity/update", methods=["POST"])
 def spa_capacity_update():
+    if not (session.get("manager_authed") or session.get("main_authed")):
+        return {"error": "Unauthorized"}, 403
     store_id = request.form.get("store_id", "").strip()
     override_date = request.form.get("override_date", "").strip()
     override_time = request.form.get("override_time", "").strip()
@@ -2475,10 +2584,26 @@ def spa_capacity_update():
         
     try:
         capacity_int = int(capacity)
+        datetime.strptime(override_date, "%Y-%m-%d")
+        datetime.strptime(override_time, "%H:%M")
     except ValueError:
         return {"error": "Invalid capacity"}, 400
+    if not 0 <= capacity_int <= 10:
+        return {"error": "Capacity must be between 0 and 10"}, 400
         
     db = get_db()
+    if not db.execute("SELECT 1 FROM stores WHERE id=?", (store_id,)).fetchone():
+        return {"error": "Invalid store"}, 400
+    if override_time not in get_spa_slots(store_id, datetime.strptime(override_date, "%Y-%m-%d").date()):
+        return {"error": "Invalid booking slot"}, 400
+    db.execute("BEGIN IMMEDIATE")
+    booked = db.execute(
+        "SELECT COUNT(*) AS cnt FROM spa_bookings WHERE store_id=? AND booking_date=? "
+        "AND booking_time=? AND status!='cancelled'",
+        (store_id, override_date, override_time),
+    ).fetchone()["cnt"]
+    if capacity_int < booked:
+        return {"error": f"此時段已有 {booked} 位預約，上限不可調低於現有人數"}, 409
     db.execute(
         """
         INSERT INTO spa_capacity_overrides (store_id, override_date, override_time, capacity)
@@ -2511,22 +2636,39 @@ def spa_book():
     
     if not all([store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type]):
         return {"error": "請填寫完整資料"}, 400
+    if customer_type not in {"existing", "new"}:
+        return {"error": "客群類型錯誤"}, 400
+    if service_type not in {"body", "facial", "nail", "other"}:
+        return {"error": "服務項目錯誤"}, 400
+    if len(customer_name) > 60 or len(customer_phone) > 30 or len(note) > 500:
+        return {"error": "輸入內容過長"}, 400
+    if not re.fullmatch(r"[0-9+()\-\s]{8,30}", customer_phone):
+        return {"error": "電話格式錯誤"}, 400
         
     is_admin = session.get("manager_authed") or session.get("main_authed")
     
     # Check 4-week limit
     try:
         b_date = datetime.strptime(booking_date, "%Y-%m-%d").date()
+        datetime.strptime(booking_time, "%H:%M")
         today_date = date.today()
         if not is_admin:
             if (b_date - today_date).days > 28:
                 return {"error": "僅開放4週(28天)內的預約"}, 400
             if b_date < today_date:
                 return {"error": "無法預約過去的日期"}, 400
+            if (b_date - today_date).days < 3:
+                return {"error": "預約需至少提前3天"}, 400
     except ValueError:
         return {"error": "日期格式錯誤"}, 400
 
     db = get_db()
+    if not db.execute("SELECT 1 FROM stores WHERE id=?", (store_id,)).fetchone():
+        return {"error": "分店錯誤"}, 400
+    if booking_time not in get_spa_slots(store_id, b_date):
+        return {"error": "此分店當日不開放該時段"}, 400
+    # SQLite 的讀取後寫入不是原子操作；先取得寫入鎖，避免兩個同時送出的請求都通過容量檢查。
+    db.execute("BEGIN IMMEDIATE")
     
     # Check if same person already booked on the same day
     same_day_bookings = db.execute(
@@ -2610,26 +2752,66 @@ def spa_admin_bookings():
 
 @app.route("/api/spa/bookings/<int:booking_id>/confirm", methods=["POST"])
 def spa_admin_confirm(booking_id):
+    if not (session.get("manager_authed") or session.get("main_authed")):
+        return {"error": "Unauthorized"}, 403
     db = get_db()
-    db.execute("UPDATE spa_bookings SET status = 'confirmed' WHERE id = ?", (booking_id,))
+    result = db.execute(
+        "UPDATE spa_bookings SET status = 'confirmed' WHERE id = ? AND status='pending'",
+        (booking_id,),
+    )
+    if result.rowcount == 0:
+        return {"error": "Booking not found or not pending"}, 404
     db.commit()
     return {"status": "success"}
 
 @app.route("/api/spa/bookings/<int:booking_id>/update_time", methods=["POST"])
 def spa_admin_update_time(booking_id):
+    if not (session.get("manager_authed") or session.get("main_authed")):
+        return {"error": "Unauthorized"}, 403
     db = get_db()
     new_date = request.form.get("booking_date", "").strip()
     new_time = request.form.get("booking_time", "").strip()
     if not new_date or not new_time:
         return {"error": "Missing parameters"}, 400
+    try:
+        datetime.strptime(new_date, "%Y-%m-%d")
+        datetime.strptime(new_time, "%H:%M")
+    except ValueError:
+        return {"error": "Invalid date or time"}, 400
+    booking = db.execute("SELECT store_id FROM spa_bookings WHERE id=?", (booking_id,)).fetchone()
+    if not booking:
+        return {"error": "Booking not found"}, 404
+    new_day = datetime.strptime(new_date, "%Y-%m-%d").date()
+    if new_time not in get_spa_slots(booking["store_id"], new_day):
+        return {"error": "此分店當日不開放該時段"}, 400
+    db.execute("BEGIN IMMEDIATE")
+    count = db.execute(
+        "SELECT COUNT(*) AS cnt FROM spa_bookings WHERE store_id=? AND booking_date=? AND booking_time=? "
+        "AND status!='cancelled' AND id!=?",
+        (booking["store_id"], new_date, new_time, booking_id),
+    ).fetchone()["cnt"]
+    cap = db.execute(
+        "SELECT capacity FROM spa_capacity_overrides WHERE store_id=? AND override_date=? AND override_time=?",
+        (booking["store_id"], new_date, new_time),
+    ).fetchone()
+    if count >= (int(cap["capacity"]) if cap else 2):
+        return {"error": "該時段已額滿"}, 409
     db.execute("UPDATE spa_bookings SET booking_date=?, booking_time=? WHERE id=?", (new_date, new_time, booking_id))
     db.commit()
     return {"status": "success"}
 
 @app.route("/api/spa/bookings/<int:booking_id>/delete", methods=["POST"])
 def spa_admin_delete(booking_id):
+    if not (session.get("manager_authed") or session.get("main_authed")):
+        return {"error": "Unauthorized"}, 403
     db = get_db()
-    db.execute("DELETE FROM spa_bookings WHERE id = ?", (booking_id,))
+    # 預約資料屬營運紀錄，取消時保留原始內容，不做不可追溯的硬刪除。
+    result = db.execute(
+        "UPDATE spa_bookings SET status='cancelled' WHERE id=? AND status!='cancelled'",
+        (booking_id,),
+    )
+    if result.rowcount == 0:
+        return {"error": "Booking not found or already cancelled"}, 404
     db.commit()
     return {"status": "success"}
 

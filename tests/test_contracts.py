@@ -1,0 +1,176 @@
+from __future__ import annotations
+
+import tempfile
+import unittest
+from datetime import date, timedelta
+from pathlib import Path
+
+import app as beauty
+
+
+class BeautyVipContractTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        beauty.DB_PATH = Path(self.tmp.name) / "beauty_vip.db"
+        beauty.app.config.update(TESTING=True, SESSION_COOKIE_SECURE=False)
+        beauty._auth_failures.clear()
+        beauty.init_db()
+        self.client = beauty.app.test_client()
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def _login(self, manager: bool = False) -> None:
+        with self.client.session_transaction() as session:
+            session["manager_authed" if manager else "main_authed"] = True
+
+    def _future_day(self, offset: int = 3) -> str:
+        return (date.today() + timedelta(days=offset)).isoformat()
+
+    def _booking_payload(self, **overrides: str) -> dict[str, str]:
+        payload = {
+            "store_id": "store_a",
+            "booking_date": self._future_day(),
+            "booking_time": "09:00",
+            "customer_name": "測試顧客",
+            "customer_phone": "0912345678",
+            "customer_type": "new",
+            "service_type": "facial",
+            "note": "",
+            "pax": "1",
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_security_headers_and_cross_site_rejection(self) -> None:
+        response = self.client.get("/spa/booking")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["X-Frame-Options"], "DENY")
+        self.assertIn("frame-ancestors 'none'", response.headers["Content-Security-Policy"])
+
+        rejected = self.client.post(
+            "/api/spa/book",
+            data=self._booking_payload(),
+            headers={"Origin": "https://attacker.example"},
+        )
+        self.assertEqual(rejected.status_code, 403)
+        allowed = self.client.post(
+            "/api/spa/book",
+            data=self._booking_payload(),
+            headers={"Origin": "https://localhost"},
+        )
+        self.assertEqual(allowed.status_code, 200)
+
+    def test_pin_login_is_rate_limited(self) -> None:
+        for _ in range(beauty.AUTH_MAX_FAILURES):
+            response = self.client.post("/main_unlock", data={"pin": "wrong"})
+            self.assertEqual(response.status_code, 200)
+        limited = self.client.post("/main_unlock", data={"pin": beauty.MAIN_PIN})
+        self.assertEqual(limited.status_code, 429)
+
+    def test_customer_delete_requires_manager_and_cleans_ledgers(self) -> None:
+        self._login()
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            customer_id = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('甲','1990-01-01','2026-01-01')"
+            ).lastrowid
+            adjustment_id = db.execute(
+                "INSERT INTO point_adjustments(customer_id,points,reason,operator,created_at) VALUES(?,10,'test','staff','2026-01-01')",
+                (customer_id,),
+            ).lastrowid
+            db.execute(
+                "INSERT INTO coin_batches(customer_id,source_adjustment_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
+                "VALUES(?,?,10,10,'2026-01-01','2026-07-01','active',0,'2026-01-01')",
+                (customer_id, adjustment_id),
+            )
+            db.commit()
+
+        forbidden = self.client.post(f"/api/customers/{customer_id}/delete")
+        self.assertEqual(forbidden.status_code, 403)
+        self._login(manager=True)
+        blocked = self.client.post(f"/api/customers/{customer_id}/delete")
+        self.assertEqual(blocked.status_code, 409)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM customers").fetchone()[0], 1)
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM point_adjustments").fetchone()[0], 1)
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM coin_batches").fetchone()[0], 1)
+            empty_id = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('空白','1991-01-01','2026-01-01')"
+            ).lastrowid
+            db.commit()
+        deleted = self.client.post(f"/api/customers/{empty_id}/delete")
+        self.assertEqual(deleted.status_code, 302)
+
+    def test_booking_validates_input_and_capacity(self) -> None:
+        invalid = self.client.post("/api/spa/book", data=self._booking_payload(store_id="unknown"))
+        self.assertEqual(invalid.status_code, 400)
+        invalid_phone = self.client.post(
+            "/api/spa/book", data=self._booking_payload(customer_phone="<script>")
+        )
+        self.assertEqual(invalid_phone.status_code, 400)
+
+        first = self.client.post("/api/spa/book", data=self._booking_payload(customer_name="甲", customer_phone="0911111111"))
+        second = self.client.post("/api/spa/book", data=self._booking_payload(customer_name="乙", customer_phone="0922222222"))
+        full = self.client.post("/api/spa/book", data=self._booking_payload(customer_name="丙", customer_phone="0933333333"))
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(full.status_code, 400)
+
+    def test_admin_move_cannot_overbook(self) -> None:
+        for name, phone in [("甲", "0911111111"), ("乙", "0922222222")]:
+            self.assertEqual(
+                self.client.post("/api/spa/book", data=self._booking_payload(customer_name=name, customer_phone=phone)).status_code,
+                200,
+            )
+        self.assertEqual(
+            self.client.post(
+                "/api/spa/book",
+                data=self._booking_payload(customer_name="丙", customer_phone="0933333333", booking_time="14:00"),
+            ).status_code,
+            200,
+        )
+        self._login()
+        moved = self.client.post(
+            "/api/spa/bookings/3/update_time",
+            data={"booking_date": self._future_day(), "booking_time": "09:00"},
+        )
+        self.assertEqual(moved.status_code, 409)
+
+    def test_capacity_cannot_drop_below_existing_bookings(self) -> None:
+        self.assertEqual(self.client.post("/api/spa/book", data=self._booking_payload()).status_code, 200)
+        self._login()
+        response = self.client.post(
+            "/api/spa/capacity/update",
+            data={
+                "store_id": "store_a",
+                "override_date": self._future_day(),
+                "override_time": "09:00",
+                "capacity": "0",
+            },
+        )
+        self.assertEqual(response.status_code, 409)
+
+    def test_booking_cancel_is_auditable_soft_delete(self) -> None:
+        self.assertEqual(self.client.post("/api/spa/book", data=self._booking_payload()).status_code, 200)
+        self._login()
+        response = self.client.post("/api/spa/bookings/1/delete")
+        self.assertEqual(response.status_code, 200)
+        with beauty.app.app_context():
+            row = beauty.get_db().execute("SELECT status FROM spa_bookings WHERE id=1").fetchone()
+            self.assertEqual(row["status"], "cancelled")
+
+    def test_availability_rejects_invalid_month_and_store(self) -> None:
+        self.assertEqual(
+            self.client.get("/api/spa/availability?store_id=store_a&month=2026-99").status_code,
+            400,
+        )
+        self.assertEqual(
+            self.client.get("/api/spa/availability?store_id=unknown&month=2026-08").status_code,
+            400,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
