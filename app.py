@@ -707,11 +707,11 @@ def reevaluate_tier_after_void(
     current_tier_name = state["member_tier"]
 
     new_max_single = get_past_max_single(db, customer_id)
-    if state["tier_effective_date"]:
-        accum_total = _window_total(db, customer_id, state["tier_effective_date"], state["tier_expires_date"])
-    else:
-        accum_total = customer_year_total(db, customer_id, as_of.strftime("%Y"))
-    recomputed = calc_tier(new_max_single, accum_total, rules)
+    # 升等門檻的「年度累計」是曆年累計，不是目前會員效期開始後的累計。
+    # 先前使用 member_tier 的效期窗口，會在作廢重複交易時遺失會員升等前
+    # 已累積的消費，讓仍符合年度門檻的會員被錯誤降級。
+    annual_total = customer_year_total(db, customer_id, as_of.strftime("%Y"))
+    recomputed = calc_tier(new_max_single, annual_total, rules)
 
     idx_current = TIER_ORDER.index(current_tier_name) if current_tier_name in TIER_ORDER else 0
     idx_recomputed = TIER_ORDER.index(recomputed.name) if recomputed.name in TIER_ORDER else 0
@@ -719,7 +719,7 @@ def reevaluate_tier_after_void(
         return  # 扣除這筆之後，累計仍然支撐得起現有等級，不用動
 
     now_str = datetime.now().isoformat(timespec="seconds")
-    reason = f"作廢交易 id={trigger_txn_id} 後累計降為 {int(accum_total):,} 元" + (
+    reason = f"作廢交易 id={trigger_txn_id} 後年度累計降為 {int(annual_total):,} 元" + (
         f"（{void_reason}）" if void_reason else ""
     )
     for step in range(idx_current, idx_recomputed, -1):

@@ -190,6 +190,34 @@ class BeautyVipContractTests(unittest.TestCase):
                 "member_tier": "A級美咖", "tier_effective_date": "2026-04-12", "tier_expires_date": "2027-04-12",
             })
 
+    def test_void_recalculation_keeps_tier_when_calendar_year_threshold_remains(self) -> None:
+        """作廢重複單後，仍要用整個曆年累計判斷，不可只看會員效期後的消費。"""
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            customer_id = db.execute(
+                "INSERT INTO customers(name,birthday,created_at,member_tier,tier_effective_date,tier_expires_date) "
+                "VALUES('作廢稽核','1990-01-01','2026-01-01','P級美咖','2026-07-05','2027-07-05')"
+            ).lastrowid
+            for txn_date, amount in [
+                ('2026-01-10', 6000), ('2026-02-28', 1899), ('2026-04-11', 6750),
+                ('2026-06-20', 4999), ('2026-07-04', 8700), ('2026-08-01', 3500),
+            ]:
+                db.execute(
+                    "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,created_at,entry_mode) "
+                    "VALUES(?, 'store_a', ?, substr(?,1,7), ?, ?, 0, ?, 'normal')",
+                    (customer_id, txn_date, txn_date, amount, amount, txn_date),
+                )
+            void_id = db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,created_at,entry_mode,voided_at) "
+                "VALUES(?, 'store_a','2026-08-01','2026-08',3500,3500,0,'2026-08-01','normal','2026-08-10T00:00:00')",
+                (customer_id,),
+            ).lastrowid
+            beauty.reevaluate_tier_after_void(
+                db, customer_id, beauty.load_rules(), date(2026, 8, 10), void_id, '重複交易'
+            )
+            row = db.execute("SELECT member_tier FROM customers WHERE id=?", (customer_id,)).fetchone()
+            self.assertEqual(row['member_tier'], 'P級美咖')
+
     def test_merge_preview_and_undo_restore_every_moved_ledger(self) -> None:
         self._login(manager=True)
         with beauty.app.app_context():
