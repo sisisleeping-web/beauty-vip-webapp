@@ -31,6 +31,21 @@
   </form>
 </div>
 
+{% if recent_merges %}
+<div class="card" style="border-color:var(--warning);">
+  <h4>⏪ 最近合併（可還原）</h4>
+  <p class="text-muted" style="font-size:.9em;">若合併後尚未新增消費，可用原因＋二次確認還原來源顧客及全部帳本。</p>
+  {% for op in recent_merges %}
+  <form method="post" action="/api/customer-merges/{{ op.id }}/undo" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:8px 0;">
+    <span>#{{ op.id }}　{{ op.keep_name }} ← {{ op.absorbed_name }}　{{ op.created_at[:16] }}<br><small>原合併原因：{{ op.reason }}</small></span>
+    <input type="text" name="reason" required minlength="2" placeholder="還原原因">
+    <input type="hidden" name="confirmed" value="1">
+    <button type="submit" onclick="return confirm('確定還原這次合併？若已有新消費，系統會拒絕以避免錯分帳本。');" style="background:var(--danger);color:#fff;">⏪ 還原合併</button>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
+
 <!-- Section A: Suspicious Birthdays -->
 <div class="card">
   <h4>A. 可疑生日（預設值/佔位符）</h4>
@@ -60,8 +75,9 @@
       </td>
       <td style="min-width:320px;">
         <!-- Update birthday -->
-        <form method="post" action="/review/update_birthday/{{ r.id }}" style="display:inline-flex;gap:4px;align-items:center;">
+        <form method="post" action="/review/update_birthday/{{ r.id }}" style="display:inline-flex;gap:4px;align-items:center;" onsubmit="return confirmBirthdayChange(this);">
           <input type="date" name="birthday" value="{{ r.birthday }}" style="padding:4px;">
+          <input type="hidden" name="reason"><input type="hidden" name="confirmed" value="1">
           <button type="submit" style="background:var(--tier-s);color:white;border:none;border-radius:var(--radius-sm);padding:4px 8px;cursor:pointer;box-shadow:none;min-height:unset;">儲存生日</button>
         </form>
         &nbsp;
@@ -116,21 +132,21 @@
         <td>{{ m.phone or '-' }}</td>
         <td style="font-size:0.85em;">{{ m.created_at }}</td>
         <td>
-          <form method="post" action="/review/update_birthday/{{ m.id }}" style="display:inline-flex;gap:4px;align-items:center;">
+          <form method="post" action="/review/update_birthday/{{ m.id }}" style="display:inline-flex;gap:4px;align-items:center;" onsubmit="return confirmBirthdayChange(this);">
             <input type="date" name="birthday" value="{{ m.birthday }}" style="padding:4px;">
+            <input type="hidden" name="reason"><input type="hidden" name="confirmed" value="1">
             <button type="submit" style="background:var(--tier-s);color:white;border:none;border-radius:var(--radius-sm);padding:4px 8px;cursor:pointer;box-shadow:none;min-height:unset;">儲存生日</button>
           </form>
         </td>
         <td>
           {# Merge buttons: for each OTHER member, offer to absorb them INTO this one #}
           {% for target in grp.members if target.id != m.id %}
-          <form method="post" action="/api/customers/merge" style="display:inline;">
+          <form method="get" action="/api/customers/merge/preview" style="display:inline;">
             <input type="hidden" name="keep_id" value="{{ m.id }}">
             <input type="hidden" name="absorb_id" value="{{ target.id }}">
             <button type="submit"
-              onclick="return confirm('確定要將 ID {{ target.id }}（{{ target.birthday }}）的所有消費紀錄合併至 ID {{ m.id }}（{{ m.birthday }}），並刪除 ID {{ target.id }}？此動作無法復原。')"
               style="background:var(--warning);color:white;border:none;border-radius:var(--radius-sm);padding:4px 9px;font-size:12px;cursor:pointer;box-shadow:none;min-height:unset;">
-              ⇦ 吸收 ID {{ target.id }}
+              🔎 預覽吸收 ID {{ target.id }}
             </button>
           </form>
           {% endfor %}
@@ -158,4 +174,12 @@
   <p style="color:var(--success);">✅ 目前無同名多生日候選人。</p>
   {% endif %}
 </div>
+<script>
+function confirmBirthdayChange(form) {
+  const reason = prompt('更正生日會影響會員資料，請輸入原因（至少兩字）：');
+  if (!reason || reason.trim().length < 2) return false;
+  form.querySelector('input[name="reason"]').value = reason.trim();
+  return confirm('確認更正生日？系統會保留更正前後紀錄。');
+}
+</script>
 {% endblock %}

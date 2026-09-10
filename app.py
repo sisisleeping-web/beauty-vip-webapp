@@ -314,6 +314,30 @@ def init_db() -> None:
             created_at TEXT NOT NULL,
             FOREIGN KEY(batch_id) REFERENCES coin_batches(id)
         );
+
+        CREATE TABLE IF NOT EXISTS customer_operation_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            action TEXT NOT NULL,
+            customer_id INTEGER NOT NULL,
+            related_customer_id INTEGER,
+            reason TEXT NOT NULL,
+            before_json TEXT NOT NULL DEFAULT '{}',
+            after_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS customer_merge_operations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            keep_customer_id INTEGER NOT NULL,
+            absorbed_customer_id INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            keep_before_json TEXT NOT NULL,
+            absorbed_before_json TEXT NOT NULL,
+            moved_ids_json TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'merged',
+            created_at TEXT NOT NULL,
+            reverted_at TEXT
+        );
         """
     )
 
@@ -336,6 +360,9 @@ def init_db() -> None:
         ("customers", "tier_expires_date", "TEXT DEFAULT NULL"),
         ("customers", "pending_tier", "TEXT DEFAULT NULL"),
         ("customers", "pending_effective_date", "TEXT DEFAULT NULL"),
+        # 合併不硬刪來源顧客，保留可撤銷的資料鏈。
+        ("customers", "merged_into_customer_id", "INTEGER DEFAULT NULL"),
+        ("customers", "merged_at", "TEXT DEFAULT NULL"),
         # 2026美咖會員制度V3 Phase 2：退款回溯完整化，tier_upgrades 也記錄非「達標升等」的事件。
         ("tier_upgrades", "event_type", "TEXT NOT NULL DEFAULT 'upgrade'"),
     ]:
@@ -603,18 +630,21 @@ def reevaluate_and_persist_tier(db: sqlite3.Connection, customer_id: int, as_of:
     return state or dict(_EMPTY_TIER_STATE)
 
 
-def _merged_history_tier_state(db: sqlite3.Connection, customer_id: int, as_of: date) -> dict:
+def _history_tier_state_for_customers(db: sqlite3.Connection, customer_ids: list[int], as_of: date) -> dict:
     """Derive the strongest tier now supported by the merged customer's current-year history.
 
     A merge can join two partial customer histories after their transactions were entered.
     Unlike normal entry, there is no new transaction to schedule the pending upgrade, so a
     threshold already crossed in the past must be materialised as effective on the next day.
     """
+    if not customer_ids:
+        return dict(_EMPTY_TIER_STATE)
+    marks = ",".join("?" * len(customer_ids))
     rows = db.execute(
-        "SELECT txn_date, final_amount FROM transactions "
-        "WHERE customer_id=? AND entry_mode='normal' AND final_amount>=1000 "
+        f"SELECT txn_date, final_amount FROM transactions "
+        f"WHERE customer_id IN ({marks}) AND entry_mode='normal' AND final_amount>=1000 "
         "AND voided_at IS NULL AND txn_date<=? ORDER BY txn_date ASC, id ASC",
-        (customer_id, as_of.isoformat()),
+        [*customer_ids, as_of.isoformat()],
     ).fetchall()
     running_max = 0.0
     totals_by_year: dict[str, float] = {}
@@ -643,6 +673,10 @@ def _merged_history_tier_state(db: sqlite3.Connection, customer_id: int, as_of: 
         "pending_tier": None,
         "pending_effective_date": None,
     }
+
+
+def _merged_history_tier_state(db: sqlite3.Connection, customer_id: int, as_of: date) -> dict:
+    return _history_tier_state_for_customers(db, [customer_id], as_of)
 
 
 def _reconcile_tier_after_merge(
@@ -724,7 +758,7 @@ def reevaluate_tier_after_void(
 
 def get_or_create_customer(db: sqlite3.Connection, name: str, birthday: str, phone: str = "") -> int:
     row = db.execute(
-        "SELECT id FROM customers WHERE name=? AND birthday=?", (name, birthday)
+        "SELECT id FROM customers WHERE name=? AND birthday=? AND merged_into_customer_id IS NULL", (name, birthday)
     ).fetchone()
     if row:
         if phone:
@@ -997,10 +1031,47 @@ def has_column(db: sqlite3.Connection, table: str, column: str) -> bool:
         return False
 
 
+def _confirmed_reason() -> str | None:
+    """Return the declared reason only for deliberately confirmed high-risk operations."""
+    reason = request.form.get("reason", "").strip()
+    if request.form.get("confirmed") != "1":
+        return None
+    return reason if len(reason) >= 2 else None
+
+
+def _log_customer_operation(
+    db: sqlite3.Connection, action: str, customer_id: int, reason: str,
+    before: dict | None = None, after: dict | None = None, related_customer_id: int | None = None,
+) -> None:
+    db.execute(
+        "INSERT INTO customer_operation_log(action,customer_id,related_customer_id,reason,before_json,after_json,created_at) "
+        "VALUES(?,?,?,?,?,?,?)",
+        (action, customer_id, related_customer_id, reason, json.dumps(before or {}, ensure_ascii=False),
+         json.dumps(after or {}, ensure_ascii=False), datetime.now().isoformat(timespec="seconds")),
+    )
+
+
+def _customer_merge_summary(db: sqlite3.Connection, customer_id: int) -> dict | None:
+    row = db.execute(
+        "SELECT id,name,phone,birthday,member_tier,tier_effective_date,tier_expires_date,coin_balance,merged_into_customer_id "
+        "FROM customers WHERE id=?",
+        (customer_id,),
+    ).fetchone()
+    if not row or row["merged_into_customer_id"]:
+        return None
+    data = dict(row)
+    spend = db.execute(
+        "SELECT COUNT(*) AS txn_count,COALESCE(SUM(final_amount),0) AS total_spend FROM transactions "
+        "WHERE customer_id=? AND voided_at IS NULL", (customer_id,)
+    ).fetchone()
+    data.update(dict(spend))
+    return data
+
+
 def get_customer_tier_map(db: sqlite3.Connection, year: str) -> dict[int, str]:
     """回傳每位顧客「現在」的有效等級（V3 Phase 1 起用 get_effective_tier 現算，不寫入）。
     year 參數保留給既有呼叫端相容，但等級一律代表現況，不是某個歷史日曆年的回推。"""
-    customer_ids = [int(r["id"]) for r in db.execute("SELECT id FROM customers").fetchall()]
+    customer_ids = [int(r["id"]) for r in db.execute("SELECT id FROM customers WHERE merged_into_customer_id IS NULL").fetchall()]
     return {cid: get_effective_tier(db, cid) for cid in customer_ids}
 
 
@@ -1017,10 +1088,39 @@ def search_customers():
 
     db = get_db()
     rows = db.execute(
-        "SELECT id, name, phone, birthday, coin_balance FROM customers WHERE name LIKE ? OR phone LIKE ? LIMIT 10",
+        "SELECT id, name, phone, birthday, coin_balance FROM customers WHERE merged_into_customer_id IS NULL AND (name LIKE ? OR phone LIKE ?) LIMIT 10",
         (f"%{query}%", f"%{query}%")
     ).fetchall()
 
+    return {"customers": [dict(r) for r in rows]}
+
+
+@app.route("/api/customers/duplicate-candidates")
+def duplicate_candidates():
+    """Expose likely existing profiles before staff creates a second record.
+
+    Name is intentionally only an exact match here: partial-name suggestions remain in
+    search_customers, while this endpoint must not imply that similarly named people are
+    the same person.
+    """
+    name = request.args.get("name", "").strip()
+    phone = request.args.get("phone", "").strip()
+    if not name and not phone:
+        return {"customers": []}
+    clauses: list[str] = []
+    params: list[str] = []
+    if name:
+        clauses.append("name=?")
+        params.append(name)
+    if phone:
+        clauses.append("phone=?")
+        params.append(phone)
+    db = get_db()
+    rows = db.execute(
+        "SELECT id,name,phone,birthday,coin_balance FROM customers "
+        "WHERE merged_into_customer_id IS NULL AND (" + " OR ".join(clauses) + ") ORDER BY id DESC LIMIT 10",
+        params,
+    ).fetchall()
     return {"customers": [dict(r) for r in rows]}
 
 
@@ -1712,7 +1812,7 @@ def manager_reevaluate_expired():
     db = get_db()
     today_str = date.today().isoformat()
     expired = db.execute(
-        "SELECT id FROM customers WHERE tier_expires_date IS NOT NULL AND tier_expires_date < ?",
+        "SELECT id FROM customers WHERE merged_into_customer_id IS NULL AND tier_expires_date IS NOT NULL AND tier_expires_date < ?",
         (today_str,),
     ).fetchall()
     count = 0
@@ -1783,6 +1883,7 @@ def manager_dashboard():
         FROM customers c
         LEFT JOIN transactions t ON c.id = t.customer_id AND t.voided_at IS NULL {cust_where}
         LEFT JOIN stores s ON t.store_id = s.id
+        WHERE c.merged_into_customer_id IS NULL
         GROUP BY c.id, c.name, c.phone, c.birthday
         HAVING year_spend > 0 OR month_spend > 0
         ORDER BY year_spend DESC
@@ -1846,7 +1947,7 @@ def contacts():
         FROM customers c
         LEFT JOIN transactions t ON c.id = t.customer_id AND t.voided_at IS NULL
         LEFT JOIN stores s ON t.store_id = s.id
-        WHERE 1=1
+        WHERE c.merged_into_customer_id IS NULL
     """
     params: list[Any] = []
     if query:
@@ -1910,8 +2011,11 @@ def contacts():
 def delete_customer(customer_id):
     if not session.get("manager_authed"):
         return "Unauthorized", 403
+    reason = _confirmed_reason()
+    if not reason:
+        return "刪除是高風險操作，請填寫原因並再次確認。", 400
     db = get_db()
-    customer = db.execute("SELECT id FROM customers WHERE id=?", (customer_id,)).fetchone()
+    customer = db.execute("SELECT * FROM customers WHERE id=? AND merged_into_customer_id IS NULL", (customer_id,)).fetchone()
     if not customer:
         return "找不到此顧客", 404
     ledger_count = db.execute(
@@ -1928,6 +2032,7 @@ def delete_customer(customer_id):
         (str(customer_id),),
     )
     db.execute("DELETE FROM customers WHERE id=?", (customer_id,))
+    _log_customer_operation(db, "delete_empty_customer", customer_id, reason, dict(customer), {})
     db.commit()
     return redirect(url_for("contacts"))
 
@@ -2063,6 +2168,8 @@ def delete_point_adjustment(adj_id):
 
 @app.route("/api/customers/<int:customer_id>/update", methods=["POST"])
 def update_customer(customer_id):
+    if not (session.get("manager_authed") or session.get("main_authed")):
+        return "Unauthorized", 403
     db = get_db()
     name = request.form.get("name", "").strip()
     phone = request.form.get("phone", "").strip()
@@ -2076,6 +2183,14 @@ def update_customer(customer_id):
     except ValueError:
         return "日期格式錯誤，請使用 YYYY-MM-DD", 400
 
+    before_row = db.execute("SELECT * FROM customers WHERE id=? AND merged_into_customer_id IS NULL", (customer_id,)).fetchone()
+    if not before_row:
+        return "找不到有效顧客", 404
+    before = dict(before_row)
+    sensitive_change = (birthday and birthday != before["birthday"]) or bool(tier_expires_date)
+    reason = _confirmed_reason() if sensitive_change else "一般資料修正"
+    if sensitive_change and not reason:
+        return "生日或會員效期異動是高風險操作，請填寫原因並再次確認。", 400
     updates = []
     params: list[Any] = []
     if name:
@@ -2090,7 +2205,7 @@ def update_customer(customer_id):
     if updates:
         params.append(customer_id)
         try:
-            db.execute(f"UPDATE customers SET {', '.join(updates)} WHERE id=?", params)
+            db.execute(f"UPDATE customers SET {', '.join(updates)} WHERE id=? AND merged_into_customer_id IS NULL", params)
             db.commit()
         except Exception as e:
             err_msg = str(e)
@@ -2128,9 +2243,14 @@ def update_customer(customer_id):
                 400,
             )
         db.execute(
-            "UPDATE customers SET tier_expires_date=? WHERE id=?",
+            "UPDATE customers SET tier_expires_date=? WHERE id=? AND merged_into_customer_id IS NULL",
             (tier_expires_date, customer_id),
         )
+        db.commit()
+
+    after_row = db.execute("SELECT * FROM customers WHERE id=?", (customer_id,)).fetchone()
+    if dict(after_row) != before:
+        _log_customer_operation(db, "update_customer", customer_id, reason or "一般資料修正", before, dict(after_row))
         db.commit()
 
     return redirect(url_for("contacts"))
@@ -2167,7 +2287,7 @@ def review_page():
         FROM customers c
         LEFT JOIN transactions t ON c.id = t.customer_id
         LEFT JOIN stores s ON t.store_id = s.id
-        WHERE c.birthday IN ({placeholders})
+        WHERE c.merged_into_customer_id IS NULL AND c.birthday IN ({placeholders})
         """
     params_a: list[Any] = list(SUSPICIOUS_BIRTHDAYS)
     if name_q:
@@ -2191,7 +2311,7 @@ def review_page():
                COUNT(DISTINCT birthday) AS bday_count,
                GROUP_CONCAT(phone) AS phones,
                GROUP_CONCAT(created_at) AS created_ats
-        FROM customers
+        FROM customers WHERE merged_into_customer_id IS NULL
         GROUP BY name
         HAVING bday_count > 1
         ORDER BY name
@@ -2220,7 +2340,12 @@ def review_page():
     stores = db.execute("SELECT id, name FROM stores ORDER BY name").fetchall()
     filters = {"q": name_q, "store_id": store_filter, "status": status_filter}
 
-    return render_template("review.html", suspicious_rows=suspicious_rows, multi_bday_rows=multi_bday_rows, stores=stores, filters=filters)
+    recent_merges = db.execute(
+        "SELECT m.id,m.created_at,m.reason,k.name AS keep_name,a.name AS absorbed_name FROM customer_merge_operations m "
+        "JOIN customers k ON k.id=m.keep_customer_id JOIN customers a ON a.id=m.absorbed_customer_id "
+        "WHERE m.status='merged' ORDER BY m.id DESC LIMIT 10"
+    ).fetchall()
+    return render_template("review.html", suspicious_rows=suspicious_rows, multi_bday_rows=multi_bday_rows, recent_merges=recent_merges, stores=stores, filters=filters)
 
 
 @app.route("/review/update_birthday/<int:customer_id>", methods=["POST"])
@@ -2228,14 +2353,22 @@ def review_update_birthday(customer_id):
     if not session.get("manager_authed"):
         return "Unauthorized", 403
     db = get_db()
+    reason = _confirmed_reason()
+    if not reason:
+        return "生日更正是高風險操作，請填寫原因並再次確認。", 400
     birthday = request.form.get("birthday", "").strip()
     try:
         if birthday:
             datetime.strptime(birthday, "%Y-%m-%d")
     except ValueError:
         return "生日格式錯誤", 400
+    before_row = db.execute("SELECT * FROM customers WHERE id=? AND merged_into_customer_id IS NULL", (customer_id,)).fetchone()
+    if not before_row:
+        return "找不到有效顧客", 404
     try:
-        db.execute("UPDATE customers SET birthday=? WHERE id=?", (birthday, customer_id))
+        db.execute("UPDATE customers SET birthday=? WHERE id=? AND merged_into_customer_id IS NULL", (birthday, customer_id))
+        after_row = db.execute("SELECT * FROM customers WHERE id=?", (customer_id,)).fetchone()
+        _log_customer_operation(db, "update_birthday", customer_id, reason, dict(before_row), dict(after_row))
         db.commit()
     except Exception as e:
         if "UNIQUE" in str(e):
@@ -2257,9 +2390,12 @@ def review_update_birthday(customer_id):
 
 @app.route("/api/customers/merge", methods=["POST"])
 def merge_customers():
-    """Merge keep_id ← absorb_id and reconcile all customer-owned ledgers and tier state."""
+    """Confirmed soft merge: keep source data recoverable for a later undo."""
     if not session.get("manager_authed"):
         return "Unauthorized", 403
+    reason = _confirmed_reason()
+    if not reason:
+        return "合併是高風險操作，請填寫原因並在預覽頁再次確認。", 400
     db = get_db()
     try:
         keep_id = int(request.form.get("keep_id", "0"))
@@ -2270,8 +2406,8 @@ def merge_customers():
     if keep_id == absorb_id or not keep_id or not absorb_id:
         return "請選擇兩個不同的顧客", 400
 
-    keep = db.execute("SELECT id, name, phone, birthday FROM customers WHERE id=?", (keep_id,)).fetchone()
-    absorb = db.execute("SELECT id, name, phone, birthday FROM customers WHERE id=?", (absorb_id,)).fetchone()
+    keep = db.execute("SELECT * FROM customers WHERE id=? AND merged_into_customer_id IS NULL", (keep_id,)).fetchone()
+    absorb = db.execute("SELECT * FROM customers WHERE id=? AND merged_into_customer_id IS NULL", (absorb_id,)).fetchone()
 
     if not keep or not absorb:
         return "找不到指定顧客", 404
@@ -2283,6 +2419,11 @@ def merge_customers():
         _project_tier_state(db, customer_id, date.today().isoformat())[0]
         for customer_id in (keep_id, absorb_id)
     ]
+    moved_ids = {
+        table: [r["id"] for r in db.execute(f"SELECT id FROM {table} WHERE customer_id=?", (absorb_id,)).fetchall()]
+        for table in ("transactions", "coin_batches", "point_adjustments", "tier_upgrades")
+    }
+    now_str = datetime.now().isoformat(timespec="seconds")
 
     # Move all transactions from absorb → keep
     db.execute("UPDATE transactions SET customer_id=? WHERE customer_id=?", (keep_id, absorb_id))
@@ -2298,14 +2439,87 @@ def merge_customers():
     _reconcile_tier_after_merge(db, keep_id, pre_merge_states, date.today())
     sync_coin_balance(db, keep_id)
 
-    # Delete absorbed customer
-    db.execute("DELETE FROM customers WHERE id=?", (absorb_id,))
+    # Keep the absorbed identity as a soft-merged record so this operation is reversible.
+    db.execute("UPDATE customers SET merged_into_customer_id=?, merged_at=? WHERE id=?", (keep_id, now_str, absorb_id))
 
     # Clean up review flags for absorbed customer
     db.execute("DELETE FROM review_flags WHERE item_type='birthday_suspicious' AND item_key=?", (str(absorb_id),))
 
+    keep_after = dict(db.execute("SELECT * FROM customers WHERE id=?", (keep_id,)).fetchone())
+    db.execute(
+        "INSERT INTO customer_merge_operations(keep_customer_id,absorbed_customer_id,reason,keep_before_json,absorbed_before_json,moved_ids_json,created_at) "
+        "VALUES(?,?,?,?,?,?,?)",
+        (keep_id, absorb_id, reason, json.dumps(dict(keep), ensure_ascii=False), json.dumps(dict(absorb), ensure_ascii=False),
+         json.dumps(moved_ids), now_str),
+    )
+    _log_customer_operation(db, "merge", keep_id, reason, dict(keep), keep_after, absorb_id)
     db.commit()
     return redirect(request.referrer or url_for("review_page"))
+
+
+@app.route("/api/customers/merge/preview")
+def merge_customers_preview():
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
+    try:
+        keep_id, absorb_id = int(request.args["keep_id"]), int(request.args["absorb_id"])
+    except (KeyError, TypeError, ValueError):
+        return "參數錯誤", 400
+    db = get_db()
+    keep, absorb = _customer_merge_summary(db, keep_id), _customer_merge_summary(db, absorb_id)
+    if not keep or not absorb or keep_id == absorb_id:
+        return "找不到可合併的兩位有效顧客", 404
+    simulated = _history_tier_state_for_customers(db, [keep_id, absorb_id], date.today())
+    # Simulation includes both rows' effective membership states without writing anything.
+    states = [_project_tier_state(db, cid, date.today().isoformat())[0] for cid in (keep_id, absorb_id)]
+    candidates = states + [simulated]
+    after = max(candidates, key=lambda s: TIER_ORDER.index(s.get("member_tier", "一般會員")))
+    return render_template("merge_preview.html", keep=keep, absorb=absorb, after=after)
+
+
+@app.route("/api/customer-merges/<int:operation_id>/undo", methods=["POST"])
+def undo_customer_merge(operation_id: int):
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
+    reason = _confirmed_reason()
+    if not reason:
+        return "還原是高風險操作，請填寫原因並再次確認。", 400
+    db = get_db()
+    op = db.execute("SELECT * FROM customer_merge_operations WHERE id=? AND status='merged'", (operation_id,)).fetchone()
+    if not op:
+        return "找不到可還原的合併紀錄", 404
+    moved = json.loads(op["moved_ids_json"])
+    keep_before, absorbed_before = json.loads(op["keep_before_json"]), json.loads(op["absorbed_before_json"])
+    # Do not split a customer again after new transactions were entered; it would be ambiguous.
+    moved_txns = moved.get("transactions", [])
+    placeholders = ",".join("?" * len(moved_txns)) or "0"
+    newer = db.execute(
+        f"SELECT COUNT(*) FROM transactions WHERE customer_id=? AND created_at>=? AND id NOT IN ({placeholders})",
+        [op["keep_customer_id"], op["created_at"], *moved_txns],
+    ).fetchone()[0]
+    newer += db.execute(
+        "SELECT COUNT(*) FROM point_adjustments WHERE customer_id=? AND created_at>=?",
+        (op["keep_customer_id"], op["created_at"]),
+    ).fetchone()[0]
+    if newer:
+        return "合併後已有新消費，為避免錯分帳本，請由資料管理員人工處理。", 409
+    for table in ("transactions", "coin_batches", "point_adjustments", "tier_upgrades"):
+        ids = moved.get(table, [])
+        if ids:
+            marks = ",".join("?" * len(ids))
+            db.execute(f"UPDATE {table} SET customer_id=? WHERE id IN ({marks})", [op["absorbed_customer_id"], *ids])
+    for snapshot in (keep_before, absorbed_before):
+        db.execute(
+            "UPDATE customers SET phone=?,member_tier=?,tier_effective_date=?,tier_expires_date=?,pending_tier=?,pending_effective_date=?,merged_into_customer_id=?,merged_at=? WHERE id=?",
+            (snapshot["phone"], snapshot["member_tier"], snapshot["tier_effective_date"], snapshot["tier_expires_date"],
+             snapshot["pending_tier"], snapshot["pending_effective_date"], snapshot.get("merged_into_customer_id"), snapshot.get("merged_at"), snapshot["id"]),
+        )
+    sync_coin_balance(db, int(op["keep_customer_id"]))
+    sync_coin_balance(db, int(op["absorbed_customer_id"]))
+    db.execute("UPDATE customer_merge_operations SET status='undone',reverted_at=? WHERE id=?", (datetime.now().isoformat(timespec="seconds"), operation_id))
+    _log_customer_operation(db, "merge_undo", int(op["keep_customer_id"]), reason, keep_before, absorbed_before, int(op["absorbed_customer_id"]))
+    db.commit()
+    return redirect(url_for("review_page"))
 
 
 @app.route("/review/mark/<item_type>/<path:item_key>", methods=["POST"])
@@ -2477,17 +2691,17 @@ def customer_lookup():
             rows = []
             if phone and birthday:
                 rows = db.execute(
-                    "SELECT id, name, phone, birthday FROM customers WHERE name=? AND phone=? AND birthday=?",
+                    "SELECT id, name, phone, birthday FROM customers WHERE merged_into_customer_id IS NULL AND name=? AND phone=? AND birthday=?",
                     (name, phone, birthday),
                 ).fetchall()
             elif phone:
                 rows = db.execute(
-                    "SELECT id, name, phone, birthday FROM customers WHERE name=? AND phone=?",
+                    "SELECT id, name, phone, birthday FROM customers WHERE merged_into_customer_id IS NULL AND name=? AND phone=?",
                     (name, phone),
                 ).fetchall()
             elif birthday:
                 rows = db.execute(
-                    "SELECT id, name, phone, birthday FROM customers WHERE name=? AND birthday=?",
+                    "SELECT id, name, phone, birthday FROM customers WHERE merged_into_customer_id IS NULL AND name=? AND birthday=?",
                     (name, birthday),
                 ).fetchall()
 
@@ -2508,7 +2722,7 @@ def _build_customer_result(cid: int) -> dict | None:
     sync_coin_balance(db, cid)
     db.commit()
     row = db.execute(
-        "SELECT id, name, phone, birthday, coin_balance, created_at FROM customers WHERE id=?",
+        "SELECT id, name, phone, birthday, coin_balance, created_at FROM customers WHERE id=? AND merged_into_customer_id IS NULL",
         (cid,),
     ).fetchone()
     if not row:

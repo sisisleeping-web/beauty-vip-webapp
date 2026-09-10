@@ -195,6 +195,25 @@ document.addEventListener("DOMContentLoaded", () => {
   nameInput.addEventListener("input", e => handleInput(e, nameAutoList));
   phoneInput.addEventListener("input", e => handleInput(e, phoneAutoList));
 
+  function checkDuplicateCandidate() {
+    const name = nameInput.value.trim();
+    const phone = phoneInput.value.trim();
+    if (!name && !phone) return;
+    fetch(`/api/customers/duplicate-candidates?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.customers || data.customers.length === 0) return;
+        renderList(data, nameAutoList);
+        const hint = document.createElement('div');
+        hint.style.cssText = 'padding:8px 10px;background:#fff7ed;color:#9a3412;font-size:.9em;border-bottom:1px solid #fed7aa;';
+        hint.textContent = '⚠️ 找到可能既有顧客；請先點選確認，避免重複建檔。';
+        nameAutoList.prepend(hint);
+      })
+      .catch(err => console.error(err));
+  }
+  nameInput.addEventListener("blur", () => setTimeout(checkDuplicateCandidate, 150));
+  phoneInput.addEventListener("blur", () => setTimeout(checkDuplicateCandidate, 150));
+
   document.addEventListener("click", e => {
     if (e.target !== nameInput && !nameAutoList.contains(e.target)) {
       nameAutoList.style.display = "none";

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h3>⚠️ 合併顧客預覽</h3>
+  <p>此操作不會刪除來源顧客；會標記為「已合併」，並可在沒有後續新消費時還原。</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>ID</th><th>姓名／生日</th><th>交易</th><th>累計消費</th><th>點數</th><th>目前等級／效期</th></tr></thead>
+    <tbody>
+      {% for label, c in [('保留', keep), ('來源', absorb)] %}
+      <tr><td><strong>{{ label }}</strong></td><td>{{ c.id }}</td><td>{{ c.name }}／{{ c.birthday }}</td><td>{{ c.txn_count }}</td><td>{{ '%.0f'|format(c.total_spend) }}</td><td>{{ c.coin_balance }}</td><td>{{ c.member_tier }}<br>{{ c.tier_effective_date or '-' }} ～ {{ c.tier_expires_date or '-' }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  <p style="margin-top:14px;"><strong>合併後預計：</strong><span class="tier-badge tier-{{ after.member_tier }}">{{ after.member_tier }}</span>　{{ after.tier_effective_date or '-' }} ～ {{ after.tier_expires_date or '-' }}</p>
+  <form method="post" action="/api/customers/merge" onsubmit="return confirm('已核對預覽與理由，確定執行合併？');">
+    <input type="hidden" name="keep_id" value="{{ keep.id }}"><input type="hidden" name="absorb_id" value="{{ absorb.id }}"><input type="hidden" name="confirmed" value="1">
+    <label>合併原因（必填）</label><input type="text" name="reason" required minlength="2" placeholder="例：同一顧客生日輸入錯誤" style="max-width:420px;">
+    <div style="margin-top:12px;display:flex;gap:8px;"><button type="submit" style="background:var(--warning);color:#fff;">確認合併並保留可還原紀錄</button><a href="/review"><button type="button">取消</button></a></div>
+  </form>
+</div>
+{% endblock %}

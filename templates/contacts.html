@@ -95,8 +95,8 @@
           style="background:var(--warning-bg);color:var(--warning);border:none;border-radius:var(--radius-sm);padding:5px 12px;font-size:13px;cursor:pointer;margin-right:4px;box-shadow:none;">🎁 贈點</button>
         <button type="button" onclick="openEdit({{ c.id }})"
           style="background:var(--primary-bg);color:var(--primary);border:none;border-radius:var(--radius-sm);padding:5px 12px;font-size:13px;cursor:pointer;margin-right:4px;box-shadow:none;">✏️ 修改</button>
-        <form method="post" action="/api/customers/{{ c.id }}/delete" style="display:inline;"
-              onsubmit="return confirm('確定要刪除顧客「{{ c.name }}」及其所有消費紀錄嗎？此動作無法復原。');">
+        <form method="post" action="/api/customers/{{ c.id }}/delete" style="display:inline;" onsubmit="return confirmHighRisk(this, '刪除顧客');">
+          <input type="hidden" name="reason"><input type="hidden" name="confirmed" value="1">
           <button type="submit"
             style="background:var(--danger-bg);color:var(--danger);border:none;border-radius:var(--radius-sm);padding:5px 12px;font-size:13px;cursor:pointer;box-shadow:none;">🗑️ 刪除</button>
         </form>
@@ -138,7 +138,8 @@
     <!-- Edit row (hidden by default) -->
     <tr id="cust-edit-{{ c.id }}" style="display:none; background:#faf5ff;">
       <td colspan="11">
-        <form method="post" action="/api/customers/{{ c.id }}/update" style="display:flex; flex-wrap:wrap; gap:10px 16px; align-items:flex-end; padding: 8px 4px;">
+        <form method="post" action="/api/customers/{{ c.id }}/update" style="display:flex; flex-wrap:wrap; gap:10px 16px; align-items:flex-end; padding: 8px 4px;" onsubmit="return confirmHighRisk(this, '修改顧客資料');">
+          <input type="hidden" name="reason"><input type="hidden" name="confirmed" value="1">
           <div>
             <label style="font-size:12px; margin:0; color:#6c3fc5;">姓名</label><br>
             <input type="text" name="name" value="{{ c.name }}" style="width:120px; max-width:none; padding:6px 8px; font-size:14px;">
@@ -202,6 +203,13 @@
 
 <script>
 const REASON_OPTIONS = ["填寫線上問卷點數回饋","新活動促銷贈點","顧客服務補償","其他手動加點"];
+
+function confirmHighRisk(form, action) {
+  const reason = prompt(action + '前，請輸入操作原因（至少兩字）：');
+  if (!reason || reason.trim().length < 2) return false;
+  form.querySelector('input[name="reason"]').value = reason.trim();
+  return confirm('確認' + action + '？系統會保留這次操作紀錄。');
+}
 
 function openEdit(id) {
   closeAddPoints(id);

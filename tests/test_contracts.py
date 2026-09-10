@@ -89,7 +89,9 @@ class BeautyVipContractTests(unittest.TestCase):
         forbidden = self.client.post(f"/api/customers/{customer_id}/delete")
         self.assertEqual(forbidden.status_code, 403)
         self._login(manager=True)
-        blocked = self.client.post(f"/api/customers/{customer_id}/delete")
+        blocked = self.client.post(
+            f"/api/customers/{customer_id}/delete", data={"reason": "誤建帳號", "confirmed": "1"}
+        )
         self.assertEqual(blocked.status_code, 409)
         with beauty.app.app_context():
             db = beauty.get_db()
@@ -100,8 +102,17 @@ class BeautyVipContractTests(unittest.TestCase):
                 "INSERT INTO customers(name,birthday,created_at) VALUES('空白','1991-01-01','2026-01-01')"
             ).lastrowid
             db.commit()
-        deleted = self.client.post(f"/api/customers/{empty_id}/delete")
+        missing_confirmation = self.client.post(f"/api/customers/{empty_id}/delete")
+        self.assertEqual(missing_confirmation.status_code, 400)
+        deleted = self.client.post(
+            f"/api/customers/{empty_id}/delete", data={"reason": "重複空白建檔", "confirmed": "1"}
+        )
         self.assertEqual(deleted.status_code, 302)
+        with beauty.app.app_context():
+            operation = beauty.get_db().execute(
+                "SELECT action,reason FROM customer_operation_log WHERE customer_id=?", (empty_id,)
+            ).fetchone()
+            self.assertEqual(dict(operation), {"action": "delete_empty_customer", "reason": "重複空白建檔"})
 
     def test_customer_merge_keeps_highest_tier_and_all_customer_ledgers(self) -> None:
         self._login(manager=True)
@@ -131,7 +142,9 @@ class BeautyVipContractTests(unittest.TestCase):
             )
             db.commit()
 
-        response = self.client.post("/api/customers/merge", data={"keep_id": keep_id, "absorb_id": absorb_id})
+        preview = self.client.get(f"/api/customers/merge/preview?keep_id={keep_id}&absorb_id={absorb_id}")
+        self.assertEqual(preview.status_code, 200)
+        response = self.client.post("/api/customers/merge", data={"keep_id": keep_id, "absorb_id": absorb_id, "reason": "生日輸入錯誤", "confirmed": "1"})
         self.assertEqual(response.status_code, 302)
         with beauty.app.app_context():
             db = beauty.get_db()
@@ -141,7 +154,7 @@ class BeautyVipContractTests(unittest.TestCase):
             self.assertEqual(dict(customer), {
                 "member_tier": "A級美咖", "tier_effective_date": "2026-04-12", "tier_expires_date": "2027-04-12",
             })
-            self.assertIsNone(db.execute("SELECT id FROM customers WHERE id=?", (absorb_id,)).fetchone())
+            self.assertEqual(db.execute("SELECT merged_into_customer_id FROM customers WHERE id=?", (absorb_id,)).fetchone()[0], keep_id)
             self.assertEqual(db.execute("SELECT customer_id FROM transactions WHERE id=?", (txn_id,)).fetchone()[0], keep_id)
             self.assertEqual(db.execute("SELECT customer_id FROM tier_upgrades WHERE trigger_txn_id=?", (txn_id,)).fetchone()[0], keep_id)
             self.assertEqual(db.execute("SELECT customer_id FROM point_adjustments").fetchone()[0], keep_id)
@@ -167,7 +180,7 @@ class BeautyVipContractTests(unittest.TestCase):
                 )
             db.commit()
 
-        response = self.client.post("/api/customers/merge", data={"keep_id": keep_id, "absorb_id": absorb_id})
+        response = self.client.post("/api/customers/merge", data={"keep_id": keep_id, "absorb_id": absorb_id, "reason": "重複建檔", "confirmed": "1"})
         self.assertEqual(response.status_code, 302)
         with beauty.app.app_context():
             row = beauty.get_db().execute(
@@ -176,6 +189,87 @@ class BeautyVipContractTests(unittest.TestCase):
             self.assertEqual(dict(row), {
                 "member_tier": "A級美咖", "tier_effective_date": "2026-04-12", "tier_expires_date": "2027-04-12",
             })
+
+    def test_merge_preview_and_undo_restore_every_moved_ledger(self) -> None:
+        self._login(manager=True)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            keep_id = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('還原測試','1988-01-01','2026-01-01')"
+            ).lastrowid
+            absorb_id = db.execute(
+                "INSERT INTO customers(name,birthday,created_at,member_tier,tier_effective_date,tier_expires_date) "
+                "VALUES('還原測試','1988-01-02','2026-01-01','A級美咖','2026-04-12','2027-04-12')"
+            ).lastrowid
+            txn_id = db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,created_at,entry_mode) "
+                "VALUES(?, 'store_a','2026-04-11','2026-04',60000,60000,0,'2026-04-11','normal')",
+                (absorb_id,),
+            ).lastrowid
+            adjustment_id = db.execute(
+                "INSERT INTO point_adjustments(customer_id,points,reason,operator,created_at) VALUES(?,100,'test','staff','2026-04-11')",
+                (absorb_id,),
+            ).lastrowid
+            db.execute(
+                "INSERT INTO tier_upgrades(customer_id,upgrade_date,tier_before,tier_after,created_at) "
+                "VALUES(?, '2026-04-12','P級美咖','A級美咖','2026-04-12')",
+                (absorb_id,),
+            )
+            db.commit()
+
+        preview = self.client.get(f"/api/customers/merge/preview?keep_id={keep_id}&absorb_id={absorb_id}")
+        self.assertEqual(preview.status_code, 200)
+        self.assertIn("A級美咖".encode(), preview.data)
+        rejected = self.client.post("/api/customers/merge", data={"keep_id": keep_id, "absorb_id": absorb_id})
+        self.assertEqual(rejected.status_code, 400)
+        self.assertEqual(
+            self.client.post(
+                "/api/customers/merge",
+                data={"keep_id": keep_id, "absorb_id": absorb_id, "reason": "生日誤植", "confirmed": "1"},
+            ).status_code,
+            302,
+        )
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            op_id = db.execute("SELECT id FROM customer_merge_operations").fetchone()[0]
+            self.assertEqual(db.execute("SELECT customer_id FROM transactions WHERE id=?", (txn_id,)).fetchone()[0], keep_id)
+        restored = self.client.post(
+            f"/api/customer-merges/{op_id}/undo", data={"reason": "確認誤合併", "confirmed": "1"}
+        )
+        self.assertEqual(restored.status_code, 302)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            source = db.execute("SELECT merged_into_customer_id,member_tier FROM customers WHERE id=?", (absorb_id,)).fetchone()
+            self.assertEqual(dict(source), {"merged_into_customer_id": None, "member_tier": "A級美咖"})
+            self.assertEqual(db.execute("SELECT customer_id FROM transactions WHERE id=?", (txn_id,)).fetchone()[0], absorb_id)
+            self.assertEqual(db.execute("SELECT customer_id FROM point_adjustments WHERE id=?", (adjustment_id,)).fetchone()[0], absorb_id)
+            self.assertEqual(db.execute("SELECT status FROM customer_merge_operations WHERE id=?", (op_id,)).fetchone()[0], "undone")
+
+    def test_birthday_change_and_duplicate_candidates_are_guarded_and_audited(self) -> None:
+        self._login(manager=True)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            customer_id = db.execute(
+                "INSERT INTO customers(name,phone,birthday,created_at) VALUES('重複候選','0912000000','2000-01-01','2026-01-01')"
+            ).lastrowid
+            db.commit()
+        candidates = self.client.get("/api/customers/duplicate-candidates?name=重複候選&phone=0912000000")
+        self.assertEqual(candidates.status_code, 200)
+        self.assertEqual(candidates.json["customers"][0]["id"], customer_id)
+        missing_confirmation = self.client.post(
+            f"/review/update_birthday/{customer_id}", data={"birthday": "1990-02-02"}
+        )
+        self.assertEqual(missing_confirmation.status_code, 400)
+        changed = self.client.post(
+            f"/review/update_birthday/{customer_id}",
+            data={"birthday": "1990-02-02", "reason": "更正證件生日", "confirmed": "1"},
+        )
+        self.assertEqual(changed.status_code, 302)
+        with beauty.app.app_context():
+            row = beauty.get_db().execute(
+                "SELECT action,reason FROM customer_operation_log WHERE customer_id=? ORDER BY id DESC", (customer_id,)
+            ).fetchone()
+            self.assertEqual(dict(row), {"action": "update_birthday", "reason": "更正證件生日"})
 
     def test_booking_validates_input_and_capacity(self) -> None:
         invalid = self.client.post("/api/spa/book", data=self._booking_payload(store_id="unknown"))
