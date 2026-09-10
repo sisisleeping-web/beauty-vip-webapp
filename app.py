@@ -6,6 +6,7 @@ import io
 import json
 import os
 import re
+import secrets
 import sqlite3
 import threading
 import time
@@ -16,6 +17,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from flask import Flask, g, redirect, render_template, request, session, url_for, send_file
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "data" / "beauty_vip.db"
@@ -71,6 +73,28 @@ def _clear_auth_failures(scope: str) -> None:
         _auth_failures.pop(key, None)
 
 
+def _portal_event_serializer() -> URLSafeTimedSerializer:
+    return URLSafeTimedSerializer(app.config["SECRET_KEY"], salt="member-portal-event-v1")
+
+
+def _issue_portal_event_token(member_id: int) -> str:
+    """Issue a short-lived, page-scoped token without exposing member PII."""
+    return _portal_event_serializer().dumps({"member_id": member_id, "page_id": secrets.token_urlsafe(12)})
+
+
+def _consume_portal_event_slot(page_id: str) -> bool:
+    """Small in-memory rate limiter; analytics must remain a cheap side concern."""
+    now = time.monotonic()
+    key = f"{request.remote_addr or 'unknown'}:{page_id}"
+    recent = [stamp for stamp in _portal_event_attempts.get(key, []) if now - stamp < PORTAL_EVENT_WINDOW_SECONDS]
+    if len(recent) >= PORTAL_EVENT_MAX_PER_WINDOW:
+        _portal_event_attempts[key] = recent
+        return False
+    recent.append(now)
+    _portal_event_attempts[key] = recent
+    return True
+
+
 @app.after_request
 def add_security_headers(response):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
@@ -97,6 +121,10 @@ def require_main_auth():
     if request.path.startswith("/static/"):
         return
     if request.path.startswith("/my"):
+        return
+    if request.path == "/api/member-portal/events":
+        return
+    if request.path == "/manager/portal-analytics":
         return
     if request.path in ["/main_unlock", "/manager/unlock"]:
         return
@@ -138,6 +166,15 @@ BIRTHDAY_RECHARGE_PLANS = [
 
 # Tier hierarchy (lowest → highest)
 TIER_ORDER = ["一般會員", "S級美咖", "P級美咖", "A級美咖"]
+PORTAL_EVENT_MAX_BYTES = 512
+PORTAL_EVENT_MAX_PER_WINDOW = 30
+PORTAL_EVENT_WINDOW_SECONDS = 300
+PORTAL_EVENT_TYPES = {
+    "portal_view", "points_tab_view", "level_tab_view", "pending_points_open",
+    "expiring_points_open", "level_progress_view", "points_filter_change",
+    "points_history_expand", "requery_click",
+}
+_portal_event_attempts: dict[str, list[float]] = {}
 
 
 @dataclass
@@ -338,6 +375,24 @@ def init_db() -> None:
             created_at TEXT NOT NULL,
             reverted_at TEXT
         );
+
+        -- Aggregate-only member portal analytics.  Metadata is restricted by
+        -- the event endpoint; never store search input or other PII here.
+        CREATE TABLE IF NOT EXISTS member_portal_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            member_id INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            metadata_json TEXT NOT NULL DEFAULT '{}',
+            event_key TEXT NOT NULL UNIQUE,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(member_id) REFERENCES customers(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_member_portal_events_created_at
+            ON member_portal_events(created_at);
+        CREATE INDEX IF NOT EXISTS idx_member_portal_events_type_created
+            ON member_portal_events(event_type, created_at);
+        CREATE INDEX IF NOT EXISTS idx_member_portal_events_member_created
+            ON member_portal_events(member_id, created_at);
         """
     )
 
@@ -1965,6 +2020,58 @@ def manager_reevaluate_expired():
     return redirect(url_for("manager_dashboard", _anchor="reevaluated", reevaluated_count=count))
 
 
+@app.route("/manager/portal-analytics")
+def manager_portal_analytics():
+    """Aggregate-only manager view; no individual member behaviour is exposed."""
+    if not session.get("manager_authed"):
+        return "Unauthorized", 403
+    default_end = date.today()
+    default_start = default_end - timedelta(days=29)
+    days = request.args.get("days", "").strip()
+    start_raw, end_raw = request.args.get("start_date", "").strip(), request.args.get("end_date", "").strip()
+    try:
+        if days in {"1", "7", "30"}:
+            end_day = default_end
+            start_day = end_day - timedelta(days=int(days) - 1)
+        elif start_raw and end_raw:
+            start_day, end_day = date.fromisoformat(start_raw), date.fromisoformat(end_raw)
+            if end_day < start_day or (end_day - start_day).days > 366:
+                raise ValueError
+        else:
+            start_day, end_day = default_start, default_end
+    except ValueError:
+        start_day, end_day = default_start, default_end
+    start_at = f"{start_day.isoformat()}T00:00:00"
+    end_at = f"{(end_day + timedelta(days=1)).isoformat()}T00:00:00"
+    db = get_db()
+    rows = db.execute(
+        "SELECT event_type, COUNT(*) AS count FROM member_portal_events WHERE created_at>=? AND created_at<? GROUP BY event_type",
+        (start_at, end_at),
+    ).fetchall()
+    counts = {row["event_type"]: int(row["count"]) for row in rows}
+    views = counts.get("portal_view", 0)
+    unique_members = int(db.execute(
+        "SELECT COUNT(DISTINCT member_id) FROM member_portal_events WHERE event_type='portal_view' AND created_at>=? AND created_at<?",
+        (start_at, end_at),
+    ).fetchone()[0])
+    daily = db.execute(
+        """
+        SELECT substr(created_at,1,10) AS day, COUNT(*) AS views, COUNT(DISTINCT member_id) AS unique_members
+        FROM member_portal_events
+        WHERE event_type='portal_view' AND created_at>=? AND created_at<?
+        GROUP BY substr(created_at,1,10) ORDER BY day ASC
+        """,
+        (start_at, end_at),
+    ).fetchall()
+    tracked = ["points_tab_view", "level_tab_view", "pending_points_open", "expiring_points_open", "points_filter_change", "requery_click"]
+    metrics = [{"event_type": event_type, "count": counts.get(event_type, 0), "rate": round((counts.get(event_type, 0) / views) * 100, 1) if views else 0} for event_type in tracked]
+    return render_template(
+        "portal_analytics.html", start_date=start_day.isoformat(), end_date=end_day.isoformat(), days=days,
+        views=views, unique_members=unique_members, avg_views=round(views / unique_members, 1) if unique_members else 0,
+        metrics=metrics, daily=[dict(row) for row in daily],
+    )
+
+
 @app.route("/manager")
 def manager_dashboard():
     if not session.get("manager_authed"):
@@ -2855,7 +2962,116 @@ def customer_lookup():
                 # Multiple matches — let customer pick (if multiple same name and phone exist)
                 candidates = [dict(r) for r in rows]
 
-    return render_template("my.html", result=result, error=error, candidates=candidates)
+    portal_event_token = _issue_portal_event_token(int(result["customer"]["id"])) if result else None
+    return render_template(
+        "my.html", result=result, error=error, candidates=candidates, portal_event_token=portal_event_token
+    )
+
+
+@app.route("/api/member-portal/events", methods=["POST"])
+def record_member_portal_event():
+    """Record a bounded, anonymous-to-staff aggregate portal interaction.
+
+    The signed result-page token proves a member has just completed a lookup;
+    it is intentionally not a general write credential.  Event ingestion never
+    participates in the member lookup response path.
+    """
+    if (request.content_length or 0) > PORTAL_EVENT_MAX_BYTES:
+        return {"status": "error", "message": "payload too large"}, 413
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return {"status": "error", "message": "invalid payload"}, 400
+    event_type = payload.get("event_type")
+    if event_type not in PORTAL_EVENT_TYPES:
+        return {"status": "error", "message": "unsupported event"}, 400
+    token = payload.get("token")
+    if not isinstance(token, str):
+        return {"status": "error", "message": "invalid event token"}, 401
+    try:
+        claims = _portal_event_serializer().loads(token, max_age=3600)
+    except (BadSignature, SignatureExpired):
+        return {"status": "error", "message": "invalid event token"}, 401
+    if not isinstance(claims, dict) or not isinstance(claims.get("member_id"), int) or not isinstance(claims.get("page_id"), str):
+        return {"status": "error", "message": "invalid event token"}, 401
+    metadata = payload.get("metadata", {})
+    if not isinstance(metadata, dict):
+        return {"status": "error", "message": "invalid metadata"}, 400
+    if event_type == "points_filter_change":
+        if set(metadata) != {"filter"} or metadata["filter"] not in {"all", "earned", "used", "pending", "expired"}:
+            return {"status": "error", "message": "invalid metadata"}, 400
+    elif metadata:
+        return {"status": "error", "message": "invalid metadata"}, 400
+    if not _consume_portal_event_slot(claims["page_id"]):
+        return {"status": "error", "message": "rate limited"}, 429
+
+    metadata_json = json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    event_key = f"{claims['page_id']}:{event_type}:{metadata_json}"
+    db = get_db()
+    db.execute(
+        "INSERT OR IGNORE INTO member_portal_events(member_id,event_type,metadata_json,event_key,created_at) VALUES(?,?,?,?,?)",
+        (claims["member_id"], event_type, metadata_json, event_key, datetime.now().isoformat(timespec="seconds")),
+    )
+    db.commit()
+    return "", 204
+
+
+def _portal_batch_label(batch: sqlite3.Row) -> tuple[str, str]:
+    if batch["source_txn_id"]:
+        kind = "壽星充值" if batch["entry_mode"] == "birthday_recharge" else "一般消費"
+        amount = int(float(batch["final_amount"] or batch["amount"] or 0))
+        return kind, f"消費 ${amount:,}"
+    if batch["source_adjustment_id"]:
+        return "人工調整", batch["adjustment_reason"] or "人工點數調整"
+    return ("舊制轉入點數" if batch["is_legacy"] else "帳本點數", "歷史點數轉入" if batch["is_legacy"] else "既有帳本點數")
+
+
+def _portal_batches(db: sqlite3.Connection, cid: int, *, pending: bool = False, expiring: bool = False) -> list[dict[str, Any]]:
+    today = date.today()
+    if pending:
+        condition, params, order = "b.credit_date > ?", [today.isoformat()], "b.credit_date ASC, b.id ASC"
+    elif expiring:
+        condition, params, order = "b.expires_date >= ? AND b.expires_date <= ?", [today.isoformat(), (today + timedelta(days=30)).isoformat()], "b.expires_date ASC, b.id ASC"
+    else:
+        return []
+    rows = db.execute(
+        f"""
+        SELECT b.id, b.source_txn_id, b.source_adjustment_id, b.remaining_amount,
+               b.credit_date, b.expires_date, b.is_legacy,
+               t.entry_mode, t.amount, t.final_amount, pa.reason AS adjustment_reason
+        FROM coin_batches b
+        LEFT JOIN transactions t ON t.id=b.source_txn_id
+        LEFT JOIN point_adjustments pa ON pa.id=b.source_adjustment_id
+        WHERE b.customer_id=? AND b.status='active' AND b.remaining_amount>0 AND {condition}
+        ORDER BY {order}
+        """,
+        [cid, *params],
+    ).fetchall()
+    entries: list[dict[str, Any]] = []
+    for row in rows:
+        kind, detail = _portal_batch_label(row)
+        entries.append({"amount": int(row["remaining_amount"]), "credit_date": row["credit_date"], "expires_date": row["expires_date"], "kind": kind, "detail": detail})
+    return entries
+
+
+def _portal_tier_progress(db: sqlite3.Connection, cid: int, tier: str) -> dict[str, Any]:
+    requirements = {
+        "一般會員": ("S級美咖", 8000, 15000),
+        "S級美咖": ("P級美咖", 12000, 24000),
+        "P級美咖": ("A級美咖", 30000, 60000),
+    }
+    if tier not in requirements:
+        return {"state": "highest"}
+    next_tier, single_target, annual_target = requirements[tier]
+    annual = customer_year_total(db, cid, date.today().strftime("%Y"))
+    best_single = get_past_max_single(db, cid)
+    return {
+        "state": "calculable", "next_tier": next_tier,
+        "annual_total": annual, "annual_target": annual_target,
+        "annual_percent": min(100, round((annual / annual_target) * 100)) if annual_target else 0,
+        "annual_remaining": max(0, annual_target - annual),
+        "best_single": best_single, "single_target": single_target,
+        "single_remaining": max(0, single_target - best_single),
+    }
 
 
 def _build_customer_result(cid: int) -> dict | None:
@@ -2902,6 +3118,14 @@ def _build_customer_result(cid: int) -> dict | None:
         (cid, date.today().isoformat()),
     ).fetchone()
     customer["next_pending_date"] = pending_date_row["next_pending_date"] if pending_date_row else None
+    pending_batches = _portal_batches(db, cid, pending=True)
+    expiring_batches = _portal_batches(db, cid, expiring=True)
+    # Both totals are deliberately sums of the displayed canonical batches;
+    # never fill a mismatch with a browser-side reconciliation.
+    customer["pending_detail_total"] = sum(item["amount"] for item in pending_batches)
+    customer["expiring_coins"] = sum(item["amount"] for item in expiring_batches)
+    customer["next_expiring_date"] = expiring_batches[0]["expires_date"] if expiring_batches else None
+    customer["tier_progress"] = _portal_tier_progress(db, cid, customer["tier"])
 
     txns = db.execute(
         """
@@ -3043,6 +3267,8 @@ def _build_customer_result(cid: int) -> dict | None:
         "transactions": [dict(t) for t in txns],
         "upgrades": [dict(u) for u in upgrades],
         "point_history": point_history,
+        "pending_batches": pending_batches,
+        "expiring_batches": expiring_batches,
     }
 
 

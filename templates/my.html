@@ -121,6 +121,18 @@
       background: var(--warning-bg); border: 1px solid rgba(217,119,6,.25);
     }
     .pending-points .point-number { color: var(--warning); }
+    .expand-card { width:100%; text-align:left; font:inherit; color:inherit; cursor:pointer; }
+    .expand-card summary { list-style:none; }
+    .expand-card summary::-webkit-details-marker { display:none; }
+    .expand-card[open] { box-shadow:0 2px 10px rgba(217,119,6,.12); }
+    .batch-list { margin:12px 0 0; padding-top:10px; border-top:1px solid rgba(217,119,6,.22); display:grid; gap:8px; }
+    .batch-item { display:flex; justify-content:space-between; gap:10px; font-size:.82rem; }
+    .batch-item p { margin:0; }
+    .expiring-points { margin-top:10px; border-radius:12px; padding:14px 16px; background:var(--danger-bg); border:1px solid rgba(220,38,38,.22); }
+    .expiring-points .point-number { color:var(--danger); }
+    .tier-progress { margin-top:12px; padding:14px 16px; border-radius:12px; background:var(--primary-bg-soft); border:1px solid var(--border-color); }
+    .progress-bar { height:8px; background:#e5e7eb; border-radius:999px; overflow:hidden; margin-top:8px; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,var(--primary),var(--accent)); border-radius:inherit; }
     .history-stats {
       display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 12px;
       border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;
@@ -132,12 +144,19 @@
     .history-stat .history-value { color: var(--primary); font-size: 1.05rem; font-weight: 700; }
     .history-stat .history-label { color: var(--text-muted); font-size: .78rem; margin-top: 3px; }
     .info-hint { color: var(--text-muted); font-size: .78rem; cursor: help; }
+    .info-details { display:inline; position:relative; }
+    .info-details summary { display:inline; cursor:pointer; list-style:none; }
+    .info-details summary::-webkit-details-marker { display:none; }
+    .info-details p { position:absolute; z-index:2; right:0; width:min(260px,70vw); margin:5px 0 0; padding:9px 10px; border-radius:9px; background:#2d1b69; color:#fff; font-size:.76rem; line-height:1.5; box-shadow:0 4px 12px rgba(0,0,0,.18); }
     .record-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 14px; }
     .record-tab {
       appearance: none; border: 0; border-bottom: 3px solid transparent; background: none;
       padding: 10px 12px 9px; color: var(--text-muted); cursor: pointer; font: inherit; font-weight: 700;
     }
     .record-tab[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); }
+    .filter-chips { display:flex; flex-wrap:wrap; gap:7px; margin:0 0 12px; }
+    .filter-chip { appearance:none; border:1px solid var(--border-strong); color:var(--text-muted); background:#fff; border-radius:999px; padding:6px 10px; font:inherit; font-size:.78rem; cursor:pointer; }
+    .filter-chip[aria-pressed="true"] { color:var(--primary); border-color:var(--primary); background:var(--primary-bg); font-weight:700; }
     .ledger { display: flex; flex-direction: column; gap: 10px; }
     .ledger-item { border: 1px solid var(--border-color); border-radius: 12px; padding: 13px 14px; background: #fff; }
     .ledger-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
@@ -311,26 +330,30 @@
       </p>
       {% endif %}
 
-      <div class="points-summary">
-        <section class="available-points" aria-label="目前可用點數" title="已完成入帳且目前可使用的點數；不包含待入帳、已使用及已失效點數。">
+      <div class="points-summary" data-portal-token="{{ portal_event_token }}">
+        <section class="available-points" aria-label="目前可用點數">
           <p class="point-number font-mono">🪙 {{ c.coin_balance }} 點</p>
-          <p class="point-title">目前可用點數 <span class="info-hint">ⓘ</span></p>
+          <p class="point-title">目前可用點數 <details class="info-details"><summary class="info-hint" aria-label="目前可用點數說明">ⓘ</summary><p>已完成入帳，目前可立即折抵的點數；不包含待入帳、已使用及已失效點數。</p></details></p>
           <p class="point-help">現在可立即折抵</p>
         </section>
-        <section class="pending-points" aria-label="待入帳點數">
-          <p class="point-number font-mono">⏳ {{ c.pending_coins or 0 }} 點</p>
-          <p class="point-title">待入帳點數</p>
-          <p class="point-help">{% if c.next_pending_date %}最近 {{ c.next_pending_date }} 可用{% else %}目前沒有待入帳點數{% endif %}</p>
+        <details class="pending-points expand-card" id="pending-details" aria-label="待入帳點數">
+          <summary>
+            <p class="point-number font-mono">⏳ {{ c.pending_coins or 0 }} 點</p>
+            <p class="point-title">待入帳點數</p>
+            <p class="point-help">已取得但尚未到可用日期。{% if c.next_pending_date %}最近 {{ c.next_pending_date }} 可用 · 查看明細{% else %}目前沒有待入帳點數{% endif %}</p>
+          </summary>
+          {% if result.pending_batches %}<div class="batch-list" aria-label="待入帳明細">{% for item in result.pending_batches %}<div class="batch-item"><div><p><strong>{{ item.kind }}</strong> · +{{ item.amount }} 點</p><p class="point-help">{{ item.detail }}</p></div><p class="point-help">{{ item.credit_date }} 可用</p></div>{% endfor %}</div>{% endif %}
+        </details>
+        {% if c.expiring_coins %}
+        <details class="expiring-points expand-card" id="expiring-details" aria-label="即將到期點數"><summary><p class="point-number font-mono">⚠ {{ c.expiring_coins }} 點</p><p class="point-title">即將到期點數</p><p class="point-help">最近 {{ c.next_expiring_date }} 到期 · 查看明細</p></summary><div class="batch-list">{% for item in result.expiring_batches %}<div class="batch-item"><p><strong>{{ item.amount }} 點</strong><br><span class="point-help">{{ item.kind }}</span></p><p class="point-help">{{ item.expires_date }} 到期</p></div>{% endfor %}</div></details>
+        {% endif %}
+        <section class="tier-progress" id="tier-progress" aria-label="會員等級進度">
+          {% if c.tier_progress.state == 'highest' %}<p class="point-title">{{ c.tier }} · 目前已是最高會員等級</p><p class="point-help">會員等級與效期仍依既有制度判定。</p>
+          {% else %}<p class="point-title">{{ c.tier }} · 下一級 {{ c.tier_progress.next_tier }}</p><p class="point-help">本年累積 ${{ '{:,.0f}'.format(c.tier_progress.annual_total) }} / ${{ '{:,.0f}'.format(c.tier_progress.annual_target) }}（尚差 ${{ '{:,.0f}'.format(c.tier_progress.annual_remaining) }}）</p><div class="progress-bar" aria-label="年度升級進度"><div class="progress-fill" style="width:{{ c.tier_progress.annual_percent }}%"></div></div><p class="point-help">或單筆消費 ${{ '{:,.0f}'.format(c.tier_progress.single_target) }}；目前最高 ${{ '{:,.0f}'.format(c.tier_progress.best_single) }}</p>{% endif %}
         </section>
         <div class="history-stats">
-          <div class="history-stat" title="會員歷史上所有獲得點數的總和，包含尚未入帳的點數。">
-            <p class="history-value font-mono">{{ c.total_earned }}</p>
-            <p class="history-label">歷史累計獲得 <span class="info-hint">ⓘ</span></p>
-          </div>
-          <div class="history-stat" title="會員歷史上已使用或折抵的點數總和。">
-            <p class="history-value font-mono">{{ c.total_used or 0 }}</p>
-            <p class="history-label">歷史累計使用 <span class="info-hint">ⓘ</span></p>
-          </div>
+          <div class="history-stat"><p class="history-value font-mono">{{ c.total_earned }}</p><p class="history-label">歷史累計獲得 <details class="info-details"><summary class="info-hint">ⓘ</summary><p>加入會員以來曾取得的點數總和，包含待入帳、已使用與已失效點數。</p></details></p></div>
+          <div class="history-stat"><p class="history-value font-mono">{{ c.total_used or 0 }}</p><p class="history-label">歷史累計使用 <details class="info-details"><summary class="info-hint">ⓘ</summary><p>歷史上已實際使用的點數總和。</p></details></p></div>
         </div>
       </div>
     </div>
@@ -343,9 +366,10 @@
       </div>
       <section id="points-panel" role="tabpanel" aria-labelledby="points-tab">
         {% if result.point_history %}
+        <div class="filter-chips" aria-label="點數紀錄篩選"><button class="filter-chip" type="button" data-filter="all" aria-pressed="true">全部</button><button class="filter-chip" type="button" data-filter="earned" aria-pressed="false">獲得</button><button class="filter-chip" type="button" data-filter="used" aria-pressed="false">使用</button><button class="filter-chip" type="button" data-filter="pending" aria-pressed="false">待入帳</button><button class="filter-chip" type="button" data-filter="expired" aria-pressed="false">已失效</button></div>
         <div class="ledger">
           {% for item in result.point_history %}
-          <article class="ledger-item">
+          <article class="ledger-item" data-kind="{% if item.status == '待入帳' %}pending{% elif item.status == '已失效' %}expired{% elif item.points_change < 0 %}used{% else %}earned{% endif %}">
             <div class="ledger-top">
               <time class="ledger-date">{{ item.date }}</time>
               <strong class="ledger-change font-mono {% if item.points_change >= 0 %}positive{% else %}negative{% endif %}">{% if item.points_change >= 0 %}+{% endif %}{{ item.points_change }} 點</strong>
@@ -378,13 +402,16 @@
 
 
     <div style="text-align:center; margin-top:16px;">
-      <a href="/my" class="back-link">← 重新查詢</a>
+      <a href="/my" class="back-link" id="requery-link">← 重新查詢</a>
     </div>
   {% endif %}
 
   </div>
   {% if result %}
   <script>
+    const token = document.querySelector('[data-portal-token]')?.dataset.portalToken;
+    const track = (eventType, metadata = {}) => { if (token) fetch('/api/member-portal/events', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token,event_type:eventType,metadata})}).catch(() => {}); };
+    track('portal_view');
     document.querySelectorAll('.record-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
         const pointsVisible = tab.id === 'points-tab';
@@ -392,8 +419,14 @@
         document.getElementById('tiers-panel').hidden = pointsVisible;
         document.getElementById('points-tab').setAttribute('aria-selected', String(pointsVisible));
         document.getElementById('tiers-tab').setAttribute('aria-selected', String(!pointsVisible));
+        track(pointsVisible ? 'points_tab_view' : 'level_tab_view');
       });
     });
+    document.getElementById('pending-details')?.addEventListener('toggle', (e) => { if (e.target.open) track('pending_points_open'); });
+    document.getElementById('expiring-details')?.addEventListener('toggle', (e) => { if (e.target.open) track('expiring_points_open'); });
+    document.getElementById('tier-progress')?.addEventListener('click', () => track('level_progress_view'), {once:true});
+    document.querySelectorAll('.filter-chip').forEach((chip) => chip.addEventListener('click', () => { const filter=chip.dataset.filter; document.querySelectorAll('.filter-chip').forEach((item) => item.setAttribute('aria-pressed', String(item === chip))); document.querySelectorAll('.ledger-item').forEach((item) => { item.hidden = filter !== 'all' && item.dataset.kind !== filter; }); track('points_filter_change', {filter}); }));
+    document.getElementById('requery-link')?.addEventListener('click', () => track('requery_click'));
   </script>
   {% endif %}
 </body>

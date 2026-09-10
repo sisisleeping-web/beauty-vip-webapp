@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+    <div><h3 style="margin:0;">📊 會員自助查詢使用分析</h3><p class="text-muted" style="margin:5px 0 0;font-size:.85rem;">僅顯示整體使用趨勢，不提供個別會員行為追蹤。</p></div>
+    <a href="/manager" style="color:var(--primary);font-weight:700;text-decoration:none;">← 返回主管儀表板</a>
+  </div>
+  <form method="get" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:16px;">
+    <a href="?days=1"><button type="button">今日</button></a><a href="?days=7"><button type="button">近 7 天</button></a><a href="?days=30"><button type="button">近 30 天</button></a>
+    <label>起日<input type="date" name="start_date" value="{{ start_date }}"></label>
+    <label>迄日<input type="date" name="end_date" value="{{ end_date }}"></label>
+    <button type="submit" style="background:var(--primary);color:#fff;">查詢</button>
+  </form>
+</div>
+
+<div class="grid-3" style="margin:16px 0;">
+  <div class="card"><p class="text-muted" style="margin:0;">自助查詢總瀏覽</p><p class="font-mono" style="font-size:1.6rem;color:var(--primary);margin:8px 0 0;">{{ views }}</p></div>
+  <div class="card"><p class="text-muted" style="margin:0;">實際使用會員數</p><p class="font-mono" style="font-size:1.6rem;color:var(--success);margin:8px 0 0;">{{ unique_members }}</p></div>
+  <div class="card"><p class="text-muted" style="margin:0;">平均每位瀏覽</p><p class="font-mono" style="font-size:1.6rem;color:var(--accent);margin:8px 0 0;">{{ avg_views }}</p></div>
+</div>
+
+<div class="card"><h3>功能使用率</h3><div class="table-wrap"><table><thead><tr><th>功能</th><th>次數</th><th>相對瀏覽</th></tr></thead><tbody>{% for metric in metrics %}<tr><td>{{ {'points_tab_view':'點數紀錄查看','level_tab_view':'等級紀錄查看','pending_points_open':'待入帳明細','expiring_points_open':'即將到期明細','points_filter_change':'點數篩選','requery_click':'重新查詢'}[metric.event_type] }}</td><td class="font-mono">{{ metric.count }}</td><td class="font-mono">{{ metric.rate }}%</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="card"><h3>每日使用趨勢</h3>{% if daily %}<div class="table-wrap"><table><thead><tr><th>日期</th><th>瀏覽</th><th>使用會員</th></tr></thead><tbody>{% for row in daily %}<tr><td>{{ row.day }}</td><td class="font-mono">{{ row.views }}</td><td class="font-mono">{{ row.unique_members }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="empty-state">此期間尚無使用資料</p>{% endif %}</div>
+{% endblock %}

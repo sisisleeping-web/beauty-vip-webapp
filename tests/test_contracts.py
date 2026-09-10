@@ -339,6 +339,56 @@ class BeautyVipContractTests(unittest.TestCase):
         self.assertEqual(beauty._add_one_month(date(2026, 1, 31)), date(2026, 2, 28))
         self.assertEqual(beauty._add_one_month(date(2028, 1, 31)), date(2028, 2, 29))
 
+    def test_portal_v2_batches_expiry_and_tier_progress_are_canonical(self) -> None:
+        today = date.today()
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute("INSERT INTO customers(name,birthday,created_at) VALUES('V2會員','1990-01-01',?)", (today.isoformat(),)).lastrowid
+            txn = db.execute("INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,coins_earned,cashback,created_at,entry_mode) VALUES(?, 'store_a', ?, ?, 9000,9000,900,0,?,'normal')", (cid, today.isoformat(), today.strftime('%Y-%m'), today.isoformat())).lastrowid
+            for remaining, credit, expiry in [(200, today + timedelta(days=3), today + timedelta(days=40)), (300, today + timedelta(days=7), today + timedelta(days=20))]:
+                db.execute("INSERT INTO coin_batches(customer_id,source_txn_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) VALUES(?,?,?,?,?,?,?,?,?)", (cid, txn, remaining, remaining, credit.isoformat(), expiry.isoformat(), 'active', 0, today.isoformat()))
+            db.execute("INSERT INTO coin_batches(customer_id,source_txn_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) VALUES(?,?,?,?,?,?,?,?,?)", (cid, txn, 99, 99, today.isoformat(), (today - timedelta(days=1)).isoformat(), 'active', 0, today.isoformat()))
+            db.commit()
+            result = beauty._build_customer_result(cid)
+            self.assertEqual(result['customer']['pending_coins'], 500)
+            self.assertEqual(result['customer']['pending_detail_total'], 500)
+            self.assertEqual([row['credit_date'] for row in result['pending_batches']], [(today + timedelta(days=3)).isoformat(), (today + timedelta(days=7)).isoformat()])
+            self.assertEqual(result['customer']['expiring_coins'], 300)
+            self.assertEqual(result['expiring_batches'][0]['expires_date'], (today + timedelta(days=20)).isoformat())
+            self.assertEqual(result['customer']['tier_progress']['next_tier'], 'S級美咖')
+        html = self.client.get(f'/my?cid={cid}').get_data(as_text=True)
+        self.assertIn('查看明細', html)
+        self.assertIn('data-filter="pending"', html)
+
+    def test_portal_events_are_allowlisted_deduplicated_and_analytics_is_manager_only(self) -> None:
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute("INSERT INTO customers(name,birthday,created_at) VALUES('分析會員','1990-01-01','2026-01-01')").lastrowid
+            db.commit()
+        token = beauty._issue_portal_event_token(cid)
+        payload = {'token': token, 'event_type': 'portal_view', 'metadata': {}}
+        self.assertEqual(self.client.post('/api/member-portal/events', json=payload).status_code, 204)
+        self.assertEqual(self.client.post('/api/member-portal/events', json=payload).status_code, 204)
+        self.assertEqual(self.client.post('/api/member-portal/events', json={'token': token, 'event_type': 'points_filter_change', 'metadata': {'filter': 'pending'}}).status_code, 204)
+        self.assertEqual(self.client.post('/api/member-portal/events', json={'token': token, 'event_type': 'bad', 'metadata': {}}).status_code, 400)
+        self.assertEqual(self.client.post('/api/member-portal/events', json={'token': token, 'event_type': 'portal_view', 'metadata': {'name': '不得記錄'}}).status_code, 400)
+        self.assertEqual(self.client.get('/manager/portal-analytics').status_code, 403)
+        self._login(manager=True)
+        page = self.client.get('/manager/portal-analytics?days=30').get_data(as_text=True)
+        self.assertIn('會員自助查詢使用分析', page)
+        self.assertIn('實際使用會員數', page)
+        with beauty.app.app_context():
+            self.assertEqual(beauty.get_db().execute('SELECT COUNT(*) FROM member_portal_events WHERE event_type="portal_view"').fetchone()[0], 1)
+
+    def test_portal_event_rejects_bad_token_and_oversized_metadata(self) -> None:
+        self.assertEqual(self.client.post('/api/member-portal/events', json={'token': 'bad', 'event_type': 'portal_view', 'metadata': {}}).status_code, 401)
+        with beauty.app.app_context():
+            cid = beauty.get_db().execute("INSERT INTO customers(name,birthday,created_at) VALUES('事件會員','1990-01-01','2026-01-01')").lastrowid
+            beauty.get_db().commit()
+        token = beauty._issue_portal_event_token(cid)
+        self.assertEqual(self.client.post('/api/member-portal/events', data='x' * 600, content_type='application/json').status_code, 413)
+        self.assertEqual(self.client.post('/api/member-portal/events', json={'token': token, 'event_type': 'points_filter_change', 'metadata': {'filter': 'wrong'}}).status_code, 400)
+
     def test_void_recalculation_keeps_tier_when_calendar_year_threshold_remains(self) -> None:
         """作廢重複單後，仍要用整個曆年累計判斷，不可只看會員效期後的消費。"""
         with beauty.app.app_context():
