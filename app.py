@@ -603,6 +603,65 @@ def reevaluate_and_persist_tier(db: sqlite3.Connection, customer_id: int, as_of:
     return state or dict(_EMPTY_TIER_STATE)
 
 
+def _merged_history_tier_state(db: sqlite3.Connection, customer_id: int, as_of: date) -> dict:
+    """Derive the strongest tier now supported by the merged customer's current-year history.
+
+    A merge can join two partial customer histories after their transactions were entered.
+    Unlike normal entry, there is no new transaction to schedule the pending upgrade, so a
+    threshold already crossed in the past must be materialised as effective on the next day.
+    """
+    rows = db.execute(
+        "SELECT txn_date, final_amount FROM transactions "
+        "WHERE customer_id=? AND entry_mode='normal' AND final_amount>=1000 "
+        "AND voided_at IS NULL AND txn_date<=? ORDER BY txn_date ASC, id ASC",
+        (customer_id, as_of.isoformat()),
+    ).fetchall()
+    running_max = 0.0
+    totals_by_year: dict[str, float] = {}
+    best_name = "一般會員"
+    best_effective: str | None = None
+    best_rank = 0
+
+    for row in rows:
+        amount = float(row["final_amount"])
+        year = row["txn_date"][:4]
+        running_max = max(running_max, amount)
+        totals_by_year[year] = totals_by_year.get(year, 0.0) + amount
+        candidate = calc_tier(running_max, totals_by_year[year], load_rules()).name
+        candidate_rank = TIER_ORDER.index(candidate)
+        if candidate_rank > best_rank:
+            best_name = candidate
+            best_rank = candidate_rank
+            best_effective = _add_days(row["txn_date"], 1)
+
+    if best_name == "一般會員" or not best_effective:
+        return dict(_EMPTY_TIER_STATE)
+    return {
+        "member_tier": best_name,
+        "tier_effective_date": best_effective,
+        "tier_expires_date": _add_years(best_effective, 1),
+        "pending_tier": None,
+        "pending_effective_date": None,
+    }
+
+
+def _reconcile_tier_after_merge(
+    db: sqlite3.Connection, customer_id: int, pre_merge_states: list[dict], as_of: date,
+) -> dict:
+    """Keep the strongest valid existing membership, or restore one proved by merged history."""
+    candidates = [s for s in pre_merge_states if s]
+    candidates.append(_merged_history_tier_state(db, customer_id, as_of))
+
+    def sort_key(state: dict) -> tuple[int, str, str]:
+        tier = state.get("member_tier", "一般會員")
+        rank = TIER_ORDER.index(tier) if tier in TIER_ORDER else 0
+        return rank, state.get("tier_expires_date") or "", state.get("tier_effective_date") or ""
+
+    selected = max(candidates, key=sort_key, default=dict(_EMPTY_TIER_STATE))
+    _persist_tier_state(db, customer_id, selected)
+    return selected
+
+
 def reevaluate_tier_after_void(
     db: sqlite3.Connection, customer_id: int, rules: dict[str, Any], as_of: date,
     trigger_txn_id: int, void_reason: str,
@@ -2198,7 +2257,7 @@ def review_update_birthday(customer_id):
 
 @app.route("/api/customers/merge", methods=["POST"])
 def merge_customers():
-    """Merge keep_id ← absorb_id: move all transactions, then delete absorb_id."""
+    """Merge keep_id ← absorb_id and reconcile all customer-owned ledgers and tier state."""
     if not session.get("manager_authed"):
         return "Unauthorized", 403
     db = get_db()
@@ -2217,14 +2276,26 @@ def merge_customers():
     if not keep or not absorb:
         return "找不到指定顧客", 404
 
+    # Snapshot both effective states before deleting either record.  The retained
+    # account may be lower tier solely because the qualifying history is on the
+    # duplicate account.
+    pre_merge_states = [
+        _project_tier_state(db, customer_id, date.today().isoformat())[0]
+        for customer_id in (keep_id, absorb_id)
+    ]
+
     # Move all transactions from absorb → keep
     db.execute("UPDATE transactions SET customer_id=? WHERE customer_id=?", (keep_id, absorb_id))
     # 點數批次也要一起搬過去，不然餘額會對不上（coin_balance 是從批次算出來的）
     db.execute("UPDATE coin_batches SET customer_id=? WHERE customer_id=?", (keep_id, absorb_id))
+    # 人工調整與升等禮都是顧客帳本的一部分；不搬會在刪除 duplicate 後留下孤兒資料。
+    db.execute("UPDATE point_adjustments SET customer_id=? WHERE customer_id=?", (keep_id, absorb_id))
+    db.execute("UPDATE tier_upgrades SET customer_id=? WHERE customer_id=?", (keep_id, absorb_id))
 
     # Keep the more complete phone (prefer non-empty)
     merged_phone = keep["phone"] or absorb["phone"] or ""
     db.execute("UPDATE customers SET phone=? WHERE id=?", (merged_phone, keep_id))
+    _reconcile_tier_after_merge(db, keep_id, pre_merge_states, date.today())
     sync_coin_balance(db, keep_id)
 
     # Delete absorbed customer

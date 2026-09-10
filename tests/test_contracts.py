@@ -103,6 +103,80 @@ class BeautyVipContractTests(unittest.TestCase):
         deleted = self.client.post(f"/api/customers/{empty_id}/delete")
         self.assertEqual(deleted.status_code, 302)
 
+    def test_customer_merge_keeps_highest_tier_and_all_customer_ledgers(self) -> None:
+        self._login(manager=True)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            keep_id = db.execute(
+                "INSERT INTO customers(name,birthday,created_at,member_tier,tier_effective_date,tier_expires_date) "
+                "VALUES('合併測試','1988-01-01','2026-01-01','P級美咖','2026-08-10','2027-08-10')"
+            ).lastrowid
+            absorb_id = db.execute(
+                "INSERT INTO customers(name,birthday,created_at,member_tier,tier_effective_date,tier_expires_date) "
+                "VALUES('合併測試','1988-01-02','2026-01-01','A級美咖','2026-04-12','2027-04-12')"
+            ).lastrowid
+            txn_id = db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,created_at,entry_mode) "
+                "VALUES(?, 'store_a','2026-04-11','2026-04',60000,60000,0,'2026-04-11','normal')",
+                (absorb_id,),
+            ).lastrowid
+            db.execute(
+                "INSERT INTO tier_upgrades(customer_id,upgrade_date,tier_before,tier_after,trigger_txn_id,created_at) "
+                "VALUES(?, '2026-04-11','P級美咖','A級美咖',?,'2026-04-11')",
+                (absorb_id, txn_id),
+            )
+            db.execute(
+                "INSERT INTO point_adjustments(customer_id,points,reason,operator,created_at) VALUES(?,100,'test','staff','2026-04-11')",
+                (absorb_id,),
+            )
+            db.commit()
+
+        response = self.client.post("/api/customers/merge", data={"keep_id": keep_id, "absorb_id": absorb_id})
+        self.assertEqual(response.status_code, 302)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            customer = db.execute(
+                "SELECT member_tier,tier_effective_date,tier_expires_date FROM customers WHERE id=?", (keep_id,)
+            ).fetchone()
+            self.assertEqual(dict(customer), {
+                "member_tier": "A級美咖", "tier_effective_date": "2026-04-12", "tier_expires_date": "2027-04-12",
+            })
+            self.assertIsNone(db.execute("SELECT id FROM customers WHERE id=?", (absorb_id,)).fetchone())
+            self.assertEqual(db.execute("SELECT customer_id FROM transactions WHERE id=?", (txn_id,)).fetchone()[0], keep_id)
+            self.assertEqual(db.execute("SELECT customer_id FROM tier_upgrades WHERE trigger_txn_id=?", (txn_id,)).fetchone()[0], keep_id)
+            self.assertEqual(db.execute("SELECT customer_id FROM point_adjustments").fetchone()[0], keep_id)
+
+    def test_customer_merge_rebuilds_tier_from_combined_current_year_spend(self) -> None:
+        self._login(manager=True)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            keep_id = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('累積測試','1988-01-01','2026-01-01')"
+            ).lastrowid
+            absorb_id = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('累積測試','1988-01-02','2026-01-01')"
+            ).lastrowid
+            for customer_id, txn_date, amount in [
+                (keep_id, '2026-04-01', 20000), (keep_id, '2026-04-05', 20000),
+                (absorb_id, '2026-04-11', 20000),
+            ]:
+                db.execute(
+                    "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,created_at,entry_mode) "
+                    "VALUES(?, 'store_a', ?, '2026-04', ?, ?, 0, ?, 'normal')",
+                    (customer_id, txn_date, amount, amount, txn_date),
+                )
+            db.commit()
+
+        response = self.client.post("/api/customers/merge", data={"keep_id": keep_id, "absorb_id": absorb_id})
+        self.assertEqual(response.status_code, 302)
+        with beauty.app.app_context():
+            row = beauty.get_db().execute(
+                "SELECT member_tier,tier_effective_date,tier_expires_date FROM customers WHERE id=?", (keep_id,)
+            ).fetchone()
+            self.assertEqual(dict(row), {
+                "member_tier": "A級美咖", "tier_effective_date": "2026-04-12", "tier_expires_date": "2027-04-12",
+            })
+
     def test_booking_validates_input_and_capacity(self) -> None:
         invalid = self.client.post("/api/spa/book", data=self._booking_payload(store_id="unknown"))
         self.assertEqual(invalid.status_code, 400)
