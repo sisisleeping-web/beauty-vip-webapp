@@ -2859,7 +2859,12 @@ def customer_lookup():
 
 
 def _build_customer_result(cid: int) -> dict | None:
-    """Build the full customer result dict for display."""
+    """Build the customer self-service view model from the canonical coin ledger.
+
+    The summary deliberately comes from the same batches and transaction rows as
+    the point history.  The customer page must explain a balance, never derive a
+    second balance in the browser.
+    """
     db = get_db()
     sync_coin_balance(db, cid)
     db.commit()
@@ -2883,17 +2888,24 @@ def _build_customer_result(cid: int) -> dict | None:
         year_total = customer_year_total(db, cid, year_str)
     customer["year_total"] = year_total
 
-    points_row = db.execute(
-        "SELECT COALESCE(SUM(coins_earned),0) AS earned, COALESCE(SUM(coins_redeemed),0) AS redeemed "
-        "FROM transactions WHERE customer_id=? AND voided_at IS NULL",
-        (cid,),
+    coin_summary = _build_coin_summary_map(db, {cid}).get(cid, {})
+    customer.update(coin_summary)
+    # Keep this key for callers that used the previous display model.
+    customer["total_redeemed"] = customer["total_used"]
+    pending_date_row = db.execute(
+        """
+        SELECT MIN(credit_date) AS next_pending_date
+        FROM coin_batches
+        WHERE customer_id=? AND status='active' AND remaining_amount>0
+          AND credit_date > ?
+        """,
+        (cid, date.today().isoformat()),
     ).fetchone()
-    customer["total_earned"] = int(points_row["earned"] or 0)
-    customer["total_redeemed"] = int(points_row["redeemed"] or 0)
+    customer["next_pending_date"] = pending_date_row["next_pending_date"] if pending_date_row else None
 
     txns = db.execute(
         """
-        SELECT t.txn_date, s.name AS store_name, t.amount, t.final_amount,
+        SELECT t.id, t.txn_date, s.name AS store_name, t.amount, t.final_amount,
                t.coins_earned, t.coins_redeemed, t.entry_mode,
                t.recharge_plan, t.recharge_amount, t.note, t.created_at
         FROM transactions t
@@ -2924,29 +2936,113 @@ def _build_customer_result(cid: int) -> dict | None:
         (cid,),
     ).fetchall()
 
-    adjustments_history = []
+    transaction_statuses = _build_transaction_coin_status_map(
+        db, {int(t["id"]) for t in txns if int(t["coins_earned"] or 0) > 0},
+    )
+    point_history: list[dict[str, Any]] = []
+    for t in txns:
+        txn = dict(t)
+        if int(txn["coins_earned"] or 0) > 0:
+            status = transaction_statuses.get(int(txn["id"]), {"status": "已入帳", "available_date": ""})
+            point_history.append({
+                "date": txn["txn_date"],
+                "timestamp": txn.get("created_at") or txn["txn_date"],
+                "points_change": int(txn["coins_earned"]),
+                "kind": "壽星充值" if txn["entry_mode"] == "birthday_recharge" else "一般消費",
+                "detail": f"消費 ${int(float(txn['final_amount'] or txn['amount'] or 0)):,}",
+                "status": status["status"],
+                "available_date": status["available_date"] if status["status"] == "待入帳" else "",
+            })
+        if txn["entry_mode"] == "coin_deduct" and int(txn["coins_redeemed"] or 0) > 0:
+            point_history.append({
+                "date": txn["txn_date"],
+                "timestamp": txn.get("created_at") or txn["txn_date"],
+                "points_change": -int(txn["coins_redeemed"]),
+                "kind": "點數使用",
+                "detail": txn.get("note") or "消費折抵",
+                "status": "已使用",
+                "available_date": "",
+            })
+
     for pa in point_adjustments:
-        adjustments_history.append({
+        adjustment = dict(pa)
+        points = int(adjustment["points"] or 0)
+        point_history.append({
             "date": pa["created_at"][:10],
-            "reason": pa["reason"],
-            "points_change": pa["points"],
+            "kind": "人工調整",
+            "detail": pa["reason"],
+            "points_change": points,
+            "status": "已入帳" if points >= 0 else "已調整",
+            "available_date": "",
             "timestamp": pa["created_at"],
         })
-    for t in txns:
-        if t["entry_mode"] == "coin_deduct":
-            adjustments_history.append({
-                "date": t["txn_date"],
-                "reason": dict(t).get("note") or "點數扣除",
-                "points_change": -t["coins_redeemed"],
-                "timestamp": dict(t).get("created_at") or t["txn_date"],
-            })
-    adjustments_history.sort(key=lambda x: x["timestamp"], reverse=True)
+
+    # Some pre-V3 points were migrated directly into batches and therefore have
+    # no transaction or manual-adjustment source.  They remain part of the
+    # canonical ledger and must be visible, otherwise a historical total could
+    # not be traced from the self-service page.
+    source_free_batches = db.execute(
+        """
+        SELECT earned_amount, remaining_amount, credit_date, expires_date, status,
+               is_legacy, created_at
+        FROM coin_batches
+        WHERE customer_id=? AND source_txn_id IS NULL AND source_adjustment_id IS NULL
+          AND status != 'superseded_by_legacy'
+        ORDER BY created_at DESC, id DESC
+        """,
+        (cid,),
+    ).fetchall()
+    today_str = date.today().isoformat()
+    for batch in source_free_batches:
+        if batch["status"] != "active":
+            status = "已作廢"
+        elif batch["credit_date"] > today_str:
+            status = "待入帳"
+        elif batch["expires_date"] < today_str:
+            status = "已失效"
+        else:
+            status = "已入帳"
+        point_history.append({
+            "date": batch["created_at"][:10],
+            "timestamp": batch["created_at"],
+            "points_change": int(batch["earned_amount"]),
+            "kind": "舊制轉入點數" if batch["is_legacy"] else "帳本點數",
+            "detail": "歷史點數轉入" if batch["is_legacy"] else "既有帳本點數",
+            "status": status,
+            "available_date": batch["credit_date"] if status == "待入帳" else "",
+        })
+
+    # Expiry has no separate event table.  Active batches with remaining points
+    # past their expiry are nevertheless real ledger state, so expose them as a
+    # negative event instead of hiding why historical earned differs from usable.
+    expired_batches = db.execute(
+        """
+        SELECT remaining_amount, expires_date, created_at
+        FROM coin_batches
+        WHERE customer_id=? AND status='active' AND remaining_amount>0
+          AND expires_date < ?
+        ORDER BY expires_date DESC, id DESC
+        """,
+        (cid, date.today().isoformat()),
+    ).fetchall()
+    for batch in expired_batches:
+        point_history.append({
+            "date": batch["expires_date"],
+            "timestamp": f"{batch['expires_date']}T23:59:59",
+            "points_change": -int(batch["remaining_amount"]),
+            "kind": "點數失效",
+            "detail": "點數已超過可使用期限",
+            "status": "已失效",
+            "available_date": "",
+        })
+
+    point_history.sort(key=lambda item: item["timestamp"], reverse=True)
 
     return {
         "customer": customer,
         "transactions": [dict(t) for t in txns],
         "upgrades": [dict(u) for u in upgrades],
-        "point_adjustments": adjustments_history,
+        "point_history": point_history,
     }
 
 

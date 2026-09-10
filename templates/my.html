@@ -106,26 +106,52 @@
     .tier-P級美咖 { background: #fef3c7; color: #b45309; }
     .tier-A級美咖 { background: linear-gradient(135deg, #fde68a, #fbbf24); color: #78350f; }
 
-    .stats-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px; margin-top: 14px;
-    }
-    .stat-item {
-      background: linear-gradient(135deg, #f8f6ff, #f0ecff);
-      border-radius: 12px; padding: 14px 16px; text-align: center;
-      border: 1px solid #e8e4f3;
-    }
-    .stat-value {
-      font-size: 1.35rem; font-weight: 700; color: #6c3fc5; margin: 0;
-    }
-    .stat-label {
-      font-size: 0.78rem; color: #888; margin-top: 4px;
-    }
-    .stat-item.highlight {
+    .points-summary { margin-top: 18px; }
+    .available-points {
+      border-radius: 14px; padding: 20px;
       background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-      border-color: #a7f3d0;
+      border: 1px solid #a7f3d0;
     }
-    .stat-item.highlight .stat-value { color: #059669; }
+    .available-points .point-number { color: var(--success); font-size: 2rem; }
+    .point-number { margin: 0; font-size: 1.35rem; font-weight: 700; }
+    .point-title { margin: 4px 0 0; font-weight: 700; color: var(--text-heading); }
+    .point-help { margin: 3px 0 0; color: var(--text-muted); font-size: .82rem; }
+    .pending-points {
+      margin-top: 10px; border-radius: 12px; padding: 14px 16px;
+      background: var(--warning-bg); border: 1px solid rgba(217,119,6,.25);
+    }
+    .pending-points .point-number { color: var(--warning); }
+    .history-stats {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 12px;
+      border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;
+      background: var(--primary-bg-soft);
+    }
+    .history-stat { padding: 12px 14px; }
+    .history-stat + .history-stat { border-left: 1px solid var(--border-color); }
+    .history-stat p { margin: 0; }
+    .history-stat .history-value { color: var(--primary); font-size: 1.05rem; font-weight: 700; }
+    .history-stat .history-label { color: var(--text-muted); font-size: .78rem; margin-top: 3px; }
+    .info-hint { color: var(--text-muted); font-size: .78rem; cursor: help; }
+    .record-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 14px; }
+    .record-tab {
+      appearance: none; border: 0; border-bottom: 3px solid transparent; background: none;
+      padding: 10px 12px 9px; color: var(--text-muted); cursor: pointer; font: inherit; font-weight: 700;
+    }
+    .record-tab[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); }
+    .ledger { display: flex; flex-direction: column; gap: 10px; }
+    .ledger-item { border: 1px solid var(--border-color); border-radius: 12px; padding: 13px 14px; background: #fff; }
+    .ledger-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+    .ledger-date { color: var(--text-muted); font-size: .8rem; }
+    .ledger-change { font-size: 1.1rem; white-space: nowrap; }
+    .ledger-change.positive { color: var(--success); }
+    .ledger-change.negative { color: var(--danger); }
+    .ledger-kind { margin: 6px 0 0; font-weight: 700; font-size: .92rem; }
+    .ledger-detail { margin: 2px 0 0; color: var(--text-muted); font-size: .8rem; }
+    .status-row { margin-top: 8px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: .8rem; }
+    .status-pill { display: inline-block; padding: 3px 8px; border-radius: 999px; font-weight: 700; }
+    .status-pending { color: var(--warning); background: var(--warning-bg); }
+    .status-complete { color: var(--success); background: var(--success-bg); }
+    .status-used, .status-expired, .status-adjusted { color: var(--danger); background: var(--danger-bg); }
 
     /* Tables */
     .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -190,7 +216,8 @@
       .card { padding: 16px 16px; }
       .profile-header { gap: 10px; }
       .profile-name { font-size: 1.2rem; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .available-points .point-number { font-size: 1.7rem; }
+      .record-tab { flex: 1; padding-left: 6px; padding-right: 6px; }
     }
   </style>
 </head>
@@ -284,70 +311,70 @@
       </p>
       {% endif %}
 
-      <div class="stats-grid">
-        <div class="stat-item highlight">
-          <p class="stat-value font-mono">🪙 {{ c.coin_balance }}</p>
-          <p class="stat-label">目前點數餘額</p>
-        </div>
-        <div class="stat-item">
-          <p class="stat-value font-mono">{{ c.total_earned }}</p>
-          <p class="stat-label">累計獲得點數</p>
-        </div>
-        <div class="stat-item">
-          <p class="stat-value font-mono">{{ c.total_redeemed }}</p>
-          <p class="stat-label">累計使用點數</p>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Point Adjustments History -->
-    {% if result.point_adjustments %}
-    <div class="card">
-      <h2>🎁 點數異動紀錄</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>異動日期</th>
-              <th>異動項目 / 說明</th>
-              <th style="text-align:right;">點數增減</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for pa in result.point_adjustments %}
-            <tr>
-              <td>{{ pa.date }}</td>
-              <td>{{ pa.reason }}</td>
-              <td class="font-mono" style="text-align:right; {% if pa.points_change > 0 %}color:var(--success);{% else %}color:var(--danger);{% endif %}">
-                {% if pa.points_change > 0 %}+{% endif %}{{ pa.points_change }} 點
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Tier Upgrade History -->
-    {% if result.upgrades %}
-    <div class="card">
-      <h2>🏅 等級升級紀錄</h2>
-      <div class="timeline">
-        {% for u in result.upgrades %}
-        <div class="timeline-item">
-          <div class="timeline-date">{{ u.upgrade_date }}</div>
-          <div class="timeline-content">
-            {{ u.tier_before }} → <strong style="color:#d97706;">{{ u.tier_after }}</strong>
+      <div class="points-summary">
+        <section class="available-points" aria-label="目前可用點數" title="已完成入帳且目前可使用的點數；不包含待入帳、已使用及已失效點數。">
+          <p class="point-number font-mono">🪙 {{ c.coin_balance }} 點</p>
+          <p class="point-title">目前可用點數 <span class="info-hint">ⓘ</span></p>
+          <p class="point-help">現在可立即折抵</p>
+        </section>
+        <section class="pending-points" aria-label="待入帳點數">
+          <p class="point-number font-mono">⏳ {{ c.pending_coins or 0 }} 點</p>
+          <p class="point-title">待入帳點數</p>
+          <p class="point-help">{% if c.next_pending_date %}最近 {{ c.next_pending_date }} 可用{% else %}目前沒有待入帳點數{% endif %}</p>
+        </section>
+        <div class="history-stats">
+          <div class="history-stat" title="會員歷史上所有獲得點數的總和，包含尚未入帳的點數。">
+            <p class="history-value font-mono">{{ c.total_earned }}</p>
+            <p class="history-label">歷史累計獲得 <span class="info-hint">ⓘ</span></p>
           </div>
-          <div class="timeline-reason">{{ u.trigger_reason }}</div>
-
+          <div class="history-stat" title="會員歷史上已使用或折抵的點數總和。">
+            <p class="history-value font-mono">{{ c.total_used or 0 }}</p>
+            <p class="history-label">歷史累計使用 <span class="info-hint">ⓘ</span></p>
+          </div>
         </div>
-        {% endfor %}
       </div>
     </div>
-    {% endif %}
+
+    <!-- Summary answers current state; each tab answers how it changed. -->
+    <div class="card">
+      <div class="record-tabs" role="tablist" aria-label="會員紀錄">
+        <button type="button" class="record-tab" id="points-tab" role="tab" aria-selected="true" aria-controls="points-panel">點數紀錄</button>
+        <button type="button" class="record-tab" id="tiers-tab" role="tab" aria-selected="false" aria-controls="tiers-panel">等級紀錄</button>
+      </div>
+      <section id="points-panel" role="tabpanel" aria-labelledby="points-tab">
+        {% if result.point_history %}
+        <div class="ledger">
+          {% for item in result.point_history %}
+          <article class="ledger-item">
+            <div class="ledger-top">
+              <time class="ledger-date">{{ item.date }}</time>
+              <strong class="ledger-change font-mono {% if item.points_change >= 0 %}positive{% else %}negative{% endif %}">{% if item.points_change >= 0 %}+{% endif %}{{ item.points_change }} 點</strong>
+            </div>
+            <p class="ledger-kind">{{ item.kind }}</p>
+            <p class="ledger-detail">{{ item.detail }}</p>
+            <div class="status-row">
+              <span class="status-pill {% if item.status == '待入帳' %}status-pending{% elif item.status == '已入帳' %}status-complete{% elif item.status == '已使用' %}status-used{% elif item.status == '已失效' %}status-expired{% else %}status-adjusted{% endif %}">{% if item.status == '待入帳' %}⏳ {% elif item.status == '已入帳' %}✓ {% endif %}{{ item.status }}</span>
+              {% if item.available_date %}<span>{{ item.available_date }} 可用</span>{% endif %}
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}<p class="empty-state">目前尚無點數紀錄</p>{% endif %}
+      </section>
+      <section id="tiers-panel" role="tabpanel" aria-labelledby="tiers-tab" hidden>
+        {% if result.upgrades %}
+        <div class="timeline">
+          {% for u in result.upgrades %}
+          <div class="timeline-item">
+            <div class="timeline-date">{{ u.upgrade_date }}</div>
+            <div class="timeline-content">{{ u.tier_before }} → <strong style="color:#d97706;">{{ u.tier_after }}</strong></div>
+            <div class="timeline-reason">{{ u.trigger_reason }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}<p class="empty-state">目前尚無等級紀錄</p>{% endif %}
+      </section>
+    </div>
 
 
     <div style="text-align:center; margin-top:16px;">
@@ -356,5 +383,18 @@
   {% endif %}
 
   </div>
+  {% if result %}
+  <script>
+    document.querySelectorAll('.record-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const pointsVisible = tab.id === 'points-tab';
+        document.getElementById('points-panel').hidden = !pointsVisible;
+        document.getElementById('tiers-panel').hidden = pointsVisible;
+        document.getElementById('points-tab').setAttribute('aria-selected', String(pointsVisible));
+        document.getElementById('tiers-tab').setAttribute('aria-selected', String(!pointsVisible));
+      });
+    });
+  </script>
+  {% endif %}
 </body>
 </html>

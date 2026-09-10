@@ -271,6 +271,74 @@ class BeautyVipContractTests(unittest.TestCase):
         export_text = export.data.decode("utf-8-sig")
         self.assertIn("入帳狀態,可用日期,歷史累計獲得,歷史累計使用,待入帳點數,目前可用點數", export_text)
 
+    def test_customer_self_service_uses_canonical_point_ledger(self) -> None:
+        """會員頁摘要與流水必須同源，且待入帳與扣點都可追溯。"""
+        today = date.today()
+        prior_day = today - timedelta(days=2)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            customer_id = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('會員點數頁測試','1990-01-01',?)",
+                (today.isoformat(),),
+            ).lastrowid
+            posted_txn_id = db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,coins_earned,cashback,created_at,entry_mode) "
+                "VALUES(?, 'store_a', ?, ?, 12500,12500,1000,0,?,'normal')",
+                (customer_id, prior_day.isoformat(), prior_day.strftime("%Y-%m"), prior_day.isoformat()),
+            ).lastrowid
+            pending_txn_id = db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,coins_earned,cashback,created_at,entry_mode) "
+                "VALUES(?, 'store_a', ?, ?, 3799,3799,303,0,?,'normal')",
+                (customer_id, today.isoformat(), today.strftime("%Y-%m"), today.isoformat()),
+            ).lastrowid
+            db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,coins_redeemed,cashback,created_at,entry_mode,note) "
+                "VALUES(?, 'store_a', ?, ?, 0,0,500,0,?,'coin_deduct','消費折抵')",
+                (customer_id, today.isoformat(), today.strftime("%Y-%m"), today.isoformat()),
+            )
+            for txn_id, earned, remaining, credit_day in (
+                (posted_txn_id, 1000, 500, prior_day),
+                (pending_txn_id, 303, 303, beauty._add_one_month(today)),
+            ):
+                db.execute(
+                    "INSERT INTO coin_batches(customer_id,source_txn_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
+                    "VALUES(?,?,?,?,?,?,?,?,?)",
+                    (customer_id, txn_id, earned, remaining, credit_day.isoformat(), beauty._add_years(credit_day.isoformat(), 1), "active", 0, today.isoformat()),
+                )
+            beauty.sync_coin_balance(db, customer_id, today)
+            db.commit()
+
+            result = beauty._build_customer_result(customer_id)
+            self.assertIsNotNone(result)
+            customer = result["customer"]
+            self.assertEqual(customer["coin_balance"], 500)
+            self.assertEqual(customer["pending_coins"], 303)
+            self.assertEqual(customer["total_earned"], 1303)
+            self.assertEqual(customer["total_used"], 500)
+            self.assertEqual(customer["next_pending_date"], beauty._add_one_month(today).isoformat())
+            self.assertIn({
+                "date": today.isoformat(), "points_change": 303, "kind": "一般消費",
+                "detail": "消費 $3,799", "status": "待入帳",
+                "available_date": beauty._add_one_month(today).isoformat(), "timestamp": today.isoformat(),
+            }, result["point_history"])
+            self.assertTrue(any(item["points_change"] == -500 and item["status"] == "已使用" for item in result["point_history"]))
+
+        page = self.client.get(f"/my?cid={customer_id}").get_data(as_text=True)
+        self.assertIn("目前可用點數", page)
+        self.assertIn("待入帳點數", page)
+        self.assertIn("歷史累計獲得", page)
+        self.assertIn("歷史累計使用", page)
+        self.assertIn("點數紀錄", page)
+        self.assertIn("等級紀錄", page)
+        self.assertIn("待入帳", page)
+        self.assertIn(f"{beauty._add_one_month(today).isoformat()} 可用", page)
+        self.assertIn("-500 點", page)
+        self.assertNotIn("目前點數餘額", page)
+
+    def test_credit_date_uses_next_month_same_day_or_month_end(self) -> None:
+        self.assertEqual(beauty._add_one_month(date(2026, 1, 31)), date(2026, 2, 28))
+        self.assertEqual(beauty._add_one_month(date(2028, 1, 31)), date(2028, 2, 29))
+
     def test_void_recalculation_keeps_tier_when_calendar_year_threshold_remains(self) -> None:
         """作廢重複單後，仍要用整個曆年累計判斷，不可只看會員效期後的消費。"""
         with beauty.app.app_context():
