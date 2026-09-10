@@ -1013,14 +1013,36 @@ def sync_all_coin_balances(db: sqlite3.Connection, as_of: date | None = None) ->
     as_of_str = (as_of or date.today()).isoformat()
     db.execute(
         """
-        UPDATE customers SET coin_balance = (
+        UPDATE customers AS c SET coin_balance = (
             SELECT COALESCE(SUM(remaining_amount),0) FROM coin_batches
-            WHERE coin_batches.customer_id = customers.id
+            WHERE coin_batches.customer_id = c.id
             AND status='active' AND credit_date<=? AND expires_date>=?
         )
+        WHERE c.coin_balance != COALESCE((
+            SELECT SUM(remaining_amount) FROM coin_batches
+            WHERE coin_batches.customer_id = c.id
+            AND status='active' AND credit_date<=? AND expires_date>=?
+        ), 0)
         """,
-        (as_of_str, as_of_str),
+        (as_of_str, as_of_str, as_of_str, as_of_str),
     )
+
+
+@app.before_request
+def refresh_management_coin_balance_cache():
+    """Keep the display cache aligned with the dated coin-batch ledger.
+
+    Coin batches can become usable or expire merely because the calendar changes.
+    The batch ledger is canonical, while ``customers.coin_balance`` is a display
+    cache used by several management APIs.  Refresh the cache once at the start
+    of each application request so the first request after a calendar change
+    repairs stale values before any handler can return them.
+    """
+    if request.path.startswith("/static/"):
+        return
+    db = get_db()
+    sync_all_coin_balances(db)
+    db.commit()
 
 
 def has_column(db: sqlite3.Connection, table: str, column: str) -> bool:

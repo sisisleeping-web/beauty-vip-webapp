@@ -190,6 +190,27 @@ class BeautyVipContractTests(unittest.TestCase):
                 "member_tier": "A級美咖", "tier_effective_date": "2026-04-12", "tier_expires_date": "2027-04-12",
             })
 
+    def test_any_application_request_refreshes_coin_balance_cache(self) -> None:
+        """日期驅動的批次到期不可讓快取在下一次使用前仍停在舊值。"""
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            customer_id = db.execute(
+                "INSERT INTO customers(name,phone,birthday,created_at,coin_balance) "
+                "VALUES('點數快取','0912345678','1990-01-01','2026-01-01',0)"
+            ).lastrowid
+            db.execute(
+                "INSERT INTO coin_batches(customer_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
+                "VALUES(?,500,500,'2026-01-01','2030-01-01','active',0,'2026-01-01')",
+                (customer_id,),
+            )
+            db.commit()
+
+        response = self.client.get("/spa/booking")
+        self.assertEqual(response.status_code, 200)
+        with beauty.app.app_context():
+            row = beauty.get_db().execute("SELECT coin_balance FROM customers WHERE id=?", (customer_id,)).fetchone()
+            self.assertEqual(row["coin_balance"], 500)
+
     def test_void_recalculation_keeps_tier_when_calendar_year_threshold_remains(self) -> None:
         """作廢重複單後，仍要用整個曆年累計判斷，不可只看會員效期後的消費。"""
         with beauty.app.app_context():
