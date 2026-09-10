@@ -211,6 +211,66 @@ class BeautyVipContractTests(unittest.TestCase):
             row = beauty.get_db().execute("SELECT coin_balance FROM customers WHERE id=?", (customer_id,)).fetchone()
             self.assertEqual(row["coin_balance"], 500)
 
+    def test_report_separates_member_point_summary_from_transaction_status(self) -> None:
+        """日明細不可重複放會員總計，且待入帳點數須能直接追到來源交易。"""
+        today = date.today()
+        future_credit = beauty._add_one_month(today)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            customer_id = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('點數摘要測試','1990-01-01',?)",
+                (today.isoformat(),),
+            ).lastrowid
+            pending_txn_id = db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,coins_earned,cashback,created_at,entry_mode) "
+                "VALUES(?, 'store_a', ?, ?, 3799,3799,303,0,?,'normal')",
+                (customer_id, today.isoformat(), today.strftime("%Y-%m"), today.isoformat()),
+            ).lastrowid
+            usable_txn_id = db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,coins_earned,cashback,created_at,entry_mode) "
+                "VALUES(?, 'store_a', ?, ?, 1250,1250,100,0,?,'normal')",
+                (customer_id, today.isoformat(), today.strftime("%Y-%m"), today.isoformat()),
+            ).lastrowid
+            for txn_id, amount, credit_day in (
+                (pending_txn_id, 303, future_credit),
+                (usable_txn_id, 100, today),
+            ):
+                db.execute(
+                    "INSERT INTO coin_batches(customer_id,source_txn_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
+                    "VALUES(?,?,?,?,?,?,?,?,?)",
+                    (customer_id, txn_id, amount, amount, credit_day.isoformat(), beauty._add_years(credit_day.isoformat(), 1), "active", 0, today.isoformat()),
+                )
+            beauty.sync_coin_balance(db, customer_id, today)
+            db.commit()
+
+            rows = beauty._build_report_detail_rows(db, {
+                "month_from": today.strftime("%Y-%m"), "month_to": today.strftime("%Y-%m"),
+                "year": today.strftime("%Y"), "store_id": "", "q": "點數摘要測試",
+                "start_date": "", "end_date": "", "birthday_month": "", "vip_tier": "",
+            })
+            pending_row = next(row for row in rows if row["id"] == pending_txn_id)
+            usable_row = next(row for row in rows if row["id"] == usable_txn_id)
+            self.assertEqual(pending_row["coin_status"], "待入帳")
+            self.assertEqual(pending_row["coin_available_date"], future_credit.isoformat())
+            self.assertEqual(usable_row["coin_status"], "已入帳")
+            self.assertEqual(pending_row["cust_total_earned"], 403)
+            self.assertEqual(pending_row["cust_pending_coins"], 303)
+            self.assertEqual(pending_row["cust_coin_balance"], 100)
+
+        self._login(manager=True)
+        query = f"/report?month_from={today:%Y-%m}&month_to={today:%Y-%m}&q=%E9%BB%9E%E6%95%B8%E6%91%98%E8%A6%81%E6%B8%AC%E8%A9%A6"
+        page = self.client.get(query).get_data(as_text=True)
+        self.assertIn("會員點數摘要", page)
+        self.assertIn("待入帳點數", page)
+        self.assertIn("歷史累計使用", page)
+        self.assertIn("待入帳", page)
+        self.assertIn(f"{future_credit.isoformat()} 可用", page)
+        self.assertNotIn("累計折抵", page)
+
+        export = self.client.get(query.replace("/report?", "/report/export.csv?"))
+        export_text = export.data.decode("utf-8-sig")
+        self.assertIn("入帳狀態,可用日期,歷史累計獲得,歷史累計使用,待入帳點數,目前可用點數", export_text)
+
     def test_void_recalculation_keeps_tier_when_calendar_year_threshold_remains(self) -> None:
         """作廢重複單後，仍要用整個曆年累計判斷，不可只看會員效期後的消費。"""
         with beauty.app.app_context():

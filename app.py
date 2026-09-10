@@ -1462,8 +1462,115 @@ def _parse_report_filters() -> dict[str, str]:
     }
 
 
+def _build_coin_summary_map(
+    db: sqlite3.Connection, customer_ids: set[int], as_of: date | None = None,
+) -> dict[int, dict[str, int]]:
+    """回傳報表需要的會員點數摘要。
+
+    ``coin_balance`` 是目前可用的快取；分筆帳本才是待入帳／失效點數的正典。將兩者
+    一起輸出，畫面才能說清楚「歷史獲得」與「現在可用」為何不同。
+    """
+    if not customer_ids:
+        return {}
+
+    as_of_str = (as_of or date.today()).isoformat()
+    placeholders = ",".join("?" * len(customer_ids))
+    ids = list(customer_ids)
+    rows = db.execute(
+        f"""
+        WITH transaction_totals AS (
+            SELECT customer_id,
+                   COALESCE(SUM(coins_earned), 0) AS earned,
+                   COALESCE(SUM(coins_redeemed), 0) AS used
+            FROM transactions
+            WHERE voided_at IS NULL AND customer_id IN ({placeholders})
+            GROUP BY customer_id
+        ), manual_totals AS (
+            SELECT customer_id, COALESCE(SUM(points), 0) AS earned
+            FROM point_adjustments
+            WHERE customer_id IN ({placeholders})
+            GROUP BY customer_id
+        ), batch_totals AS (
+            SELECT customer_id,
+                   COALESCE(SUM(CASE
+                       WHEN status='active' AND credit_date > ? THEN remaining_amount
+                       ELSE 0 END), 0) AS pending,
+                   COALESCE(SUM(CASE
+                       WHEN status='active' AND expires_date < ? THEN remaining_amount
+                       ELSE 0 END), 0) AS expired,
+                   COALESCE(SUM(CASE WHEN is_legacy=1 THEN earned_amount ELSE 0 END), 0) AS legacy_earned
+            FROM coin_batches
+            WHERE customer_id IN ({placeholders})
+            GROUP BY customer_id
+        )
+        SELECT c.id AS customer_id, c.coin_balance,
+               COALESCE(t.earned, 0) + COALESCE(m.earned, 0) +
+               MAX(COALESCE(b.legacy_earned, 0) - COALESCE(t.earned, 0) - COALESCE(m.earned, 0), 0) AS total_earned,
+               COALESCE(t.used, 0) AS total_used,
+               COALESCE(b.pending, 0) AS pending_coins,
+               COALESCE(b.expired, 0) AS expired_coins,
+               MAX(COALESCE(b.legacy_earned, 0) - COALESCE(t.earned, 0) - COALESCE(m.earned, 0), 0) AS legacy_carryover
+        FROM customers c
+        LEFT JOIN transaction_totals t ON t.customer_id = c.id
+        LEFT JOIN manual_totals m ON m.customer_id = c.id
+        LEFT JOIN batch_totals b ON b.customer_id = c.id
+        WHERE c.id IN ({placeholders})
+        """,
+        [*ids, *ids, as_of_str, as_of_str, *ids, *ids],
+    ).fetchall()
+    return {
+        int(row["customer_id"]): {
+            "total_earned": int(row["total_earned"] or 0),
+            "total_used": int(row["total_used"] or 0),
+            "pending_coins": int(row["pending_coins"] or 0),
+            "expired_coins": int(row["expired_coins"] or 0),
+            "legacy_carryover": int(row["legacy_carryover"] or 0),
+            "coin_balance": int(row["coin_balance"] or 0),
+        }
+        for row in rows
+    }
+
+
+def _build_transaction_coin_status_map(
+    db: sqlite3.Connection, transaction_ids: set[int], as_of: date | None = None,
+) -> dict[int, dict[str, str]]:
+    """回傳交易賺點批次的入帳狀態及可用日期，供日明細直接說明差額來源。"""
+    if not transaction_ids:
+        return {}
+
+    as_of_str = (as_of or date.today()).isoformat()
+    placeholders = ",".join("?" * len(transaction_ids))
+    rows = db.execute(
+        f"""
+        SELECT source_txn_id, status, credit_date, expires_date
+        FROM coin_batches
+        WHERE source_txn_id IN ({placeholders})
+        ORDER BY id DESC
+        """,
+        list(transaction_ids),
+    ).fetchall()
+    result: dict[int, dict[str, str]] = {}
+    for row in rows:
+        txn_id = int(row["source_txn_id"])
+        if txn_id in result:
+            continue
+        if row["status"] == "superseded_by_legacy":
+            # 舊制帳本轉入時已涵蓋此筆來源點數；保留批次作稽核，不可再重複計入餘額。
+            status = "已入帳"
+        elif row["status"] != "active":
+            status = "已作廢"
+        elif row["credit_date"] > as_of_str:
+            status = "待入帳"
+        elif row["expires_date"] < as_of_str:
+            status = "已失效"
+        else:
+            status = "已入帳"
+        result[txn_id] = {"status": status, "available_date": row["credit_date"]}
+    return result
+
+
 def _build_report_detail_rows(db: sqlite3.Connection, f: dict[str, str]) -> list[dict]:
-    """/report 與 /report/export.csv 共用：依篩選條件查出的交易明細（含 VIP 等級／累計點數）。"""
+    """/report 與 /report/export.csv 共用：依篩選條件查出的交易明細（含 VIP 與點數狀態）。"""
     where = ["t.voided_at IS NULL", "t.month_key >= ? AND t.month_key <= ?"]
     params: list[Any] = [f["month_from"], f["month_to"]]
 
@@ -1508,30 +1615,13 @@ def _build_report_detail_rows(db: sqlite3.Connection, f: dict[str, str]) -> list
 
     tier_map = get_customer_tier_map(db, f["year"])
 
-    # Build per-customer coin summary
+    # Build per-customer coin summary from the canonical dated ledger.
     customer_ids_in_result = set(int(r["customer_id"]) for r in detail_rows_raw)
-    coin_summary_map: dict[int, dict] = {}
-    if customer_ids_in_result:
-        placeholders = ",".join("?" * len(customer_ids_in_result))
-        coin_rows = db.execute(
-            f"""
-            SELECT c.id AS customer_id,
-                   c.coin_balance,
-                   COALESCE(SUM(t.coins_earned), 0) AS total_earned,
-                   COALESCE(SUM(t.coins_redeemed), 0) AS total_redeemed
-            FROM customers c
-            LEFT JOIN transactions t ON t.customer_id = c.id AND t.voided_at IS NULL
-            WHERE c.id IN ({placeholders})
-            GROUP BY c.id
-            """,
-            list(customer_ids_in_result),
-        ).fetchall()
-        for cr in coin_rows:
-            coin_summary_map[int(cr["customer_id"])] = {
-                "total_earned": int(cr["total_earned"] or 0),
-                "total_redeemed": int(cr["total_redeemed"] or 0),
-                "coin_balance": int(cr["coin_balance"] or 0),
-            }
+    coin_summary_map = _build_coin_summary_map(db, customer_ids_in_result)
+    transaction_status_map = _build_transaction_coin_status_map(
+        db,
+        {int(r["id"]) for r in detail_rows_raw if int(r["coins_earned"] or 0) > 0},
+    )
 
     detail_rows = []
     for r in detail_rows_raw:
@@ -1541,8 +1631,18 @@ def _build_report_detail_rows(db: sqlite3.Connection, f: dict[str, str]) -> list
             continue
         cs = coin_summary_map.get(int(r["customer_id"]), {})
         d["cust_total_earned"] = cs.get("total_earned", 0)
-        d["cust_total_redeemed"] = cs.get("total_redeemed", 0)
+        d["cust_total_used"] = cs.get("total_used", 0)
+        d["cust_pending_coins"] = cs.get("pending_coins", 0)
+        d["cust_expired_coins"] = cs.get("expired_coins", 0)
+        d["cust_legacy_carryover"] = cs.get("legacy_carryover", 0)
         d["cust_coin_balance"] = cs.get("coin_balance", 0)
+        if d["entry_mode"] in ("normal", "birthday_recharge") and int(d["coins_earned"] or 0) > 0:
+            batch_status = transaction_status_map.get(int(r["id"]))
+            d["coin_status"] = batch_status["status"] if batch_status else "已入帳"
+            d["coin_available_date"] = batch_status["available_date"] if batch_status else ""
+        else:
+            d["coin_status"] = "—"
+            d["coin_available_date"] = ""
         detail_rows.append(d)
     return detail_rows
 
@@ -1562,6 +1662,22 @@ def report():
         month_label = f"{month_from} ~ {month_to}"
 
     detail_rows = _build_report_detail_rows(db, f)
+    member_summaries_by_id: dict[int, dict[str, Any]] = {}
+    for row in detail_rows:
+        customer_id = int(row["customer_id"])
+        if customer_id not in member_summaries_by_id:
+            member_summaries_by_id[customer_id] = {
+                "customer_name": row["customer_name"],
+                "birthday": row["birthday"],
+                "vip_tier": row["vip_tier"],
+                "total_earned": row["cust_total_earned"],
+                "total_used": row["cust_total_used"],
+                "pending_coins": row["cust_pending_coins"],
+                "expired_coins": row["cust_expired_coins"],
+                "legacy_carryover": row["cust_legacy_carryover"],
+                "coin_balance": row["cust_coin_balance"],
+            }
+    member_summaries = sorted(member_summaries_by_id.values(), key=lambda row: (row["customer_name"], row["birthday"]))
 
     monthly_by_customer = db.execute(
         """
@@ -1602,6 +1718,7 @@ def report():
         month_from=month_from,
         month_to=month_to,
         detail_rows=detail_rows,
+        member_summaries=member_summaries,
         monthly_by_customer=monthly_by_customer,
         yearly_by_customer=yearly_by_customer,
         stores=stores,
@@ -1626,7 +1743,8 @@ def report_export_csv():
     writer = csv.writer(buf)
     writer.writerow([
         "日期", "分店", "客戶", "生日", "VIP等級", "原始金額", "實收金額",
-        "獲得點數", "扣除點數", "模式", "累計獲得", "累計折抵", "點數餘額",
+        "獲得點數", "扣除點數", "模式", "入帳狀態", "可用日期",
+        "歷史累計獲得", "歷史累計使用", "待入帳點數", "目前可用點數",
     ])
     for r in detail_rows:
         writer.writerow([
@@ -1634,7 +1752,9 @@ def report_export_csv():
             f"{r['amount']:.0f}", f"{r['final_amount']:.0f}",
             r["coins_earned"], r["coins_redeemed"],
             mode_label.get(r["entry_mode"], r["entry_mode"]),
-            r["cust_total_earned"], r["cust_total_redeemed"], r["cust_coin_balance"],
+            r["coin_status"], r["coin_available_date"],
+            r["cust_total_earned"], r["cust_total_used"],
+            r["cust_pending_coins"], r["cust_coin_balance"],
         ])
 
     # 加 UTF-8 BOM 讓 Excel 開啟中文不亂碼

@@ -89,6 +89,40 @@
 </div>
 
 <div class="card">
+  <h3>🪙 會員點數摘要</h3>
+  <p class="text-muted" style="font-size:0.85rem; margin:0 0 8px;">此區是會員總計；下方日明細只顯示該筆交易的點數與入帳狀態。</p>
+  <div class="table-wrap"><table id="member-coin-summary-table">
+    <thead>
+      <tr>
+        <th>客戶</th><th>VIP等級</th>
+        <th style="text-align:right;">目前可用點數 <span class="coin-info" title="已完成入帳且目前可使用的點數；不包含待入帳、已使用及已失效點數。">ⓘ</span></th>
+        <th style="text-align:right;">待入帳點數 <span class="coin-info" title="已取得點數資格，但尚未到可使用日期的點數。">ⓘ</span></th>
+        <th style="text-align:right;">歷史累計獲得 <span class="coin-info" title="會員歷史上所有已獲得的點數，包含目前尚未入帳的點數與手動贈點。">ⓘ</span></th>
+        <th style="text-align:right;">歷史累計使用 <span class="coin-info" title="會員歷史上已折抵或使用的點數。">ⓘ</span></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for s in member_summaries %}
+      <tr>
+        <td>{{ s.customer_name }}<br><span class="text-muted" style="font-size:0.8rem;">{{ s.birthday }}</span></td>
+        <td><span class="tier-badge tier-{{ s.vip_tier }}">{{ s.vip_tier }}</span></td>
+        <td class="font-mono" style="text-align:right; color:var(--success); font-weight:700;">{{ s.coin_balance }}</td>
+        <td class="font-mono" style="text-align:right; color:var(--warning); font-weight:700;">{{ s.pending_coins }}</td>
+        <td class="font-mono" style="text-align:right;">{{ s.total_earned }}</td>
+        <td class="font-mono" style="text-align:right;">{{ s.total_used }}</td>
+      </tr>
+      {% if s.expired_coins > 0 %}
+      <tr class="coin-expired-note"><td colspan="6">提醒：{{ s.customer_name }} 尚有 {{ s.expired_coins }} 點已失效，已不包含在目前可用點數內。</td></tr>
+      {% endif %}
+      {% if s.legacy_carryover > 0 %}
+      <tr class="coin-expired-note"><td colspan="6">說明：{{ s.customer_name }} 的歷史累計獲得已包含 {{ s.legacy_carryover }} 點舊制轉入點數。</td></tr>
+      {% endif %}
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+<div class="card">
   <h3>📋 日明細（{{ month_label }}）</h3>
   <p class="text-muted" style="font-size:0.85rem; margin:0 0 8px;">共 {{ detail_rows|length }} 筆</p>
   <div class="table-wrap"><table id="detail-table">
@@ -97,7 +131,7 @@
         <th>日期</th><th>分店</th><th>客戶</th><th>生日</th><th>VIP等級</th>
         <th>原始金額</th><th>實收金額</th>
         <th>獲得點數</th><th>模式</th>
-        <th style="text-align:right;">累計獲得</th><th style="text-align:right;">累計折抵</th><th style="text-align:right;">點數餘額</th>
+        <th>入帳狀態</th><th>可用日期</th>
         <th style="min-width:100px;">操作</th>
       </tr>
     </thead>
@@ -128,9 +162,18 @@
         {% elif r.entry_mode == 'coin_deduct' %}<span class="badge-pill badge-pill-danger">點數扣除</span>
         {% else %}<span class="badge-pill badge-pill-neutral">一般消費</span>{% endif %}
       </td>
-      <td class="view-cell font-mono" style="text-align:right;">{{ r.cust_total_earned }}</td>
-      <td class="view-cell font-mono" style="text-align:right;">{{ r.cust_total_redeemed }}</td>
-      <td class="view-cell font-mono" style="text-align:right; color:var(--success);">{{ r.cust_coin_balance }}</td>
+      <td class="view-cell">
+        {% if r.coin_status == '待入帳' %}<span class="badge-pill badge-pill-warning">🕒 待入帳</span>
+        {% elif r.coin_status == '已入帳' %}<span class="badge-pill badge-pill-success">已入帳</span>
+        {% elif r.coin_status == '已失效' %}<span class="badge-pill badge-pill-danger">已失效</span>
+        {% elif r.coin_status == '已作廢' %}<span class="badge-pill badge-pill-danger">已作廢</span>
+        {% else %}—{% endif %}
+      </td>
+      <td class="view-cell font-mono">
+        {% if r.coin_status == '待入帳' and r.coin_available_date %}{{ r.coin_available_date }} 可用
+        {% elif r.coin_status == '已入帳' and r.coin_available_date %}{{ r.coin_available_date }} 起
+        {% else %}—{% endif %}
+      </td>
       <td class="view-cell" style="white-space:nowrap;">
         <button type="button" onclick="startEdit({{ r.id }}, '{{ r.txn_date }}', '{{ r.store_id }}', '{{ r.customer_name|replace("'", "\\'") }}', '{{ r.birthday }}', {{ r.amount }}, {{ r.final_amount }})"
           style="background:var(--primary-bg);color:var(--primary);border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-right:4px;box-shadow:none;">✏️ 修改</button>
@@ -139,7 +182,7 @@
       </td>
 
       <!-- Edit mode cells (hidden by default) -->
-      <td class="edit-cell" style="display:none;" colspan="13">
+      <td class="edit-cell" style="display:none;" colspan="12">
         <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:8px 0;">
           <div><label style="font-size:12px;margin:0;">日期</label><br><input type="date" id="e-date-{{ r.id }}" value="{{ r.txn_date }}" style="width:140px;max-width:none;"></div>
           <div><label style="font-size:12px;margin:0;">分店</label><br>
@@ -192,6 +235,8 @@
 <style>
 #detail-table tr.editing .view-cell { display: none; }
 #detail-table tr.editing .edit-cell { display: table-cell !important; }
+.coin-info { color:var(--text-muted); cursor:help; font-size:0.9em; }
+.coin-expired-note td { color:var(--text-muted); background:#fafafa; font-size:0.82rem; }
 .quick-month-btn {
   background: #f3f4f6; color: var(--text-color); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   padding: 4px 10px; font-size: 13px; cursor: pointer; white-space: nowrap;
