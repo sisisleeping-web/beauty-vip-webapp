@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "data" / "beauty_vip.db"
 RULES_PATH = BASE_DIR / "rules.json"
 
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.4.0"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("APP_SECRET_KEY", "beauty-vip-demo")
@@ -1169,15 +1169,35 @@ def get_customer_tier_map(db: sqlite3.Connection, year: str) -> dict[int, str]:
     return {cid: get_effective_tier(db, cid) for cid in customer_ids}
 
 
+# Action Board V1.1 分類 meta：key 是「顯示分類」（birthday 依當下狀態拆成三個 key，
+# 其餘與 action_type 一致），非 DB 儲存用的 action_type/action_key（那組維持不變，
+# 見 _action_summary_key 的註解）。
+ACTION_CATEGORY_META: dict[str, dict[str, str]] = {
+    "red_expiry": {"label": "7 天內點數到期", "icon": "🔴"},
+    "review": {"label": "待人工處理", "icon": "⚠️"},
+    "gift": {"label": "待發升等禮", "icon": "🎁"},
+    "birthday_today": {"label": "今日壽星", "icon": "🎂"},
+    "birthday_missed": {"label": "本月漏關心", "icon": "📌"},
+    "orange_expiry": {"label": "30 天內點數到期", "icon": "🟠"},
+    "birthday_upcoming": {"label": "未來 7 天壽星", "icon": "📅"},
+}
+# 候選資料 ≠ 尚待處理工作：只有這些分類會計入 Navbar / Modal / Homepage 的主 badge 總數，
+# 其餘（目前只有 birthday_upcoming）是預告資訊，只在 /actions 頁單獨顯示。
+ACTIONABLE_SUMMARY_KEYS = (
+    "red_expiry", "review", "gift", "birthday_today", "birthday_missed", "orange_expiry",
+)
+_SUMMARY_KEY_PRIORITY = {key: i + 1 for i, key in enumerate((
+    "red_expiry", "review", "gift", "birthday_today", "birthday_missed",
+    "orange_expiry", "birthday_upcoming",
+))}
+
+
 def empty_action_board_summary() -> dict[str, Any]:
-    categories = {
-        "red_expiry": {"label": "7 天內點數到期", "icon": "🔴", "count": 0},
-        "review": {"label": "待人工處理", "icon": "⚠️", "count": 0},
-        "gift": {"label": "待發升等禮", "icon": "🎁", "count": 0},
-        "orange_expiry": {"label": "30 天內點數到期", "icon": "🟠", "count": 0},
-        "birthday": {"label": "本月壽星", "icon": "🎂", "count": 0},
+    categories = {k: {**ACTION_CATEGORY_META[k], "count": 0} for k in ACTIONABLE_SUMMARY_KEYS}
+    informational = {
+        k: {**v, "count": 0} for k, v in ACTION_CATEGORY_META.items() if k not in ACTIONABLE_SUMMARY_KEYS
     }
-    return {"total_count": 0, "categories": categories}
+    return {"total_count": 0, "categories": categories, "informational": informational}
 
 
 def _handled_action_keys(db: sqlite3.Connection) -> set[tuple[str, str]]:
@@ -1194,14 +1214,20 @@ def _action_is_pending(action: dict[str, Any], handled: set[tuple[str, str]]) ->
     return (str(action["action_type"]), str(action["action_key"])) not in handled
 
 
-def _action_priority(action_type: str) -> int:
-    return {
-        "red_expiry": 1,
-        "review": 2,
-        "gift": 3,
-        "orange_expiry": 4,
-        "birthday": 5,
-    }.get(action_type, 99)
+def _action_summary_key(action: dict[str, Any]) -> str:
+    """顯示分類 key。birthday 的 action_type/action_key 對 handled 記錄維持不變（見
+    _classify_birthday 對 action_key 的說明），只有這裡依 birthday_bucket 拆顯示分類。"""
+    if action["action_type"] == "birthday":
+        return f"birthday_{action.get('birthday_bucket')}"
+    return str(action["action_type"])
+
+
+def _action_is_actionable(action: dict[str, Any]) -> bool:
+    return _action_summary_key(action) in ACTIONABLE_SUMMARY_KEYS
+
+
+def _action_priority(action: dict[str, Any]) -> int:
+    return _SUMMARY_KEY_PRIORITY.get(_action_summary_key(action), 99)
 
 
 def _parse_iso_date(value: str, fallback: date) -> date:
@@ -1209,6 +1235,56 @@ def _parse_iso_date(value: str, fallback: date) -> date:
         return datetime.strptime(value, "%Y-%m-%d").date()
     except Exception:
         return fallback
+
+
+def _format_birthday_display(birthday: str) -> str:
+    """Production 有 0001-MM-DD 這類佔位出生年，UI 只顯示月/日；正常年份維持完整日期。"""
+    year = birthday[:4]
+    if not year.isdigit() or int(year) < 1900:
+        return f"{birthday[5:7]}/{birthday[8:10]}"
+    return birthday
+
+
+def _classify_birthday(birthday: str, today: date) -> tuple[str | None, date | None]:
+    """回傳 (bucket, occurrence)。bucket 為 today/missed/upcoming，不在任何窗口內回傳 (None, None)。
+
+    只看「今天」「本月已過」「未來 7 天」三種情境，避免整月壽星一次全灌進待辦數；
+    未來 7 天的窗口可能跨到下個月（甚至跨年底），所以用實際日期差計算，不只靠字串比對月份。
+    """
+    try:
+        month = int(birthday[5:7])
+        day = int(birthday[8:10])
+    except (ValueError, IndexError):
+        return None, None
+
+    def _safe_date(year: int) -> date | None:
+        try:
+            return date(year, month, day)
+        except ValueError:
+            if month == 2 and day == 29:
+                return date(year, 2, 28)  # 非閏年壽星，提前在 2/28 提醒
+            return None
+
+    this_year = _safe_date(today.year)
+    if this_year is None:
+        return None, None
+
+    delta = (this_year - today).days
+    if delta == 0:
+        return "today", this_year
+    if 1 <= delta <= 7:
+        return "upcoming", this_year
+    if delta < 0 and this_year.month == today.month:
+        return "missed", this_year
+    if delta < -300:
+        # 年底貼近跨年壽星（例如今天 12/29、生日 1/3）：今年 occurrence 已經是大半年前，
+        # 改看明年 occurrence 是否落在未來 7 天窗口內。
+        next_year = _safe_date(today.year + 1)
+        if next_year is not None:
+            next_delta = (next_year - today).days
+            if 0 <= next_delta <= 7:
+                return "upcoming", next_year
+    return None, None
 
 
 def _build_expiry_actions(db: sqlite3.Connection, today: date) -> list[dict[str, Any]]:
@@ -1334,6 +1410,9 @@ def build_action_board_actions(db: sqlite3.Connection, today: date | None = None
     for row in gift_rows:
         renewal = row["tier_before"] == "A級美咖" and row["tier_after"] == "A級美咖"
         gift_label = "A級美咖續會禮" if renewal else f"{row['tier_after']}升級禮"
+        upgrade_date = _parse_iso_date(row["upgrade_date"], today)
+        waited_days = max((today - upgrade_date).days, 0)
+        detail = f"{row['gift_name'] or '尚未發放'}｜升等日：{row['upgrade_date']}｜已等待 {waited_days} 天"
         actions.append({
             "action_type": "gift",
             "action_key": f"gift:{row['id']}",
@@ -1342,7 +1421,7 @@ def build_action_board_actions(db: sqlite3.Connection, today: date | None = None
             "icon": "🎁",
             "label": "待發升等禮",
             "title": f"{row['customer_name']}｜{gift_label}",
-            "detail": row["gift_name"] or "尚未發放",
+            "detail": detail,
             "target_url": "/upgrades?status=pending",
             "target_label": "前往升級禮管理",
             "sort_date": row["upgrade_date"],
@@ -1352,45 +1431,63 @@ def build_action_board_actions(db: sqlite3.Connection, today: date | None = None
         """
         SELECT id, name, birthday
         FROM customers
-        WHERE merged_into_customer_id IS NULL
-          AND length(birthday) >= 7
-          AND substr(birthday, 6, 2) = ?
-        ORDER BY substr(birthday, 6, 5), name
+        WHERE merged_into_customer_id IS NULL AND length(birthday) >= 7
         """,
-        (f"{today.month:02d}",),
     ).fetchall()
+    birthday_bucket_label = {"today": "今日壽星", "missed": "本月漏關心", "upcoming": "未來壽星提醒"}
+    birthday_bucket_icon = {"today": "🎂", "missed": "📌", "upcoming": "📅"}
+    birthday_bucket_detail_suffix = {
+        "today": "，可自然關心生日月方案", "missed": "，本月尚未關心，記得補上", "upcoming": "，可提前準備",
+    }
     for row in birthday_rows:
+        bucket, occurrence = _classify_birthday(row["birthday"], today)
+        if bucket is None or occurrence is None:
+            continue
+        display_birthday = _format_birthday_display(row["birthday"])
         actions.append({
             "action_type": "birthday",
-            "action_key": f"birthday:{row['id']}:{today.year}-{today.month:02d}",
+            # action_key 用「生日實際發生的年月」而非「今天所在的年月」：跨月的未來 7 天壽星
+            # 提前被看到時算出的 key，要跟它日後真正變成 today/missed 時算出的 key 一致，
+            # 已標記關心才不會在下個月又被判定成未處理。
+            "action_key": f"birthday:{row['id']}:{occurrence.year}-{occurrence.month:02d}",
             "customer_id": int(row["id"]),
             "customer_name": row["name"],
-            "icon": "🎂",
-            "label": "本月壽星",
-            "title": f"{row['name']}｜本月壽星",
-            "detail": f"生日：{row['birthday']}，可自然關心生日月方案",
+            "icon": birthday_bucket_icon[bucket],
+            "label": birthday_bucket_label[bucket],
+            "title": f"{row['name']}｜{birthday_bucket_label[bucket]}",
+            "detail": f"生日：{display_birthday}{birthday_bucket_detail_suffix[bucket]}",
             "target_url": f"/contacts?q={quote(str(row['name']))}",
             "target_label": "查看會員",
             # 只取 MM-DD 排序：sort_date 若用完整 birthday（含出生年），
             # 會被出生年支配，同月不同年出生的壽星就會排錯順序。
-            "sort_date": row["birthday"][5:10],
+            "sort_date": f"{occurrence.month:02d}-{occurrence.day:02d}",
+            "birthday_bucket": bucket,
         })
 
     pending = [a for a in actions if include_handled or _action_is_pending(a, handled)]
-    pending.sort(key=lambda a: (_action_priority(str(a["action_type"])), str(a.get("sort_date") or ""), str(a["action_key"])))
+    pending.sort(key=lambda a: (_action_priority(a), str(a.get("sort_date") or ""), str(a["action_key"])))
     return pending
 
 
 def build_action_board_summary(db: sqlite3.Connection, today: date | None = None) -> dict[str, Any]:
     summary = empty_action_board_summary()
     categories = summary["categories"]
+    informational = summary["informational"]
     for action in build_action_board_actions(db, today=today):
-        action_type = str(action["action_type"])
-        if action_type in categories:
-            categories[action_type]["count"] += 1
+        key = _action_summary_key(action)
+        if key in categories:
+            categories[key]["count"] += 1
+        elif key in informational:
+            informational[key]["count"] += 1
 
     summary["total_count"] = sum(int(item["count"]) for item in categories.values())
     return summary
+
+
+def _build_action_preview(db: sqlite3.Connection, limit: int = 8) -> list[dict[str, Any]]:
+    """Homepage 只取真正 unresolved 的 actionable 項目，預告類（如未來 7 天壽星）不塞進來。"""
+    actionable = [a for a in build_action_board_actions(db) if _action_is_actionable(a)]
+    return actionable[:limit]
 
 
 def get_cached_action_board_summary() -> dict[str, Any]:
@@ -1420,7 +1517,7 @@ def index():
     action_preview: list[dict[str, Any]] = []
     show_action_modal = False
     try:
-        action_preview = build_action_board_actions(get_db())[:8]
+        action_preview = _build_action_preview(get_db())
         if action_summary["total_count"] > 0 and not session.get("action_board_modal_seen"):
             show_action_modal = True
             session["action_board_modal_seen"] = True
@@ -1448,20 +1545,18 @@ def actions_page():
         LIMIT 30
         """
     ).fetchall()
-    groups: dict[str, list[dict[str, Any]]] = {
-        "red_expiry": [],
-        "review": [],
-        "gift": [],
-        "orange_expiry": [],
-        "birthday": [],
-    }
+    groups: dict[str, list[dict[str, Any]]] = {key: [] for key in ACTION_CATEGORY_META}
     for action in actions:
-        groups.setdefault(str(action["action_type"]), []).append(action)
+        groups.setdefault(_action_summary_key(action), []).append(action)
+    summary = build_action_board_summary(db)
+    informational_total = sum(int(item["count"]) for item in summary["informational"].values())
     return render_template(
         "actions.html",
         version=APP_VERSION,
-        action_summary=build_action_board_summary(db),
+        action_summary=summary,
         action_groups=groups,
+        category_meta=ACTION_CATEGORY_META,
+        informational_total=informational_total,
         handled_logs=handled,
     )
 

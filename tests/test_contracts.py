@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import tempfile
 import unittest
 from datetime import date, timedelta
@@ -26,6 +27,13 @@ class BeautyVipContractTests(unittest.TestCase):
 
     def _future_day(self, offset: int = 3) -> str:
         return (date.today() + timedelta(days=offset)).isoformat()
+
+    def _birthday_far_from_today(self) -> str:
+        """給不測生日邏輯、只是需要一個「顧客」的測試用：保證落在 Action Board
+        today/missed/upcoming 判定窗口之外（跟今天差 6 個月），避免測試結果隨執行日期漂移。"""
+        today = date.today()
+        safe_month = ((today.month + 5) % 12) + 1
+        return f"1990-{safe_month:02d}-15"
 
     def _booking_payload(self, **overrides: str) -> dict[str, str]:
         payload = {
@@ -213,10 +221,10 @@ class BeautyVipContractTests(unittest.TestCase):
 
     def test_action_board_summary_reads_existing_sources_without_mutation(self) -> None:
         """登入提示只讀既有 ledger/workflow，且點數到期用 coin_batches 邊界判斷。"""
-        today = date.today()
-        other_month = 1 if today.month != 1 else 2
-        other_birthday = f"1990-{other_month:02d}-01"
-        current_month_birthday = f"1990-{today.month:02d}-15"
+        # 用固定 anchor（而非 date.today()）讓生日判定不隨執行日期漂移。
+        today = date(2026, 6, 15)
+        other_birthday = "1990-01-01"
+        current_month_birthday = f"1990-{today.month:02d}-{today.day:02d}"  # == anchor，落在「今日壽星」
 
         with beauty.app.app_context():
             db = beauty.get_db()
@@ -273,21 +281,22 @@ class BeautyVipContractTests(unittest.TestCase):
             self.assertEqual(summary["categories"]["orange_expiry"]["count"], 1)
             self.assertEqual(summary["categories"]["review"]["count"], 1)
             self.assertEqual(summary["categories"]["gift"]["count"], 1)
-            self.assertEqual(summary["categories"]["birthday"]["count"], 1)
+            self.assertEqual(summary["categories"]["birthday_today"]["count"], 1)
             self.assertEqual(summary["total_count"], 5)
             self.assertEqual(db.execute("SELECT COUNT(*) FROM coin_batches").fetchone()[0], before_batches)
             self.assertEqual(db.execute("SELECT COUNT(*) FROM review_flags").fetchone()[0], before_reviews)
 
     def test_action_board_birthdays_sort_by_day_not_birth_year(self) -> None:
-        """本月壽星要照生日「日期」排，不能被出生年支配（出生年較晚者不該排到後面）。"""
-        today = date.today()
+        """本月壽星要照生日「日期」排，不能被出生年支配（出生年較晚者不該排到後面）。
+        三人生日都選在 anchor(28日) 之前，同屬「本月漏關心」bucket，才能單純驗證排序。"""
+        today = date(2026, 6, 28)
         month = today.month
         with beauty.app.app_context():
             db = beauty.get_db()
             # 刻意讓「日期較晚、出生年較早」排在插入順序前面，只有靠出生月-日排序才會正確
             db.execute(
                 "INSERT INTO customers(name,birthday,created_at) VALUES('晚日早年',?,?)",
-                (f"1970-{month:02d}-28", today.isoformat()),
+                (f"1970-{month:02d}-20", today.isoformat()),
             )
             db.execute(
                 "INSERT INTO customers(name,birthday,created_at) VALUES('早日晚年',?,?)",
@@ -307,16 +316,18 @@ class BeautyVipContractTests(unittest.TestCase):
         today = date.today()
         with beauty.app.app_context():
             db = beauty.get_db()
+            # HTTP route 一律用 server 端真實 date.today()，所以固定用「今天」本身的 MM-DD，
+            # 確定落在「今日壽星」bucket，測試結果才不隨執行日期漂移。
             db.execute(
                 "INSERT INTO customers(name,birthday,created_at) VALUES('提示窗壽星',?,?)",
-                (f"1990-{today.month:02d}-10", today.isoformat()),
+                (f"1990-{today.month:02d}-{today.day:02d}", today.isoformat()),
             )
             db.commit()
 
         self._login()
         first = self.client.get("/").get_data(as_text=True)
         self.assertIn("今日有 1 件待關注事項", first)
-        self.assertIn("本月壽星", first)
+        self.assertIn("今日壽星", first)
         second = self.client.get("/").get_data(as_text=True)
         self.assertNotIn("今日有 1 件待關注事項", second)
 
@@ -326,8 +337,8 @@ class BeautyVipContractTests(unittest.TestCase):
         with beauty.app.app_context():
             db = beauty.get_db()
             cid = db.execute(
-                "INSERT INTO customers(name,birthday,created_at) VALUES('已提醒測試','1990-01-01',?)",
-                (today.isoformat(),),
+                "INSERT INTO customers(name,birthday,created_at) VALUES('已提醒測試',?,?)",
+                (self._birthday_far_from_today(), today.isoformat()),
             ).lastrowid
             db.execute(
                 "INSERT INTO coin_batches(customer_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
@@ -350,13 +361,369 @@ class BeautyVipContractTests(unittest.TestCase):
             self.assertEqual(db.execute("SELECT remaining_amount FROM coin_batches").fetchone()[0], before_remaining)
             self.assertEqual(db.execute("SELECT COUNT(*) FROM customer_action_logs").fetchone()[0], 1)
 
+    # ── Action Board V1.1：actionable / informational 語意 regression ──────────
+
+    def test_action_board_birthday_0001_year_hidden_from_presentation(self) -> None:
+        """Production 有 0001-MM-DD 佔位出生年，UI 只顯示 MM/DD，且不回寫資料庫。"""
+        self.assertEqual(beauty._format_birthday_display("0001-09-06"), "09/06")
+        self.assertEqual(beauty._format_birthday_display("1989-09-15"), "1989-09-15")
+
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('佔位年壽星','0001-06-15','2026-01-01')"
+            )
+            db.commit()
+            actions = beauty.build_action_board_actions(db, today)
+            self.assertEqual(len(actions), 1)
+            self.assertNotIn("0001", actions[0]["detail"])
+            self.assertIn("06/15", actions[0]["detail"])
+            row = db.execute("SELECT birthday FROM customers WHERE name='佔位年壽星'").fetchone()
+            self.assertEqual(row["birthday"], "0001-06-15")  # 只改 presentation，不回寫原始生日資料
+
+    def test_action_board_birthday_today_unresolved_is_actionable(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('今日壽星測試','1990-06-15','2026-01-01')"
+            )
+            db.commit()
+            actions = beauty.build_action_board_actions(db, today)
+            self.assertEqual(len(actions), 1)
+            self.assertEqual(actions[0]["birthday_bucket"], "today")
+            self.assertTrue(beauty._action_is_actionable(actions[0]))
+            summary = beauty.build_action_board_summary(db, today)
+            self.assertEqual(summary["categories"]["birthday_today"]["count"], 1)
+            self.assertEqual(summary["total_count"], 1)
+
+    def test_action_board_birthday_today_handled_excluded_from_actionable(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('今日壽星已關心','1990-06-15','2026-01-01')"
+            ).lastrowid
+            action = beauty.build_action_board_actions(db, today)[0]
+            db.execute(
+                "INSERT INTO customer_action_logs(customer_id,action_type,action_key,status,handled_at,handled_by,created_at) "
+                "VALUES(?,?,?,'handled',?,'staff',?)",
+                (cid, action["action_type"], action["action_key"], today.isoformat(), today.isoformat()),
+            )
+            db.commit()
+            self.assertEqual(beauty.build_action_board_actions(db, today), [])
+            summary = beauty.build_action_board_summary(db, today)
+            self.assertEqual(summary["categories"]["birthday_today"]["count"], 0)
+            self.assertEqual(summary["total_count"], 0)
+
+    def test_action_board_birthday_upcoming_7d_is_informational_not_badge(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('未來壽星','1990-06-18','2026-01-01')"
+            )
+            db.commit()
+            actions = beauty.build_action_board_actions(db, today)
+            self.assertEqual(len(actions), 1)
+            self.assertEqual(actions[0]["birthday_bucket"], "upcoming")
+            self.assertFalse(beauty._action_is_actionable(actions[0]))
+            summary = beauty.build_action_board_summary(db, today)
+            self.assertEqual(summary["total_count"], 0)  # 不計入主 badge
+            self.assertEqual(summary["informational"]["birthday_upcoming"]["count"], 1)
+
+    def test_action_board_birthday_missed_this_month_is_actionable(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('本月漏關心測試','1990-06-05','2026-01-01')"
+            )
+            db.commit()
+            actions = beauty.build_action_board_actions(db, today)
+            self.assertEqual(len(actions), 1)
+            self.assertEqual(actions[0]["birthday_bucket"], "missed")
+            self.assertTrue(beauty._action_is_actionable(actions[0]))
+            summary = beauty.build_action_board_summary(db, today)
+            self.assertEqual(summary["categories"]["birthday_missed"]["count"], 1)
+            self.assertEqual(summary["total_count"], 1)
+
+    def test_action_board_birthday_missed_handled_excluded_from_actionable(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('本月漏關心已處理','1990-06-05','2026-01-01')"
+            ).lastrowid
+            action = beauty.build_action_board_actions(db, today)[0]
+            db.execute(
+                "INSERT INTO customer_action_logs(customer_id,action_type,action_key,status,handled_at,handled_by,created_at) "
+                "VALUES(?,?,?,'handled',?,'staff',?)",
+                (cid, action["action_type"], action["action_key"], today.isoformat(), today.isoformat()),
+            )
+            db.commit()
+            self.assertEqual(beauty.build_action_board_actions(db, today), [])
+            summary = beauty.build_action_board_summary(db, today)
+            self.assertEqual(summary["categories"]["birthday_missed"]["count"], 0)
+            self.assertEqual(summary["total_count"], 0)
+
+    def test_action_board_pending_gift_is_actionable(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('待發升等禮','1990-01-01','2026-01-01')"
+            ).lastrowid
+            db.execute(
+                "INSERT INTO tier_upgrades(customer_id,upgrade_date,tier_before,tier_after,gift_status,created_at) "
+                "VALUES(?,?,'S級美咖','P級美咖','pending',?)",
+                (cid, today.isoformat(), today.isoformat()),
+            )
+            db.commit()
+            actions = beauty.build_action_board_actions(db, today)
+            self.assertEqual(len(actions), 1)
+            self.assertEqual(actions[0]["action_type"], "gift")
+            self.assertTrue(beauty._action_is_actionable(actions[0]))
+            self.assertIn("升等日：", actions[0]["detail"])
+            self.assertIn("已等待", actions[0]["detail"])
+
+    def test_action_board_delivered_gift_is_not_actionable(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('已發升等禮','1990-01-01','2026-01-01')"
+            ).lastrowid
+            db.execute(
+                "INSERT INTO tier_upgrades(customer_id,upgrade_date,tier_before,tier_after,gift_status,created_at) "
+                "VALUES(?,?,'S級美咖','P級美咖','delivered',?)",
+                (cid, today.isoformat(), today.isoformat()),
+            )
+            db.commit()
+            self.assertEqual(beauty.build_action_board_actions(db, today), [])
+
+    def test_action_board_unresolved_review_is_actionable(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute(
+                "INSERT INTO review_flags(item_type,item_key,status,note,updated_at) VALUES('coin_refund','r1','unreviewed','test',?)",
+                (today.isoformat(),),
+            )
+            db.commit()
+            actions = beauty.build_action_board_actions(db, today)
+            self.assertEqual(len(actions), 1)
+            self.assertEqual(actions[0]["action_type"], "review")
+            self.assertTrue(beauty._action_is_actionable(actions[0]))
+
+    def test_action_board_reviewed_review_is_not_actionable(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute(
+                "INSERT INTO review_flags(item_type,item_key,status,note,updated_at) VALUES('coin_refund','r2','reviewed','test',?)",
+                (today.isoformat(),),
+            )
+            db.commit()
+            self.assertEqual(beauty.build_action_board_actions(db, today), [])
+
+    def test_action_board_red_expiry_is_actionable(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('紅色到期測試','1990-01-01','2026-01-01')"
+            ).lastrowid
+            db.execute(
+                "INSERT INTO coin_batches(customer_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
+                "VALUES(?,100,100,?,?, 'active',0,?)",
+                (cid, today.isoformat(), (today + timedelta(days=3)).isoformat(), today.isoformat()),
+            )
+            db.commit()
+            actions = beauty.build_action_board_actions(db, today)
+            self.assertEqual(len(actions), 1)
+            self.assertEqual(actions[0]["action_type"], "red_expiry")
+            self.assertTrue(beauty._action_is_actionable(actions[0]))
+
+    def test_action_board_orange_expiry_keeps_existing_priority_and_count_semantics(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('橘色到期測試','1990-01-01','2026-01-01')"
+            ).lastrowid
+            db.execute(
+                "INSERT INTO coin_batches(customer_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
+                "VALUES(?,100,100,?,?, 'active',0,?)",
+                (cid, today.isoformat(), (today + timedelta(days=20)).isoformat(), today.isoformat()),
+            )
+            db.commit()
+            actions = beauty.build_action_board_actions(db, today)
+            self.assertEqual(len(actions), 1)
+            self.assertEqual(actions[0]["action_type"], "orange_expiry")
+            self.assertTrue(beauty._action_is_actionable(actions[0]))
+            summary = beauty.build_action_board_summary(db, today)
+            self.assertEqual(summary["categories"]["orange_expiry"]["count"], 1)
+            self.assertEqual(summary["total_count"], 1)
+
+    def test_action_board_same_customer_red_and_orange_not_double_counted(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('紅橘同人測試','1990-01-01','2026-01-01')"
+            ).lastrowid
+            for remaining, expiry_offset in [(100, 3), (200, 20)]:
+                db.execute(
+                    "INSERT INTO coin_batches(customer_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
+                    "VALUES(?,?,?,?,?, 'active',0,?)",
+                    (cid, remaining, remaining, today.isoformat(), (today + timedelta(days=expiry_offset)).isoformat(), today.isoformat()),
+                )
+            db.commit()
+            actions = beauty.build_action_board_actions(db, today)
+            self.assertEqual(len(actions), 1)  # 同 customer 不會同時出現 red 跟 orange 兩筆
+            self.assertEqual(actions[0]["action_type"], "red_expiry")
+            summary = beauty.build_action_board_summary(db, today)
+            self.assertEqual(summary["total_count"], 1)
+
+    def test_actions_page_hides_technical_action_key_from_rendered_ui(self) -> None:
+        today = date.today()
+        self._login()
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('技術key測試',?,?)",
+                (f"1990-{today.month:02d}-{today.day:02d}", today.isoformat()),
+            )
+            db.commit()
+        html = self.client.get("/actions").get_data(as_text=True)
+        self.assertNotIn("key: ", html)  # 舊版明文顯示的 "key: birthday:..." 之類標籤必須消失
+        self.assertIn('data-action-key="birthday:', html)  # 但 data attribute／form 仍保留供前端與稽核使用
+
+    def test_actions_page_button_text_differs_between_pending_and_handled(self) -> None:
+        today = date.today()
+        self._login()
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('文案測試甲','1990-01-01','2026-01-01')"
+            ).lastrowid
+            db.execute(
+                "INSERT INTO coin_batches(customer_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
+                "VALUES(?,100,100,?,?, 'active',0,?)",
+                (cid, today.isoformat(), (today + timedelta(days=3)).isoformat(), today.isoformat()),
+            )
+            db.commit()
+            action = beauty.build_action_board_actions(db, today)[0]
+            db.execute(
+                "INSERT INTO customer_action_logs(customer_id,action_type,action_key,status,handled_at,handled_by,created_at) "
+                "VALUES(?,?,?,'handled',?,'staff',?)",
+                (cid, action["action_type"], action["action_key"], today.isoformat(), today.isoformat()),
+            )
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('文案測試乙','1990-01-02','2026-01-01')"
+            )
+            cid2 = db.execute("SELECT id FROM customers WHERE name='文案測試乙'").fetchone()["id"]
+            db.execute(
+                "INSERT INTO coin_batches(customer_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
+                "VALUES(?,100,100,?,?, 'active',0,?)",
+                (cid2, today.isoformat(), (today + timedelta(days=3)).isoformat(), today.isoformat()),
+            )
+            db.commit()
+        html = self.client.get("/actions").get_data(as_text=True)
+        self.assertIn("標記已提醒", html)  # 未處理：動作語意
+        self.assertIn("✓ 已提醒", html)   # 已處理：狀態語意
+        self.assertNotIn("✓ 標記已提醒", html)
+
+    def test_navbar_count_matches_modal_actionable_total(self) -> None:
+        today = date.today()
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('Navbar一致性測試',?,?)",
+                (f"1990-{today.month:02d}-{today.day:02d}", today.isoformat()),
+            ).lastrowid
+            db.execute(
+                "INSERT INTO coin_batches(customer_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
+                "VALUES(?,100,100,?,?, 'active',0,?)",
+                (cid, today.isoformat(), (today + timedelta(days=3)).isoformat(), today.isoformat()),
+            )
+            db.commit()
+        self._login()
+        html = self.client.get("/").get_data(as_text=True)
+        navbar_match = re.search(r"🔔 待關注 (\d+)", html)
+        modal_match = re.search(r"今日有 (\d+) 件待關注事項", html)
+        self.assertIsNotNone(navbar_match)
+        self.assertIsNotNone(modal_match)
+        self.assertEqual(navbar_match.group(1), modal_match.group(1))
+
+    def test_homepage_preview_only_shows_actionable_top_n(self) -> None:
+        today = date.today()
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            # 一個 informational 未來壽星 + 一個 actionable red expiry
+            upcoming = today + timedelta(days=3)
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('首頁預告壽星',?,?)",
+                (f"1990-{upcoming.month:02d}-{upcoming.day:02d}", today.isoformat()),
+            )
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('首頁actionable測試','1990-01-01','2026-01-01')"
+            ).lastrowid
+            db.execute(
+                "INSERT INTO coin_batches(customer_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
+                "VALUES(?,100,100,?,?, 'active',0,?)",
+                (cid, today.isoformat(), (today + timedelta(days=3)).isoformat(), today.isoformat()),
+            )
+            db.commit()
+            preview = beauty._build_action_preview(db)
+            self.assertTrue(all(beauty._action_is_actionable(a) for a in preview))
+            self.assertTrue(any(a["action_type"] == "red_expiry" for a in preview))
+            self.assertFalse(any(a.get("birthday_bucket") == "upcoming" for a in preview))
+
+    def test_actions_page_informational_birthday_does_not_pollute_actionable_total(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('actions頁預告壽星','1990-06-18','2026-01-01')"
+            )
+            db.commit()
+            summary = beauty.build_action_board_summary(db, today)
+            self.assertEqual(summary["total_count"], 0)
+            self.assertEqual(summary["informational"]["birthday_upcoming"]["count"], 1)
+
+    def test_dismiss_later_button_does_not_write_customer_action_logs(self) -> None:
+        today = date.today()
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('稍後處理測試',?,?)",
+                (f"1990-{today.month:02d}-{today.day:02d}", today.isoformat()),
+            )
+            db.commit()
+            before = db.execute("SELECT COUNT(*) FROM customer_action_logs").fetchone()[0]
+
+        self._login()
+        html = self.client.get("/").get_data(as_text=True)
+        modal_start = html.index('id="actionModalBackdrop"')
+        later_idx = html.index("稍後處理", modal_start)
+        segment = html[modal_start:later_idx]
+        self.assertEqual(segment.count("<form"), segment.count("</form"))  # 稍後處理按鈕不在任何 <form> 內，純前端隱藏 modal
+
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            after = db.execute("SELECT COUNT(*) FROM customer_action_logs").fetchone()[0]
+        self.assertEqual(after, before)
+
     def test_expiry_action_key_is_stable_for_partial_use_and_non_earlier_batch_addition(self) -> None:
         today = date.today()
         with beauty.app.app_context():
             db = beauty.get_db()
             cid = db.execute(
-                "INSERT INTO customers(name,birthday,created_at) VALUES('Key穩定','1990-01-01',?)",
-                (today.isoformat(),),
+                "INSERT INTO customers(name,birthday,created_at) VALUES('Key穩定',?,?)",
+                (self._birthday_far_from_today(), today.isoformat()),
             ).lastrowid
             db.execute(
                 "INSERT INTO coin_batches(customer_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
@@ -381,8 +748,8 @@ class BeautyVipContractTests(unittest.TestCase):
         with beauty.app.app_context():
             db = beauty.get_db()
             cid = db.execute(
-                "INSERT INTO customers(name,birthday,created_at) VALUES('下一批提醒','1990-01-01',?)",
-                (today.isoformat(),),
+                "INSERT INTO customers(name,birthday,created_at) VALUES('下一批提醒',?,?)",
+                (self._birthday_far_from_today(), today.isoformat()),
             ).lastrowid
             db.execute(
                 "INSERT INTO coin_batches(customer_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
@@ -418,16 +785,17 @@ class BeautyVipContractTests(unittest.TestCase):
         self._login()
         with beauty.app.app_context():
             db = beauty.get_db()
+            # HTTP route 用 server 真實 date.today()，固定用「今天」MM-DD 確保落在今日壽星 bucket。
             db.execute(
                 "INSERT INTO customers(name,birthday,created_at) VALUES('Badge壽星',?,?)",
-                (f"1990-{today.month:02d}-08", today.isoformat()),
+                (f"1990-{today.month:02d}-{today.day:02d}", today.isoformat()),
             )
             db.commit()
         home = self.client.get("/").get_data(as_text=True)
         self.assertIn("🔔 待關注 1", home)
         self.assertIn("今日待關注 1 件", home)
         actions = self.client.get("/actions").get_data(as_text=True)
-        self.assertIn("本月壽星", actions)
+        self.assertIn("今日壽星", actions)
 
     def test_report_separates_member_point_summary_from_transaction_status(self) -> None:
         """日明細不可重複放會員總計，且待入帳點數須能直接追到來源交易。"""

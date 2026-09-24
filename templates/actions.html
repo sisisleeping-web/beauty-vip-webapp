@@ -3,25 +3,28 @@
 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
   <div>
     <h2>🔔 今日待關注</h2>
-    <p class="text-muted" style="margin-top:0;">共 {{ action_summary.total_count }} 件尚未處理。Action Board 只讀既有資料，處理狀態與美咖幣帳本分離。</p>
+    <p class="text-muted" style="margin-top:0;">
+      尚待處理 {{ action_summary.total_count }} 件。
+      {% if informational_total > 0 %}另有 {{ informational_total }} 件預告資訊，不計入尚待處理數。{% endif %}
+      Action Board 只讀既有資料，處理狀態與美咖幣帳本分離。
+    </p>
   </div>
   <a href="/" style="color:var(--primary); font-weight:700; text-decoration:none;">← 回首頁</a>
 </div>
 
-{% set order = ['red_expiry', 'review', 'gift', 'orange_expiry', 'birthday'] %}
-{% for key in order %}
-  {% set meta = action_summary.categories[key] %}
+{% set actionable_order = ['red_expiry', 'review', 'gift', 'birthday_today', 'birthday_missed', 'orange_expiry'] %}
+{% for key in actionable_order %}
+  {% set meta = category_meta[key] %}
   {% set actions = action_groups.get(key, []) %}
   <div class="card">
     <h3>{{ meta.icon }} {{ meta.label }} <span class="badge-pill badge-pill-neutral">{{ actions|length }}</span></h3>
     {% if actions %}
       <div style="display:grid; gap:10px;">
         {% for action in actions %}
-          <div style="border:1px solid var(--border-color); border-radius:var(--radius-md); padding:13px 14px; background:var(--primary-bg-soft); display:flex; justify-content:space-between; gap:14px; align-items:center; flex-wrap:wrap;">
+          <div data-action-key="{{ action.action_key }}" style="border:1px solid var(--border-color); border-radius:var(--radius-md); padding:13px 14px; background:var(--primary-bg-soft); display:flex; justify-content:space-between; gap:14px; align-items:center; flex-wrap:wrap;">
             <div>
               <div style="font-weight:800; color:var(--text-heading);">{{ action.title }}</div>
               <div class="text-muted" style="font-size:.9rem; margin-top:3px;">{{ action.detail }}</div>
-              <div class="text-muted" style="font-size:.78rem; margin-top:5px;">key: {{ action.action_key }}</div>
             </div>
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
               <a href="{{ action.target_url }}" style="color:var(--primary); font-weight:700; text-decoration:none;">{{ action.target_label }}</a>
@@ -30,7 +33,7 @@
                 <input type="hidden" name="action_key" value="{{ action.action_key }}">
                 <input type="hidden" name="next" value="/actions">
                 <button type="submit" style="min-height:34px; padding:7px 12px; box-shadow:none; background:#fff; color:var(--success); border:1px solid rgba(5,150,105,.3);">
-                  {% if action.action_type == 'birthday' %}已關心{% else %}已提醒{% endif %}
+                  {% if action.action_type == 'birthday' %}標記已關心{% else %}標記已提醒{% endif %}
                 </button>
               </form>
             </div>
@@ -43,18 +46,45 @@
   </div>
 {% endfor %}
 
+{% set upcoming = action_groups.get('birthday_upcoming', []) %}
+{% if upcoming %}
+  {% set meta = category_meta['birthday_upcoming'] %}
+  <div class="card" style="background:var(--surface-muted, #f8fafc);">
+    <h3>{{ meta.icon }} {{ meta.label }} <span class="badge-pill badge-pill-neutral">{{ upcoming|length }}</span></h3>
+    <p class="text-muted" style="margin-top:-6px; font-size:.85rem;">預告資訊，供提前準備，不計入上方尚待處理數。</p>
+    <div style="display:grid; gap:10px;">
+      {% for action in upcoming %}
+        <div data-action-key="{{ action.action_key }}" style="border:1px solid var(--border-color); border-radius:var(--radius-md); padding:13px 14px; background:#fff; display:flex; justify-content:space-between; gap:14px; align-items:center; flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:700; color:var(--text-heading);">{{ action.title }}</div>
+            <div class="text-muted" style="font-size:.9rem; margin-top:3px;">{{ action.detail }}</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <a href="{{ action.target_url }}" style="color:var(--primary); font-weight:700; text-decoration:none;">{{ action.target_label }}</a>
+            <form method="post" action="/actions/handle" style="margin:0;">
+              <input type="hidden" name="action_type" value="{{ action.action_type }}">
+              <input type="hidden" name="action_key" value="{{ action.action_key }}">
+              <input type="hidden" name="next" value="/actions">
+              <button type="submit" style="min-height:34px; padding:7px 12px; box-shadow:none; background:#fff; color:var(--success); border:1px solid rgba(5,150,105,.3);">標記已關心</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
 <div class="card">
   <h3>✅ 近期已處理</h3>
   {% if handled_logs %}
     <div class="table-wrap">
       <table>
-        <thead><tr><th>時間</th><th>類型</th><th>Action Key</th><th>處理者</th></tr></thead>
+        <thead><tr><th>時間</th><th>狀態</th><th>處理者</th></tr></thead>
         <tbody>
           {% for row in handled_logs %}
             <tr>
               <td>{{ row.handled_at }}</td>
-              <td>{{ row.action_type }}</td>
-              <td>{{ row.action_key }}</td>
+              <td>{% if row.action_type == 'birthday' %}✓ 已關心{% else %}✓ 已提醒{% endif %}</td>
               <td>{{ row.handled_by }}</td>
             </tr>
           {% endfor %}
