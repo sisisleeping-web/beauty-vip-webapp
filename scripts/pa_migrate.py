@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
 """
+⚠️ DEPRECATED — H-1 稽核後停用，執行前需明確覆蓋才能跑 ⚠️
+
+`recalc_customer_coins()` 用的 `tier_name()` 是跟 app.py 現行 V3 會員年度制脫鉤
+的門檻公式，是 H-1 稽核鏈點名的 DUPLICATED_BUSINESS_LOGIC / DANGEROUS_IF_RERUN
+腳本之一（見 docs/audit/H1-positive-only-entitlement-verification.md）。目前檔案
+底部「執行選項」區塊裡實際會寫入資料的部分（選項 1/2）已被註解掉，預設只跑唯讀
+的 `check_integrity()`；但只要有人解開那些註解，就會用這套脫鉤公式覆寫
+`transactions.coins_earned`／`customers.coin_balance`。這裡直接擋在最前面，唯讀
+的完整性檢查現在請改用 `scripts/db_check.py`（持續維護、獨立於本檔）。
+
 pa_migrate.py — 在 PythonAnywhere 執行 DB 資料修復/遷移
 
 上傳此腳本到 PA 後執行：
@@ -10,8 +20,17 @@ pa_migrate.py — 在 PythonAnywhere 執行 DB 資料修復/遷移
   - recalc_all_coins: 重算所有顧客點數
   - check_integrity: 完整性驗算
 """
-import sqlite3, json
+import os, sqlite3, sys, json
 from pathlib import Path
+
+if os.environ.get("ALLOW_DEPRECATED_RAW_THRESHOLD_SCRIPT") != "i-understand-this-is-deprecated-see-H1-audit":
+    sys.exit(
+        "REFUSED: 這支腳本已因 H-1 稽核發現的問題被停用（見檔案頂端說明與 "
+        "docs/audit/H1-positive-only-entitlement-verification.md）。唯讀完整性檢查"
+        "請改用 scripts/db_check.py。需要明確設定 "
+        "ALLOW_DEPRECATED_RAW_THRESHOLD_SCRIPT=i-understand-this-is-deprecated-see-H1-audit "
+        "才會執行，而且只該對本機唯讀副本測試用，不該對正式 DB_PATH 執行。"
+    )
 
 BASE = Path(__file__).resolve().parent
 DB_PATH = BASE / "data" / "beauty_vip.db"

@@ -1823,21 +1823,20 @@ def handle_action():
 
 @app.route("/admin/system-audits")
 def system_audits_page():
-    """美容師可看到到期狀態與簡化歷史；建立/啟動/登記完成/waive 需 manager_authed。"""
+    """美容師可看到到期狀態與基本摘要（日期/結果，不含 severity 數字/report_ref/
+    完整歷史）；完整治理內容與建立/啟動/登記完成/waive 都需 manager_authed。
+
+    權限不是只有 template 隱藏：severity 明細與完整歷史 (`history`) 只有在
+    is_manager 時才會被查出來、放進 render context，非主管的 response 裡
+    結構上就不存在這些資料，不是「傳了但沒 render」。"""
     db = get_db()
     today = date.today()
     is_manager = bool(session.get("manager_authed"))
 
     quarterly_computed = compute_next_quarterly_due(db, today)
     quarterly_period_key, quarterly_due_date = quarterly_computed if quarterly_computed else (None, None)
-    quarterly_row = None
-    if quarterly_period_key is not None:
-        quarterly_row = db.execute(
-            "SELECT * FROM system_audits WHERE audit_type='quarterly_deep' AND period_key=?",
-            (quarterly_period_key,),
-        ).fetchone()
     quarterly_action = build_system_audit_action(db, today)
-    quarterly_latest_completed = get_latest_completed_audit(db, "quarterly_deep")
+    latest_completed_full = get_latest_completed_audit(db, "quarterly_deep")
 
     monthly_period_key = _month_period_key(today)
     monthly_row = db.execute(
@@ -1846,14 +1845,33 @@ def system_audits_page():
     ).fetchone()
     monthly_done = bool(monthly_row and monthly_row["status"] == "completed")
 
-    history = db.execute(
-        "SELECT * FROM system_audits ORDER BY due_date DESC, id DESC LIMIT 50"
-    ).fetchall()
+    quarterly_row = None
+    history = []
+    quarterly_latest_completed = None
+    staff_summary = None
+    if is_manager:
+        if quarterly_period_key is not None:
+            quarterly_row = db.execute(
+                "SELECT * FROM system_audits WHERE audit_type='quarterly_deep' AND period_key=?",
+                (quarterly_period_key,),
+            ).fetchone()
+        quarterly_latest_completed = latest_completed_full
+        history = db.execute(
+            "SELECT * FROM system_audits ORDER BY due_date DESC, id DESC LIMIT 50"
+        ).fetchall()
+    elif latest_completed_full:
+        # 美容師只看得到「日期＋結果摘要」，看不到 severity 數字／report_ref／備註／
+        # 完整歷史——那些是 Manager-only 的完整治理內容。
+        staff_summary = {
+            "completed_at": latest_completed_full["completed_at"],
+            "result": latest_completed_full["result"],
+        }
 
     return render_template(
         "system_audits.html",
         version=APP_VERSION,
         is_manager=is_manager,
+        staff_summary=staff_summary,
         today=today.isoformat(),
         audit_types=AUDIT_TYPES,
         audit_results=AUDIT_RESULTS,
@@ -2845,18 +2863,27 @@ def update_transaction_deduct(txn_id):
 
 
 
+def _safe_relative_redirect(target: str, fallback: str) -> str:
+    """只允許站內相對路徑（例如 /admin/system-audits），擋掉 //host 或帶 scheme 的
+    open-redirect 手法；沿用同一個 manager_authed session，不是另外一套驗證。"""
+    if target and target.startswith("/") and not target.startswith("//") and "://" not in target:
+        return target
+    return fallback
+
+
 @app.route("/manager/unlock", methods=["POST"])
 def manager_unlock():
+    next_url = _safe_relative_redirect(request.form.get("next", ""), url_for("manager_dashboard"))
     if _auth_is_limited("manager"):
-        return render_template("manager_lock.html", error="嘗試次數過多，請五分鐘後再試。"), 429
+        return render_template("manager_lock.html", error="嘗試次數過多，請五分鐘後再試。", next=next_url), 429
     pin = (request.form.get("pin") or "").strip()
     if pin == MANAGER_PIN:
         _clear_auth_failures("manager")
         session["manager_authed"] = True
         session.permanent = True
-        return redirect(url_for("manager_dashboard"))
+        return redirect(next_url)
     _record_auth_failure("manager")
-    return render_template("manager_lock.html", error="密碼錯誤，請再試一次。")
+    return render_template("manager_lock.html", error="密碼錯誤，請再試一次。", next=next_url)
 
 
 @app.route("/manager/logout")

@@ -1,4 +1,12 @@
-"""Backfill tier_upgrades table from historical transaction data.
+"""⚠️ DEPRECATED — H-1 稽核後停用，執行前需明確覆蓋才能跑 ⚠️
+
+檔案內硬編碼等級門檻常數（`>= 30000`／`>= 8000` 等），完全獨立於 app.py 現行
+V3 會員年度制之外，未 `import app`。是 H-1 稽核鏈點名的 DUPLICATED_BUSINESS_LOGIC
+/ DANGEROUS_IF_RERUN 腳本之一（見 docs/audit/H1-positive-only-entitlement-
+verification.md）。重跑會用這套脫鉤邏輯往 `tier_upgrades` 灌入不準確的歷史升等
+紀錄。
+
+Backfill tier_upgrades table from historical transaction data.
 
 Scans all transactions chronologically per customer, detects tier changes,
 and inserts upgrade records with gift_status='skipped' (historical, not to be delivered).
@@ -10,10 +18,20 @@ Usage:
 """
 
 import json
+import os
 import sqlite3
 import sys
 from datetime import datetime
 from pathlib import Path
+
+if os.environ.get("ALLOW_DEPRECATED_RAW_THRESHOLD_SCRIPT") != "i-understand-this-is-deprecated-see-H1-audit":
+    sys.exit(
+        "REFUSED: 這支腳本已因 H-1 稽核發現的問題被停用（見檔案頂端說明與 "
+        "docs/audit/H1-positive-only-entitlement-verification.md）。\n"
+        "需要明確設定 ALLOW_DEPRECATED_RAW_THRESHOLD_SCRIPT="
+        "i-understand-this-is-deprecated-see-H1-audit 才會執行，而且只該對本機唯讀"
+        "副本測試用，不該對正式 DB_PATH 執行。"
+    )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "data" / "beauty_vip.db"

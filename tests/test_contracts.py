@@ -1026,6 +1026,145 @@ class BeautyVipContractTests(unittest.TestCase):
             ).fetchone()
             self.assertEqual(row["status"], "in_progress")
 
+    # ── System Audit 權限模型：staff 摘要 vs manager 完整內容 ────────────────────
+
+    def test_system_audits_staff_sees_summary_not_severity_or_history(self) -> None:
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(
+                db, date(2026, 3, 10), "2026-Q1-authtest",
+                critical=2, high=3, report_ref="AUDIT-SECRET-REF",
+            )
+        self._login(manager=False)
+        html = self.client.get("/admin/system-audits").get_data(as_text=True)
+        self.assertIn("PASS", html)  # 結果摘要（字串）staff 看得到
+        self.assertNotIn("Critical 2", html)  # severity 數字 staff 看不到
+        self.assertNotIn("AUDIT-SECRET-REF", html)  # report_ref staff 看不到
+        self.assertNotIn("稽核歷史", html)  # 完整歷史表格整塊不存在
+        self.assertIn("🔒 完整稽核紀錄與管理功能需主管權限", html)
+
+    def test_system_audits_manager_sees_full_detail_and_history(self) -> None:
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(
+                db, date(2026, 3, 10), "2026-Q1-authtest2",
+                critical=2, high=3, report_ref="AUDIT-VISIBLE-REF",
+            )
+        self._login(manager=True)
+        html = self.client.get("/admin/system-audits").get_data(as_text=True)
+        self.assertIn("Critical 2", html)
+        self.assertIn("AUDIT-VISIBLE-REF", html)
+        self.assertIn("稽核歷史", html)
+
+    def test_system_audits_mutation_endpoints_deny_staff_and_anonymous(self) -> None:
+        endpoints = [
+            ("/admin/system-audits/start", {"audit_type": "quarterly_deep", "period_key": "x", "due_date": "2026-06-01"}),
+            ("/admin/system-audits/complete", {"audit_type": "quarterly_deep", "period_key": "x", "due_date": "2026-06-01", "result": "PASS", "report_ref": "r", "critical_count": "0", "high_count": "0", "medium_count": "0", "low_count": "0", "info_count": "0"}),
+            ("/admin/system-audits/waive", {"audit_type": "quarterly_deep", "period_key": "x", "reason": "r"}),
+            ("/admin/system-audits/event", {"reason": "r"}),
+        ]
+        # 只有 staff（main_authed，非 manager）：路由本身要擋
+        self._login(manager=False)
+        for url, data in endpoints:
+            resp = self.client.post(url, data=data)
+            self.assertEqual(resp.status_code, 403, url)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self.assertIsNone(
+                db.execute("SELECT 1 FROM system_audits WHERE period_key='x'").fetchone()
+            )
+
+        # 完全匿名（連 main_authed 都沒有）：不能靠知道 URL 繞過。require_main_auth
+        # 在到達 route handler 之前就擋下，回傳的是主網密碼鎖定頁（HTTP 200，但
+        # 內容不是 mutation 的結果，是 main_lock.html）。
+        anon_client = beauty.app.test_client()
+        for url, data in endpoints:
+            resp = anon_client.post(url, data=data)
+            self.assertIn("系統存取驗證", resp.get_data(as_text=True), url)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self.assertIsNone(
+                db.execute("SELECT 1 FROM system_audits WHERE period_key='x'").fetchone()
+            )
+
+    def test_manager_unlock_next_redirect_returns_to_system_audits(self) -> None:
+        resp = self.client.post(
+            "/manager/unlock", data={"pin": beauty.MANAGER_PIN, "next": "/admin/system-audits"},
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(resp.headers["Location"].endswith("/admin/system-audits"))
+
+    def test_manager_unlock_invalid_pin_preserves_next_for_retry(self) -> None:
+        resp = self.client.post(
+            "/manager/unlock", data={"pin": "0000", "next": "/admin/system-audits"},
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('value="/admin/system-audits"', resp.get_data(as_text=True))
+
+    def test_manager_unlock_rejects_open_redirect_next(self) -> None:
+        for malicious in ("http://evil.example/", "//evil.example/", "https://evil.example"):
+            resp = self.client.post("/manager/unlock", data={"pin": beauty.MANAGER_PIN, "next": malicious})
+            self.assertEqual(resp.status_code, 302)
+            self.assertNotIn("evil.example", resp.headers["Location"])
+            beauty._auth_failures.clear()
+            with self.client.session_transaction() as s:
+                s.pop("manager_authed", None)
+
+    def test_system_audits_history_has_both_desktop_and_mobile_markup(self) -> None:
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(db, date(2026, 3, 10), "2026-Q1-mobiletest")
+        self._login(manager=True)
+        html = self.client.get("/admin/system-audits").get_data(as_text=True)
+        self.assertIn("audit-history-desktop", html)
+        self.assertIn("audit-history-mobile", html)
+        self.assertIn("@media (max-width: 600px)", html)
+
+    # ── H-1 remediation script（customer 380，+96，一次性）────────────────────
+
+    def test_h1_remediation_script_applies_correction_once_and_blocks_duplicate(self) -> None:
+        import importlib.util
+
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at,coin_balance) "
+                "VALUES('H1補點測試','1990-01-01','2026-01-01',357)"
+            ).lastrowid
+            # 補一筆真實的 coin_batches 支撐 357（跟顧客 380 的 legacy 批次形狀一致），
+            # 不然 sync_coin_balance 會照真正的帳本重算，跟隨便塞的 coin_balance 對不上。
+            db.execute(
+                "INSERT INTO coin_batches(customer_id,earned_amount,remaining_amount,credit_date,expires_date,"
+                "status,is_legacy,created_at) VALUES(?,357,357,'2026-08-09','2027-08-09','active',1,'2026-08-09T12:44:33')",
+                (cid,),
+            )
+            db.commit()
+
+        spec = importlib.util.spec_from_file_location(
+            "h1_remediate_test", str(Path(__file__).resolve().parent.parent / "scripts" / "h1_remediate_customer_380.py")
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.beauty.DB_PATH = beauty.DB_PATH
+        mod.CUSTOMER_ID = cid
+
+        mod.main()  # 第一次：應該成功 +96
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            row = db.execute("SELECT coin_balance FROM customers WHERE id=?", (cid,)).fetchone()
+            self.assertEqual(row["coin_balance"], 453)
+            adj_count = db.execute(
+                "SELECT COUNT(*) FROM point_adjustments WHERE customer_id=? AND reason LIKE '%H-1%'", (cid,)
+            ).fetchone()[0]
+            self.assertEqual(adj_count, 1)
+
+        with self.assertRaises(SystemExit):
+            mod.main()  # 第二次：idempotency guard 必須拒絕，不能再加一次
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            row = db.execute("SELECT coin_balance FROM customers WHERE id=?", (cid,)).fetchone()
+            self.assertEqual(row["coin_balance"], 453)  # 沒有變成 549
+
     # ── H-1: update_transaction 與 create（entry）的有效等級判定必須一致 ────────
 
     def _update_txn(self, txn_id: int, *, name: str, birthday: str, store_id: str, amount, txn_date: str) -> dict:

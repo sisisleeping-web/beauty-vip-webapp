@@ -1,4 +1,16 @@
-"""2026美咖會員制度V3 Phase 1：既有顧客的會員年度制初始化（一次性）。
+"""⚠️ DEPRECATED — H-1 稽核後停用，執行前需明確覆蓋才能跑 ⚠️
+
+這支腳本用的是「all-time 最高單筆 + 目前日曆年至今累計」門檻公式，跟 app.py
+現行 V3 會員年度制（`effective_tier_for_transaction`／`reevaluate_and_persist_tier`）
+完全脫鉤，是 H-1 稽核鏈（docs/audit/H1-root-cause-and-exposure-scan.md、
+docs/audit/H1-positive-only-entitlement-verification.md）點名的
+DUPLICATED_BUSINESS_LOGIC / DANGEROUS_IF_RERUN 腳本之一。雖然有「已有
+tier_effective_date 就跳過」的保護，但對任何 tier_effective_date 目前是 NULL
+的顧客（例如效期屆滿被重判回一般會員的人）重跑，仍會用這套脫鉤公式覆寫他們的
+會員年度視窗。
+
+2026美咖會員制度V3 Phase 1：既有顧客的會員年度制初始化（一次性，已於 2026-08-09
+執行過）。
 
 現有顧客沒有「正式升等日」的歷史紀錄，沒辦法還原每個人真正的升等日期。這支腳本
 用目前的判定邏輯（all-time 最高單筆 + 目前日曆年至今累計）算出當下應該是什麼等級，
@@ -14,10 +26,20 @@ Usage（照 CLAUDE.md 既有流程：上傳到 PA → console 執行 → 驗算 
     python3 scripts/backfill_member_tier.py --dry-run   # 只印出會怎麼改，不寫入
 """
 
+import os
 import sqlite3
 import sys
 from datetime import date
 from pathlib import Path
+
+if os.environ.get("ALLOW_DEPRECATED_RAW_THRESHOLD_SCRIPT") != "i-understand-this-is-deprecated-see-H1-audit":
+    sys.exit(
+        "REFUSED: 這支腳本已因 H-1 稽核發現的問題被停用（見檔案頂端說明與 "
+        "docs/audit/H1-positive-only-entitlement-verification.md）。\n"
+        "需要明確設定 ALLOW_DEPRECATED_RAW_THRESHOLD_SCRIPT="
+        "i-understand-this-is-deprecated-see-H1-audit 才會執行，而且只該對本機唯讀"
+        "副本測試用，不該對正式 DB_PATH 執行。"
+    )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "data" / "beauty_vip.db"
