@@ -1,82 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
-{% if show_action_modal and action_summary.total_count > 0 %}
-<div id="actionModalBackdrop" style="position:fixed; inset:0; background:rgba(26,26,46,.42); z-index:1000; display:flex; align-items:center; justify-content:center; padding:18px;">
-  <div role="dialog" aria-modal="true" aria-labelledby="actionModalTitle" style="width:min(520px, 100%); background:#fff; border-radius:22px; box-shadow:0 24px 80px rgba(45,27,105,.26); border:1px solid var(--border-color); overflow:hidden;">
-    <div style="background:linear-gradient(135deg,var(--primary),var(--primary-light),var(--accent)); color:#fff; padding:22px 24px;">
-      <div style="font-size:2rem; margin-bottom:8px;">🔔</div>
-      <h2 id="actionModalTitle" style="color:#fff; margin:0 0 4px; font-size:1.45rem;">今日有 {{ action_summary.total_count }} 件待關注事項</h2>
-      <div style="opacity:.9; font-size:.95rem;">美容師可以先看這些顧客或事件，再開始今天的作業。</div>
-    </div>
-    <div style="padding:18px 24px 8px;">
-      {% for key in ['red_expiry', 'review', 'gift', 'orange_expiry', 'birthday'] %}
-        {% set item = action_summary.categories[key] %}
-        {% if item.count > 0 %}
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; padding:11px 0; border-bottom:1px solid var(--border-color);">
-            <div style="font-weight:700; color:var(--text-heading);">{{ item.icon }} {{ item.label }}</div>
-            <div class="font-mono" style="font-size:1.05rem; color:var(--primary);">{{ item.count }}</div>
-          </div>
-        {% endif %}
-      {% endfor %}
-    </div>
-    <div style="display:flex; justify-content:flex-end; gap:10px; padding:18px 24px 22px;">
-      <button type="button" onclick="document.getElementById('actionModalBackdrop').style.display='none'" style="background:#f3f4f6; color:var(--text-muted); box-shadow:none;">稍後處理</button>
-      <a href="/actions" style="text-decoration:none;"><button type="button" style="background:linear-gradient(135deg,var(--primary),var(--primary-light)); color:#fff;">查看待關注事項</button></a>
-    </div>
-  </div>
-</div>
-{% endif %}
-
 <div style="text-align:center; padding: 40px 20px 20px;">
   <div style="font-size: 3.5rem; margin-bottom: 12px;">💄</div>
   <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--text-heading); margin-bottom: 6px;">美咖美容 VIP 管理系統</h2>
   <p class="text-muted" style="font-size: 1rem; margin-bottom: 32px;">請選擇要進入的功能頁面</p>
 </div>
-
-{% if action_summary.total_count > 0 %}
-<div class="card" style="max-width:880px; margin:0 auto 24px;">
-  <div style="display:flex; justify-content:space-between; gap:14px; align-items:center; flex-wrap:wrap;">
-    <div>
-      <h3 style="margin-bottom:6px;">🔔 今日待關注 {{ action_summary.total_count }} 件</h3>
-      <div class="text-muted" style="font-size:.9rem;">提示只讀既有資料，不會更動美咖幣或交易紀錄。</div>
-    </div>
-    <a href="/actions" style="color:var(--primary); font-weight:700; text-decoration:none;">查看全部 →</a>
-  </div>
-  <div style="display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 6px;">
-    {% for key in ['red_expiry', 'review', 'gift', 'orange_expiry', 'birthday'] %}
-      {% set item = action_summary.categories[key] %}
-      {% if item.count > 0 %}
-        <span class="badge-pill {% if key == 'red_expiry' %}badge-pill-danger{% elif key == 'orange_expiry' or key == 'review' %}badge-pill-warning{% else %}badge-pill-neutral{% endif %}">
-          {{ item.icon }} {{ item.count }}
-        </span>
-      {% endif %}
-    {% endfor %}
-  </div>
-  {% if action_preview %}
-    <div style="display:grid; gap:10px; margin-top:14px;">
-      {% for action in action_preview %}
-        <div style="border:1px solid var(--border-color); border-radius:var(--radius-md); padding:12px 14px; background:var(--primary-bg-soft); display:flex; justify-content:space-between; gap:14px; align-items:center; flex-wrap:wrap;">
-          <div>
-            <div style="font-weight:800; color:var(--text-heading);">{{ action.icon }} {{ action.title }}</div>
-            <div class="text-muted" style="font-size:.88rem; margin-top:3px;">{{ action.detail }}</div>
-          </div>
-          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-            <a href="{{ action.target_url }}" style="color:var(--primary); font-weight:700; text-decoration:none;">{{ action.target_label }}</a>
-            <form method="post" action="/actions/handle" style="margin:0;">
-              <input type="hidden" name="action_type" value="{{ action.action_type }}">
-              <input type="hidden" name="action_key" value="{{ action.action_key }}">
-              <input type="hidden" name="next" value="/">
-              <button type="submit" style="min-height:34px; padding:7px 12px; box-shadow:none; background:#fff; color:var(--success); border:1px solid rgba(5,150,105,.3);">
-                {% if action.action_type == 'birthday' %}已關心{% else %}已提醒{% endif %}
-              </button>
-            </form>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-</div>
-{% endif %}
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; max-width: 760px; margin: 0 auto 40px;">
 
