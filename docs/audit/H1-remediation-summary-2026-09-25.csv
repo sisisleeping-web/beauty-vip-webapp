@@ -1,0 +1,16 @@
+customer_id,customer_name,affected_transactions,direct_tier_transactions,legacy_pooled_transactions,direct_net_delta,direct_safe_clawback,direct_unsafe_already_spent_shortfall,legacy_pooled_net_delta,legacy_batch_count,legacy_batch_earned_total,legacy_batch_remaining_total,legacy_batch_expired,legacy_safe_clawback_estimate,legacy_unsafe_shortfall_estimate,current_coin_balance,note
+238,黃舒郁,2,1,1,-162,162,0,-170,1,1122,1122,False,170,0,1122,1 筆在 2026-08-09 legacy 整併前，只能對顧客單一 legacy 批次做整戶層級調整，無法逐筆對應
+246,黃意玲,9,3,6,-501,501,0,-381,1,2457,2457,False,381,0,3792,6 筆在 2026-08-09 legacy 整併前，只能對顧客單一 legacy 批次做整戶層級調整，無法逐筆對應
+254,廖筱玟,3,0,3,0,0,0,-4938,1,8583,8583,False,4938,0,8583,3 筆在 2026-08-09 legacy 整併前，只能對顧客單一 legacy 批次做整戶層級調整，無法逐筆對應
+257,詹筱雯,3,0,3,0,0,0,-200,1,1246,1246,False,200,0,1246,3 筆在 2026-08-09 legacy 整併前，只能對顧客單一 legacy 批次做整戶層級調整，無法逐筆對應
+291,蔡雅文,1,0,1,0,0,0,-100,1,1141,1141,False,100,0,1141,1 筆在 2026-08-09 legacy 整併前，只能對顧客單一 legacy 批次做整戶層級調整，無法逐筆對應
+301,唐怡芳,1,1,0,-70,70,0,0,1,652,652,False,0,0,827,全部 mismatch 都能在 DIRECT 層安全修正（有各自批次可調）
+302,歐千詳,5,3,2,900,0,0,-570,1,4450,4450,False,570,0,6439,2 筆在 2026-08-09 legacy 整併前，只能對顧客單一 legacy 批次做整戶層級調整，無法逐筆對應
+305,邱芷緹,1,0,1,0,0,0,-288,1,1487,1487,False,288,0,1487,1 筆在 2026-08-09 legacy 整併前，只能對顧客單一 legacy 批次做整戶層級調整，無法逐筆對應
+332,廖家瑢,3,1,2,-27,27,0,-161,1,1067,1067,False,161,0,1067,2 筆在 2026-08-09 legacy 整併前，只能對顧客單一 legacy 批次做整戶層級調整，無法逐筆對應
+352,游馥瑋,2,0,2,0,0,0,-104,1,514,514,False,104,0,514,2 筆在 2026-08-09 legacy 整併前，只能對顧客單一 legacy 批次做整戶層級調整，無法逐筆對應
+354,馮曼婷,2,0,2,0,0,0,-66,1,758,758,False,66,0,758,2 筆在 2026-08-09 legacy 整併前，只能對顧客單一 legacy 批次做整戶層級調整，無法逐筆對應
+380,林秋蘭,1,0,1,0,0,0,96,2,357,357,False,0,0,357,1 筆在 2026-08-09 legacy 整併前，只能對顧客單一 legacy 批次做整戶層級調整，無法逐筆對應
+392,李佩持,1,1,0,-140,140,0,0,1,665,665,False,0,0,665,全部 mismatch 都能在 DIRECT 層安全修正（有各自批次可調）
+472,劉容而,1,0,1,0,0,0,-486,1,1134,1134,False,486,0,1134,1 筆在 2026-08-09 legacy 整併前，只能對顧客單一 legacy 批次做整戶層級調整，無法逐筆對應
+533,陳姿樺,1,1,0,-78,78,0,0,0,0,0,,0,0,703,全部 mismatch 都能在 DIRECT 層安全修正（有各自批次可調）
