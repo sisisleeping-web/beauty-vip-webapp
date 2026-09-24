@@ -1026,6 +1026,196 @@ class BeautyVipContractTests(unittest.TestCase):
             ).fetchone()
             self.assertEqual(row["status"], "in_progress")
 
+    # ── H-1: update_transaction 與 create（entry）的有效等級判定必須一致 ────────
+
+    def _update_txn(self, txn_id: int, *, name: str, birthday: str, store_id: str, amount, txn_date: str) -> dict:
+        self._login()
+        resp = self.client.post(
+            f"/api/transactions/{txn_id}/update",
+            data={"name": name, "birthday": birthday, "store_id": store_id, "amount": str(amount), "txn_date": txn_date},
+        )
+        return resp
+
+    def test_h1_editing_latest_transaction_reflects_current_downgraded_tier_not_raw_threshold(self) -> None:
+        """核心重現案例：顧客歷史上曾有一筆 35000 元交易（過去可能觸發過 A 級），但目前
+        （例如會員年度到期重判後）已經是一般會員、沒有生效中的視窗。編輯該顧客「目前最新」
+        的一筆交易時，正確答案必須用「顧客現在真正的等級」（一般會員 2%），
+        不能用『歷史單筆最高金額/年度累計』這種跟現況脫節的門檻硬算出 A 級 8%。"""
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at,member_tier,tier_effective_date,tier_expires_date) "
+                "VALUES('H1降級測試','1990-01-01','2026-01-01','一般會員',NULL,NULL)"
+            ).lastrowid
+            # 較早的一筆歷史大額交易（id 較小），過去可能觸發過升等，但已經因效期屆滿重判被重置。
+            db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,coins_earned,created_at,entry_mode) "
+                "VALUES(?, 'store_a','2026-01-05','2026-01',35000,35000,700,700,'2026-01-05','normal')",
+                (cid,),
+            )
+            # 顧客目前最新一筆交易（id 較大），這是本次要編輯的目標。
+            latest_id = db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,coins_earned,created_at,entry_mode) "
+                "VALUES(?, 'store_a','2026-01-20','2026-01',2000,2000,40,40,'2026-01-20','normal')",
+                (cid,),
+            ).lastrowid
+            db.commit()
+
+        resp = self._update_txn(latest_id, name="H1降級測試", birthday="1990-01-01", store_id="store_a", amount=2500, txn_date="2026-01-20")
+        self.assertEqual(resp.status_code, 200)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            row = db.execute("SELECT coins_earned FROM transactions WHERE id=?", (latest_id,)).fetchone()
+            # 一般會員 2%：2500 * 0.02 = 50。若走舊 bug（calc_tier(35000,35000)）會算出 A 級 8% = 200。
+            self.assertEqual(row["coins_earned"], 50)
+
+    def test_h1_editing_transaction_after_customer_upgraded_uses_tier_at_edit_time_not_latest(self) -> None:
+        """反向情境：顧客現在已經是 A 級美咖（比編輯當下所屬時間點更高），但這筆被編輯的
+        交易若是顧客時間序上最新一筆，「交易當下的等級」跟「現在的等級」其實是同一件事
+        （因為沒有更新的交易發生在它之後），所以此時就應該用『現在』的 A 級費率，這不是
+        bug，是正確行為——用來跟上一個測試（降級案例）對照，證明修法不是無腦套用舊值，
+        而是真的用『顧客現在的正式等級』。"""
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at,member_tier,tier_effective_date,tier_expires_date) "
+                "VALUES('H1現況即最新','1990-01-01','2026-01-01','A級美咖','2026-01-06','2027-01-06')"
+            ).lastrowid
+            latest_id = db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,coins_earned,created_at,entry_mode) "
+                "VALUES(?, 'store_a','2026-01-20','2026-01',2000,2000,40,40,'2026-01-20','normal')",
+                (cid,),
+            ).lastrowid
+            db.commit()
+
+        resp = self._update_txn(latest_id, name="H1現況即最新", birthday="1990-01-01", store_id="store_a", amount=2500, txn_date="2026-01-20")
+        self.assertEqual(resp.status_code, 200)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            row = db.execute("SELECT coins_earned FROM transactions WHERE id=?", (latest_id,)).fetchone()
+            self.assertEqual(row["coins_earned"], 200)  # A 級 8%：2500*0.08=200
+
+    def test_h1_create_update_parity_across_general_s_p_a(self) -> None:
+        """CREATE/UPDATE parity：四個等級各建一個顧客（唯一一筆交易＝當下最新），
+        建立時的 coins_earned 跟事後原地編輯（金額不變）算出來的必須完全一樣。"""
+        cases = [
+            ("一般會員", None, None, 1000, 20),
+            ("S級美咖", "2026-01-01", "2027-01-01", 1000, 30),
+            ("P級美咖", "2026-01-01", "2027-01-01", 1000, 50),
+            ("A級美咖", "2026-01-01", "2027-01-01", 1000, 80),
+        ]
+        for tier_name, eff, exp, amount, expected_coins in cases:
+            with self.subTest(tier=tier_name):
+                with beauty.app.app_context():
+                    db = beauty.get_db()
+                    cid = db.execute(
+                        "INSERT INTO customers(name,birthday,created_at,member_tier,tier_effective_date,tier_expires_date) "
+                        "VALUES(?,?,?,?,?,?)",
+                        (f"H1平等測試{tier_name}", "1990-01-01", "2026-01-01", tier_name, eff, exp),
+                    ).lastrowid
+                    txn_id = db.execute(
+                        "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,coins_earned,created_at,entry_mode) "
+                        "VALUES(?, 'store_a','2026-06-01','2026-06',?,?,0,?,'2026-06-01','normal')",
+                        (cid, amount, amount, expected_coins),
+                    ).lastrowid
+                    db.commit()
+                # 原地編輯（同金額），應維持同一等級費率不變
+                resp = self._update_txn(
+                    txn_id, name=f"H1平等測試{tier_name}", birthday="1990-01-01",
+                    store_id="store_a", amount=amount, txn_date="2026-06-01",
+                )
+                self.assertEqual(resp.status_code, 200)
+                with beauty.app.app_context():
+                    db = beauty.get_db()
+                    row = db.execute("SELECT coins_earned FROM transactions WHERE id=?", (txn_id,)).fetchone()
+                    self.assertEqual(row["coins_earned"], expected_coins)
+
+    def test_h1_threshold_transaction_keeps_old_rate_when_edited(self) -> None:
+        """達標交易本身永遠用舊等級費率（制度規定升等隔天才生效，不得 retroactive 補差額）。
+        這筆交易本身就是「讓顧客從一般會員衝上 A 級」的那一筆，即使事後被編輯金額，
+        仍必須維持一般會員費率，不能因為現在 pending 著 A 級就偷偷算成 A 級費率。"""
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at,member_tier,tier_effective_date,tier_expires_date,"
+                "pending_tier,pending_effective_date) "
+                "VALUES('H1達標本身測試','1990-01-01','2026-01-01','一般會員',NULL,NULL,'A級美咖','2026-01-21')"
+            ).lastrowid
+            txn_id = db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,coins_earned,created_at,entry_mode) "
+                "VALUES(?, 'store_a','2026-01-20','2026-01',31000,31000,620,620,'2026-01-20','normal')",
+                (cid,),
+            ).lastrowid
+            db.commit()
+
+        resp = self._update_txn(txn_id, name="H1達標本身測試", birthday="1990-01-01", store_id="store_a", amount=32000, txn_date="2026-01-20")
+        self.assertEqual(resp.status_code, 200)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            row = db.execute("SELECT coins_earned FROM transactions WHERE id=?", (txn_id,)).fetchone()
+            self.assertEqual(row["coins_earned"], 640)  # 一般會員 2%：32000*0.02=640，不是 A 級的 2560
+
+    def test_h1_backdated_edit_flagged_for_review_not_silently_recalculated(self) -> None:
+        """編輯一筆「不是顧客時間序上最新」的舊交易（例如日後又有更新的交易），無法可靠
+        重建當時的正確等級，必須保守處理（用目前 member_tier）並留一筆 review_flags 供人工
+        複核，不能悄悄套用一個跟建立時邏輯不同的公式。"""
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at,member_tier,tier_effective_date,tier_expires_date) "
+                "VALUES('H1補登編輯測試','1990-01-01','2026-01-01','P級美咖','2026-03-01','2027-03-01')"
+            ).lastrowid
+            old_txn_id = db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,coins_earned,created_at,entry_mode) "
+                "VALUES(?, 'store_a','2026-01-10','2026-01',1500,1500,30,30,'2026-01-10','normal')",
+                (cid,),
+            ).lastrowid
+            db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,coins_earned,created_at,entry_mode) "
+                "VALUES(?, 'store_a','2026-03-15','2026-03',1200,1200,60,60,'2026-03-15','normal')",
+                (cid,),
+            )
+            db.commit()
+            before_flags = db.execute("SELECT COUNT(*) FROM review_flags WHERE item_type='backdated_entry'").fetchone()[0]
+
+        resp = self._update_txn(old_txn_id, name="H1補登編輯測試", birthday="1990-01-01", store_id="store_a", amount=1600, txn_date="2026-01-10")
+        self.assertEqual(resp.status_code, 200)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            row = db.execute("SELECT coins_earned FROM transactions WHERE id=?", (old_txn_id,)).fetchone()
+            # 保守用「目前」member_tier（P級美咖 5%）：1600*0.05=80
+            self.assertEqual(row["coins_earned"], 80)
+            after_flags = db.execute("SELECT COUNT(*) FROM review_flags WHERE item_type='backdated_entry'").fetchone()[0]
+            self.assertEqual(after_flags, before_flags + 1)
+
+    def test_h1_untouched_coin_batch_recalculated_and_no_negative_after_edit(self) -> None:
+        """交易金額被編輯後，對應（尚未被消費過的）點數批次要跟著調整，且不能造成負值。"""
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            cid = db.execute(
+                "INSERT INTO customers(name,birthday,created_at,member_tier) VALUES('H1批次測試','1990-01-01','2026-01-01','一般會員')"
+            ).lastrowid
+            txn_id = db.execute(
+                "INSERT INTO transactions(customer_id,store_id,txn_date,month_key,amount,final_amount,cashback,coins_earned,created_at,entry_mode) "
+                "VALUES(?, 'store_a','2026-01-20','2026-01',1000,1000,20,20,'2026-01-20','normal')",
+                (cid,),
+            ).lastrowid
+            db.execute(
+                "INSERT INTO coin_batches(customer_id,source_txn_id,earned_amount,remaining_amount,credit_date,expires_date,status,is_legacy,created_at) "
+                "VALUES(?,?,20,20,'2026-02-01','2027-02-01','active',0,'2026-01-20')",
+                (cid, txn_id),
+            )
+            db.commit()
+
+        resp = self._update_txn(txn_id, name="H1批次測試", birthday="1990-01-01", store_id="store_a", amount=3000, txn_date="2026-01-20")
+        self.assertEqual(resp.status_code, 200)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            batch = db.execute("SELECT remaining_amount, earned_amount FROM coin_batches WHERE source_txn_id=?", (txn_id,)).fetchone()
+            self.assertEqual(batch["earned_amount"], 60)  # 一般會員 2%：3000*0.02=60
+            self.assertEqual(batch["remaining_amount"], 60)
+            self.assertGreaterEqual(batch["remaining_amount"], 0)
+
     def test_expiry_action_key_is_stable_for_partial_use_and_non_earlier_batch_addition(self) -> None:
         today = date.today()
         with beauty.app.app_context():

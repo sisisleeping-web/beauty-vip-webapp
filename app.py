@@ -567,12 +567,15 @@ def _window_total(db: sqlite3.Connection, customer_id: int, window_start: str, w
     return float(row["total"] or 0)
 
 
-def _is_backdated_entry(db: sqlite3.Connection, customer_id: int, txn_day: date) -> bool:
-    """這筆交易日期是否早於顧客現有交易紀錄——店員補登過去單子時，不能讓等級時間軸倒著跑。"""
-    row = db.execute(
-        "SELECT MAX(txn_date) AS latest FROM transactions WHERE customer_id=? AND voided_at IS NULL",
-        (customer_id,),
-    ).fetchone()
+def _is_backdated_entry(db: sqlite3.Connection, customer_id: int, txn_day: date, *, exclude_txn_id: int | None = None) -> bool:
+    """這筆交易日期是否早於顧客現有交易紀錄——店員補登過去單子時，不能讓等級時間軸倒著跑。
+    exclude_txn_id 給編輯既有交易時用：判斷「這筆之外」顧客是否還有更新的交易。"""
+    query = "SELECT MAX(txn_date) AS latest FROM transactions WHERE customer_id=? AND voided_at IS NULL"
+    params: list[Any] = [customer_id]
+    if exclude_txn_id is not None:
+        query += " AND id != ?"
+        params.append(exclude_txn_id)
+    row = db.execute(query, params).fetchone()
     latest = row["latest"] if row else None
     return bool(latest) and txn_day.isoformat() < latest
 
@@ -728,6 +731,58 @@ def reevaluate_and_persist_tier(db: sqlite3.Connection, customer_id: int, as_of:
         _persist_tier_state(db, customer_id, state)
         _log_tier_events(db, customer_id, events)
     return state or dict(_EMPTY_TIER_STATE)
+
+
+def effective_tier_for_transaction(
+    db: sqlite3.Connection, customer_id: int, txn_day: date, rules: dict[str, Any],
+    *, exclude_txn_id: int | None = None, backdated_note: str = "",
+) -> dict[str, Any]:
+    """單一 contract：決定一筆 normal 交易「交易當下」應該套用的等級與視窗資訊。
+    建立交易（entry）與修改交易（update_transaction）共用這支函式，確保同樣的
+    business facts不會因為走哪條路徑而得到不同的點數結果（H-1）。
+
+    交易日期若早於該顧客（排除 exclude_txn_id 本身）目前最新一筆有效交易，視為
+    backdated：會員年度制的 pending 生效／到期重判都是往前走的狀態機，回頭重放會
+    動到顧客現在的正式狀態，無法可靠重建「交易當下」的正確等級——改用目前顧客身上
+    記錄的 member_tier 當保守估計，並寫一筆 review_flags 供人工複核，不自動升降級。
+
+    非 backdated（這筆本來就是、或改完之後仍是該顧客時間序上最新的一筆）則呼叫
+    reevaluate_and_persist_tier 往前推算「交易當下」正確的效期/待生效狀態並寫回，
+    這跟建立一筆新交易時的行為完全一致。
+    """
+    backdated = _is_backdated_entry(db, customer_id, txn_day, exclude_txn_id=exclude_txn_id)
+
+    if backdated:
+        cur = db.execute(
+            "SELECT member_tier, tier_effective_date, tier_expires_date FROM customers WHERE id=?",
+            (customer_id,),
+        ).fetchone()
+        tier_name = cur["member_tier"] if cur else "一般會員"
+        if backdated_note:
+            db.execute(
+                "INSERT INTO review_flags(item_type, item_key, status, note, updated_at) VALUES(?,?,?,?,?)",
+                (
+                    "backdated_entry",
+                    f"cust{customer_id}_{txn_day.isoformat()}_{datetime.now().timestamp()}",
+                    "unreviewed",
+                    backdated_note,
+                    datetime.now().isoformat(timespec="seconds"),
+                ),
+            )
+        return {
+            "tier": _tier_rule_by_name(tier_name, rules),
+            "backdated": True,
+            "window_start": cur["tier_effective_date"] if cur else None,
+            "window_end": cur["tier_expires_date"] if cur else None,
+        }
+
+    tier_state = reevaluate_and_persist_tier(db, customer_id, txn_day)
+    return {
+        "tier": _tier_rule_by_name(tier_state["member_tier"], rules),
+        "backdated": False,
+        "window_start": tier_state["tier_effective_date"],
+        "window_end": tier_state["tier_expires_date"],
+    }
 
 
 def _history_tier_state_for_customers(db: sqlite3.Connection, customer_ids: list[int], as_of: date) -> dict:
@@ -2162,32 +2217,19 @@ def entry():
 
                 # 會員年度制（V3 Phase 1）：先確認這筆補登日期沒有早於既有交易，
                 # 再套用到期的 pending 升等／會員年度到期重判，取得「這筆交易當下」該用的等級。
-                backdated = _is_backdated_entry(db, customer_id, txn_day)
-                if backdated:
-                    cur = db.execute(
-                        "SELECT member_tier, tier_effective_date, tier_expires_date FROM customers WHERE id=?",
-                        (customer_id,),
-                    ).fetchone()
-                    tier_before_name = cur["member_tier"]
-                    window_start, window_end = cur["tier_effective_date"], cur["tier_expires_date"]
-                    db.execute(
-                        "INSERT INTO review_flags(item_type, item_key, status, note, updated_at) "
-                        "VALUES(?,?,?,?,?)",
-                        (
-                            "backdated_entry",
-                            f"cust{customer_id}_{txn_day.isoformat()}_{datetime.now().timestamp()}",
-                            "unreviewed",
-                            f"{name} 補登 {txn_day.isoformat()} 的交易，晚於既有交易紀錄，"
-                            f"等級未自動重新評估，請人工複核",
-                            datetime.now().isoformat(timespec="seconds"),
-                        ),
-                    )
-                else:
-                    tier_state = reevaluate_and_persist_tier(db, customer_id, txn_day)
-                    tier_before_name = tier_state["member_tier"]
-                    window_start, window_end = tier_state["tier_effective_date"], tier_state["tier_expires_date"]
+                # 這支 contract（effective_tier_for_transaction）跟 update_transaction 共用，
+                # 確保同樣的 business facts 不會因為走建立還是修改而算出不同點數（H-1）。
+                tier_info = effective_tier_for_transaction(
+                    db, customer_id, txn_day, rules,
+                    backdated_note=(
+                        f"{name} 補登 {txn_day.isoformat()} 的交易，晚於既有交易紀錄，"
+                        f"等級未自動重新評估，請人工複核"
+                    ),
+                )
+                backdated = tier_info["backdated"]
+                window_start, window_end = tier_info["window_start"], tier_info["window_end"]
 
-                tier_before = _tier_rule_by_name(tier_before_name, rules)
+                tier_before = tier_info["tier"]
                 cashback = round(final_amount * tier_before.cashback_rate, 2)
                 points = int(final_amount * tier_before.points_rate)
 
@@ -2689,14 +2731,19 @@ def update_transaction(txn_id):
     # 其他模式沿用舊的 coins_earned，不要把它寫壞成 0。
     new_coins_earned = old_coins_earned
 
-    # 3. Recalculate coins if it's a normal transaction
+    # 3. Recalculate coins if it's a normal transaction — 跟建立交易共用同一套「交易當下
+    #    有效等級」contract（effective_tier_for_transaction），不再另外用歷史單筆/年度
+    #    累計門檻重新判斷一次等級（H-1：兩條路徑曾經各自算出不同答案）。
     if old_mode == "normal":
         rules = load_rules()
-        year_str = d.strftime("%Y")
-        past_max_single = float(db.execute("SELECT COALESCE(MAX(final_amount),0) FROM transactions WHERE customer_id=? AND id < ? AND voided_at IS NULL", (old_customer_id, txn_id)).fetchone()[0] or 0)
-        year_total_so_far = float(db.execute("SELECT COALESCE(SUM(final_amount),0) FROM transactions WHERE customer_id=? AND substr(txn_date,1,4)=? AND id < ? AND final_amount>=1000 AND voided_at IS NULL", (old_customer_id, year_str, txn_id)).fetchone()[0] or 0)
-        tier = calc_tier(past_max_single, year_total_so_far, rules)
-        new_coins_earned = int(new_final_amount * tier.points_rate)
+        tier_info = effective_tier_for_transaction(
+            db, old_customer_id, d, rules, exclude_txn_id=txn_id,
+            backdated_note=(
+                f"{name} 修改了 {d.isoformat()} 的交易金額，但這不是該顧客時間序上最新一筆"
+                f"交易，等級未自動重新評估，請人工複核"
+            ),
+        )
+        new_coins_earned = int(new_final_amount * tier_info["tier"].points_rate)
 
     # 4. Update transaction record
     db.execute(
