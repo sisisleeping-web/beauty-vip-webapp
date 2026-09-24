@@ -410,6 +410,34 @@ def init_db() -> None:
             ON member_portal_events(event_type, created_at);
         CREATE INDEX IF NOT EXISTS idx_member_portal_events_member_created
             ON member_portal_events(member_id, created_at);
+
+        -- Audit Governance V1：稽核排程與歷史。網站只記錄到期/歷史/結果摘要，
+        -- 真正查核（財務獨立重算等）由 CC 以 read-only 方式執行，不在網站內重算。
+        CREATE TABLE IF NOT EXISTS system_audits (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            audit_type TEXT NOT NULL,
+            period_key TEXT NOT NULL,
+            due_date TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'due',
+            started_at TEXT,
+            completed_at TEXT,
+            completed_by TEXT,
+            result TEXT,
+            critical_count INTEGER NOT NULL DEFAULT 0,
+            high_count INTEGER NOT NULL DEFAULT 0,
+            medium_count INTEGER NOT NULL DEFAULT 0,
+            low_count INTEGER NOT NULL DEFAULT 0,
+            info_count INTEGER NOT NULL DEFAULT 0,
+            report_ref TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(audit_type, period_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_system_audits_type_status
+            ON system_audits(audit_type, status);
+        CREATE INDEX IF NOT EXISTS idx_system_audits_due_date
+            ON system_audits(due_date);
         """
     )
 
@@ -1175,6 +1203,7 @@ def get_customer_tier_map(db: sqlite3.Connection, year: str) -> dict[int, str]:
 ACTION_CATEGORY_META: dict[str, dict[str, str]] = {
     "red_expiry": {"label": "7 天內點數到期", "icon": "🔴"},
     "review": {"label": "待人工處理", "icon": "⚠️"},
+    "system_audit": {"label": "系統完整稽核到期", "icon": "🛡️"},
     "gift": {"label": "待發升等禮", "icon": "🎁"},
     "birthday_today": {"label": "今日壽星", "icon": "🎂"},
     "birthday_missed": {"label": "本月漏關心", "icon": "📌"},
@@ -1184,12 +1213,16 @@ ACTION_CATEGORY_META: dict[str, dict[str, str]] = {
 # 候選資料 ≠ 尚待處理工作：只有這些分類會計入 Navbar / Modal / Homepage 的主 badge 總數，
 # 其餘（目前只有 birthday_upcoming）是預告資訊，只在 /actions 頁單獨顯示。
 ACTIONABLE_SUMMARY_KEYS = (
-    "red_expiry", "review", "gift", "birthday_today", "birthday_missed", "orange_expiry",
+    "red_expiry", "review", "system_audit", "gift", "birthday_today", "birthday_missed", "orange_expiry",
 )
 _SUMMARY_KEY_PRIORITY = {key: i + 1 for i, key in enumerate((
     "red_expiry", "review", "gift", "birthday_today", "birthday_missed",
     "orange_expiry", "birthday_upcoming",
 ))}
+# system_audit 的顯示優先序不是固定的：依「逾期天數／上期是否有未解決 High/Critical」動態決定，
+# 但依 §7 規定「不得凌駕立即財務異常、Critical review issue」，所以三檔都卡在 red_expiry(1)／
+# review(2) 之後，其餘依嚴重度穿插在既有分類之間。
+_AUDIT_TIER_PRIORITY = {"high": 2.5, "elevated": 5.5, "normal": 6.5}
 
 
 def empty_action_board_summary() -> dict[str, Any]:
@@ -1226,7 +1259,9 @@ def _action_is_actionable(action: dict[str, Any]) -> bool:
     return _action_summary_key(action) in ACTIONABLE_SUMMARY_KEYS
 
 
-def _action_priority(action: dict[str, Any]) -> int:
+def _action_priority(action: dict[str, Any]) -> int | float:
+    if action["action_type"] == "system_audit":
+        return _AUDIT_TIER_PRIORITY.get(action.get("audit_priority_tier"), _AUDIT_TIER_PRIORITY["normal"])
     return _SUMMARY_KEY_PRIORITY.get(_action_summary_key(action), 99)
 
 
@@ -1362,6 +1397,128 @@ def _build_expiry_actions(db: sqlite3.Connection, today: date) -> list[dict[str,
     return actions
 
 
+# ── Audit Governance V1 ──────────────────────────────────────────────────
+# 網站只負責排程/到期/歷史/結果摘要；真正查核（財務獨立重算等）由 CC 以 read-only
+# 方式在網站之外執行，網站不重算、不自動宣告 PASS、不自動修 DB/code。
+
+AUDIT_TYPES = ("monthly_quick", "quarterly_deep", "event_driven")
+AUDIT_STATUSES = ("due", "in_progress", "completed", "waived")
+AUDIT_RESULTS = ("PASS", "PASS_WITH_FINDINGS", "FAIL", "NOT_RUN")
+
+
+def _add_calendar_months(d: date, months: int) -> date:
+    """安全月份位移：直接算目標年月，日期落在目標月不存在的日（例如 1/31 +3 個月）時取該月
+    最後一天，避免用固定天數（如 90 天）取代 calendar month。注意不能用逐月呼叫
+    _add_one_month 三次來湊——那樣中間月份的 clamp 會被複合放大（1/31 經過 2 月 28 日
+    clamp 後，3 月、4 月都只能疊加在 28 號上，變成 4/28 而非正確的 4/30）。"""
+    month_index = d.month - 1 + months
+    year = d.year + month_index // 12
+    month = month_index % 12 + 1
+    last_day = calendar.monthrange(year, month)[1]
+    return date(year, month, min(d.day, last_day))
+
+
+def _quarter_period_key(d: date) -> str:
+    return f"{d.year}-Q{(d.month - 1) // 3 + 1}"
+
+
+def _month_period_key(d: date) -> str:
+    return f"{d.year}-{d.month:02d}"
+
+
+def get_latest_completed_audit(db: sqlite3.Connection, audit_type: str) -> sqlite3.Row | None:
+    return db.execute(
+        "SELECT * FROM system_audits WHERE audit_type=? AND status='completed' "
+        "ORDER BY completed_at DESC, id DESC LIMIT 1",
+        (audit_type,),
+    ).fetchone()
+
+
+def get_open_audit(db: sqlite3.Connection, audit_type: str) -> sqlite3.Row | None:
+    """尚未完成（due/in_progress）的最新一筆，通常是管理者已手動建立/啟動、還沒登記結果的那期。"""
+    return db.execute(
+        "SELECT * FROM system_audits WHERE audit_type=? AND status IN ('due','in_progress') "
+        "ORDER BY due_date DESC, id DESC LIMIT 1",
+        (audit_type,),
+    ).fetchone()
+
+
+def compute_next_quarterly_due(db: sqlite3.Connection, today: date) -> tuple[str, date] | None:
+    """算出「目前這期」quarterly_deep 的 (period_key, due_date)。
+
+    優先用管理者已手動建立但尚未完成的期別；否則用最近一次完成稽核的 completed_at +3
+    個月推算。完全沒有任何歷史（含 baseline）時回傳 None——V1 不會自動生出第一個 baseline，
+    要靠管理者或 CC 明確建立 BASELINE_QUARTERLY_DEEP（見 §11）。
+    """
+    open_row = get_open_audit(db, "quarterly_deep")
+    if open_row is not None:
+        return str(open_row["period_key"]), _parse_iso_date(str(open_row["due_date"]), today)
+    latest_completed = get_latest_completed_audit(db, "quarterly_deep")
+    if latest_completed is None:
+        return None
+    anchor = _parse_iso_date(str(latest_completed["completed_at"])[:10], today)
+    next_due = _add_calendar_months(anchor, 3)
+    return _quarter_period_key(next_due), next_due
+
+
+def build_system_audit_action(db: sqlite3.Connection, today: date) -> dict[str, Any] | None:
+    """Quarterly Deep 到期（due_date<=today）且尚未 completed/waived 時，算出一個 virtual
+    Action Board action；跟 birthday/expiry 一樣純讀取既有資料，不會寫入。是否已經有
+    system_audits row 不影響這裡的判斷——沒有 row 時視為「due 但尚未 materialize」。
+    """
+    computed = compute_next_quarterly_due(db, today)
+    if computed is None:
+        return None
+    period_key, due_date = computed
+    if due_date > today:
+        return None  # 尚未到期，quarterly 不進 Action Board（monthly 也一樣，但那個只在管理頁顯示）
+
+    existing = db.execute(
+        "SELECT * FROM system_audits WHERE audit_type='quarterly_deep' AND period_key=?",
+        (period_key,),
+    ).fetchone()
+    if existing is not None and existing["status"] in ("completed", "waived"):
+        return None
+
+    overdue_days = (today - due_date).days
+    last_completed = get_latest_completed_audit(db, "quarterly_deep")
+    had_unresolved_high_critical = bool(
+        last_completed is not None
+        and (int(last_completed["critical_count"] or 0) > 0 or int(last_completed["high_count"] or 0) > 0)
+    )
+    if had_unresolved_high_critical or overdue_days > 7:
+        tier = "high"
+    elif overdue_days >= 1:
+        tier = "elevated"
+    else:
+        tier = "normal"
+
+    detail_parts = [
+        f"上次完整稽核：{str(last_completed['completed_at'])[:10] if last_completed else '尚無紀錄'}",
+        f"本次應完成：{due_date.isoformat()}",
+        f"已逾期 {overdue_days} 天" if overdue_days > 0 else "狀態：待管理者處理",
+    ]
+    if had_unresolved_high_critical:
+        detail_parts.append("⚠️ 上期仍有未解決的 High/Critical 發現")
+
+    return {
+        "action_type": "system_audit",
+        "action_key": f"system_audit:quarterly_deep:{period_key}",
+        "customer_id": None,
+        "customer_name": "",
+        "icon": "🛡️",
+        "label": "系統完整稽核到期",
+        "title": "🛡️ 系統完整稽核到期",
+        "detail": "，".join(detail_parts),
+        "target_url": "/admin/system-audits",
+        "target_label": "查看稽核紀錄",
+        "sort_date": due_date.isoformat(),
+        "audit_priority_tier": tier,
+        "audit_period_key": period_key,
+        "audit_due_date": due_date.isoformat(),
+    }
+
+
 def build_action_board_actions(db: sqlite3.Connection, today: date | None = None, include_handled: bool = False) -> list[dict[str, Any]]:
     """Build Action Board detail actions from existing data only.
 
@@ -1463,6 +1620,10 @@ def build_action_board_actions(db: sqlite3.Connection, today: date | None = None
             "sort_date": f"{occurrence.month:02d}-{occurrence.day:02d}",
             "birthday_bucket": bucket,
         })
+
+    audit_action = build_system_audit_action(db, today)
+    if audit_action is not None:
+        actions.append(audit_action)
 
     pending = [a for a in actions if include_handled or _action_is_pending(a, handled)]
     pending.sort(key=lambda a: (_action_priority(a), str(a.get("sort_date") or ""), str(a["action_key"])))
@@ -1568,6 +1729,10 @@ def handle_action():
     next_url = request.form.get("next", url_for("actions_page"))
     if not re.fullmatch(r"[A-Za-z0-9_:-]+", action_type) or not action_key or len(action_key) > 180:
         return "Invalid action", 400
+    if action_type == "system_audit":
+        # Audit completion 需要真實 evidence（result/report_ref/counts），禁止一鍵標記完成，
+        # 只能透過 /admin/system-audits 的完整登記表單。
+        return "Invalid action: system audit 需經 /admin/system-audits 登記完成", 400
 
     db = get_db()
     pending_actions = build_action_board_actions(db)
@@ -1600,6 +1765,215 @@ def handle_action():
     g.action_board_summary = build_action_board_summary(db)
     return redirect(next_url)
 
+
+@app.route("/admin/system-audits")
+def system_audits_page():
+    """美容師可看到到期狀態與簡化歷史；建立/啟動/登記完成/waive 需 manager_authed。"""
+    db = get_db()
+    today = date.today()
+    is_manager = bool(session.get("manager_authed"))
+
+    quarterly_computed = compute_next_quarterly_due(db, today)
+    quarterly_period_key, quarterly_due_date = quarterly_computed if quarterly_computed else (None, None)
+    quarterly_row = None
+    if quarterly_period_key is not None:
+        quarterly_row = db.execute(
+            "SELECT * FROM system_audits WHERE audit_type='quarterly_deep' AND period_key=?",
+            (quarterly_period_key,),
+        ).fetchone()
+    quarterly_action = build_system_audit_action(db, today)
+    quarterly_latest_completed = get_latest_completed_audit(db, "quarterly_deep")
+
+    monthly_period_key = _month_period_key(today)
+    monthly_row = db.execute(
+        "SELECT * FROM system_audits WHERE audit_type='monthly_quick' AND period_key=?",
+        (monthly_period_key,),
+    ).fetchone()
+    monthly_done = bool(monthly_row and monthly_row["status"] == "completed")
+
+    history = db.execute(
+        "SELECT * FROM system_audits ORDER BY due_date DESC, id DESC LIMIT 50"
+    ).fetchall()
+
+    return render_template(
+        "system_audits.html",
+        version=APP_VERSION,
+        is_manager=is_manager,
+        today=today.isoformat(),
+        audit_types=AUDIT_TYPES,
+        audit_results=AUDIT_RESULTS,
+        quarterly_period_key=quarterly_period_key,
+        quarterly_due_date=quarterly_due_date.isoformat() if quarterly_due_date else None,
+        quarterly_row=quarterly_row,
+        quarterly_action=quarterly_action,
+        quarterly_latest_completed=quarterly_latest_completed,
+        monthly_period_key=monthly_period_key,
+        monthly_row=monthly_row,
+        monthly_done=monthly_done,
+        history=history,
+    )
+
+
+@app.route("/admin/system-audits/start", methods=["POST"])
+def start_system_audit():
+    """手動建立/啟動本期 audit row（quarterly 的「到期」在沒有 row 時是 virtual 的，真的要開始
+    查核才 materialize 成一筆 in_progress row）。"""
+    if not session.get("manager_authed"):
+        return "Forbidden", 403
+    audit_type = request.form.get("audit_type", "").strip()
+    period_key = request.form.get("period_key", "").strip()
+    due_date_str = request.form.get("due_date", "").strip()
+    if audit_type not in AUDIT_TYPES or not period_key or not due_date_str:
+        return "Invalid request", 400
+    try:
+        datetime.strptime(due_date_str, "%Y-%m-%d")
+    except ValueError:
+        return "Invalid due_date", 400
+
+    db = get_db()
+    now_str = datetime.now().isoformat(timespec="seconds")
+    db.execute(
+        "INSERT OR IGNORE INTO system_audits(audit_type,period_key,due_date,status,started_at,created_at,updated_at) "
+        "VALUES(?,?,?,'in_progress',?,?,?)",
+        (audit_type, period_key, due_date_str, now_str, now_str, now_str),
+    )
+    db.execute(
+        "UPDATE system_audits SET status='in_progress', started_at=COALESCE(started_at,?), updated_at=? "
+        "WHERE audit_type=? AND period_key=? AND status='due'",
+        (now_str, now_str, audit_type, period_key),
+    )
+    db.commit()
+    return redirect(url_for("system_audits_page"))
+
+
+@app.route("/admin/system-audits/complete", methods=["POST"])
+def complete_system_audit():
+    """登記真正的 Audit 結果。防止「按一下就算稽核完成」：result/report_ref/counts/completed_by
+    缺一都拒絕。Quarterly Deep 額外要求 report_ref 必填（§9）。"""
+    if not session.get("manager_authed"):
+        return "Forbidden", 403
+
+    audit_type = request.form.get("audit_type", "").strip()
+    period_key = request.form.get("period_key", "").strip()
+    due_date_str = request.form.get("due_date", "").strip()
+    result = request.form.get("result", "").strip()
+    report_ref = request.form.get("report_ref", "").strip()
+    notes = request.form.get("notes", "").strip()
+
+    if audit_type not in AUDIT_TYPES or not period_key or not due_date_str:
+        return "Invalid request：缺少 audit_type/period_key/due_date", 400
+    try:
+        datetime.strptime(due_date_str, "%Y-%m-%d")
+    except ValueError:
+        return "Invalid due_date", 400
+    if result not in AUDIT_RESULTS:
+        return "缺少必要 evidence：result 必填且需為合法值", 400
+    if audit_type == "quarterly_deep" and not report_ref:
+        return "缺少必要 evidence：Quarterly Deep 完成必須填 report_ref", 400
+
+    counts: dict[str, int] = {}
+    for field in ("critical_count", "high_count", "medium_count", "low_count", "info_count"):
+        raw = request.form.get(field, "").strip()
+        if not raw.isdigit():
+            return f"缺少必要 evidence：{field} 必填且需為非負整數", 400
+        counts[field] = int(raw)
+
+    db = get_db()
+    now_str = datetime.now().isoformat(timespec="seconds")
+    existing = db.execute(
+        "SELECT * FROM system_audits WHERE audit_type=? AND period_key=?",
+        (audit_type, period_key),
+    ).fetchone()
+    if existing is None:
+        fields = {
+            "audit_type": audit_type,
+            "period_key": period_key,
+            "due_date": due_date_str,
+            "status": "completed",
+            "started_at": now_str,
+            "completed_at": now_str,
+            "completed_by": "manager",
+            "result": result,
+            "critical_count": counts["critical_count"],
+            "high_count": counts["high_count"],
+            "medium_count": counts["medium_count"],
+            "low_count": counts["low_count"],
+            "info_count": counts["info_count"],
+            "report_ref": report_ref,
+            "notes": notes,
+            "created_at": now_str,
+            "updated_at": now_str,
+        }
+        columns = ",".join(fields.keys())
+        placeholders = ",".join("?" for _ in fields)
+        db.execute(
+            f"INSERT INTO system_audits({columns}) VALUES({placeholders})",
+            tuple(fields.values()),
+        )
+    else:
+        db.execute(
+            "UPDATE system_audits SET status='completed', started_at=COALESCE(started_at,?), completed_at=?, "
+            "completed_by='manager', result=?, critical_count=?, high_count=?, medium_count=?, low_count=?, "
+            "info_count=?, report_ref=?, notes=?, updated_at=? WHERE id=?",
+            (
+                now_str, now_str, result, counts["critical_count"], counts["high_count"],
+                counts["medium_count"], counts["low_count"], counts["info_count"],
+                report_ref, notes, now_str, existing["id"],
+            ),
+        )
+    db.commit()
+    return redirect(url_for("system_audits_page"))
+
+
+@app.route("/admin/system-audits/waive", methods=["POST"])
+def waive_system_audit():
+    if not session.get("manager_authed"):
+        return "Forbidden", 403
+    audit_type = request.form.get("audit_type", "").strip()
+    period_key = request.form.get("period_key", "").strip()
+    reason = request.form.get("reason", "").strip()
+    if audit_type not in AUDIT_TYPES or not period_key:
+        return "Invalid request", 400
+    if not reason:
+        return "waive 必須填寫理由", 400
+
+    db = get_db()
+    existing = db.execute(
+        "SELECT * FROM system_audits WHERE audit_type=? AND period_key=?",
+        (audit_type, period_key),
+    ).fetchone()
+    if existing is None:
+        return "Invalid request：找不到這期 audit", 400
+    now_str = datetime.now().isoformat(timespec="seconds")
+    db.execute(
+        "UPDATE system_audits SET status='waived', completed_by='manager', notes=?, updated_at=? WHERE id=?",
+        (reason, now_str, existing["id"]),
+    )
+    db.commit()
+    return redirect(url_for("system_audits_page"))
+
+
+@app.route("/admin/system-audits/event", methods=["POST"])
+def create_event_audit():
+    """管理者在特定事件後（會員制度變更/重大 backfill/incident 等）手動開一筆 event_driven
+    紀錄。V1 不自動偵測事件，也不影響 quarterly 排程 anchor。"""
+    if not session.get("manager_authed"):
+        return "Forbidden", 403
+    reason = request.form.get("reason", "").strip()
+    if not reason:
+        return "Event audit 必須填寫觸發原因", 400
+
+    today = date.today()
+    period_key = f"event-{today.isoformat()}-{secrets.token_hex(3)}"
+    db = get_db()
+    now_str = datetime.now().isoformat(timespec="seconds")
+    db.execute(
+        "INSERT INTO system_audits(audit_type,period_key,due_date,status,notes,created_at,updated_at) "
+        "VALUES('event_driven',?,?,'due',?,?,?)",
+        (period_key, today.isoformat(), reason, now_str, now_str),
+    )
+    db.commit()
+    return redirect(url_for("system_audits_page"))
 
 
 @app.route("/api/customers/search")

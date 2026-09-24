@@ -717,6 +717,292 @@ class BeautyVipContractTests(unittest.TestCase):
             after = db.execute("SELECT COUNT(*) FROM customer_action_logs").fetchone()[0]
         self.assertEqual(after, before)
 
+    # ── Audit Governance V1 regression ──────────────────────────────────────
+
+    def _insert_completed_quarterly(
+        self, db, completed_at: date, period_key: str,
+        critical: int = 0, high: int = 0, medium: int = 0, low: int = 0, info: int = 0,
+        result: str = "PASS", report_ref: str = "AUDIT-TEST",
+    ) -> None:
+        due_date = completed_at.isoformat()
+        now = completed_at.isoformat()
+        db.execute(
+            "INSERT INTO system_audits(audit_type,period_key,due_date,status,completed_at,completed_by,result,"
+            "critical_count,high_count,medium_count,low_count,info_count,report_ref,notes,created_at,updated_at) "
+            "VALUES('quarterly_deep',?,?, 'completed',?, 'manager',?,?,?,?,?,?,?,?,?,?)",
+            (period_key, due_date, now, result, critical, high, medium, low, info, report_ref, "", now, now),
+        )
+        db.commit()
+
+    def test_quarterly_audit_due_is_actionable(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(db, date(2026, 3, 10), "2026-Q1")  # +3 months due = 2026-06-10 <= anchor
+            actions = beauty.build_action_board_actions(db, today)
+            audit_actions = [a for a in actions if a["action_type"] == "system_audit"]
+            self.assertEqual(len(audit_actions), 1)
+            self.assertTrue(beauty._action_is_actionable(audit_actions[0]))
+            summary = beauty.build_action_board_summary(db, today)
+            self.assertEqual(summary["categories"]["system_audit"]["count"], 1)
+            self.assertEqual(summary["total_count"], 1)
+
+    def test_quarterly_audit_not_due_does_not_enter_badge(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(db, date(2026, 5, 1), "2026-Q2")  # +3 months due = 2026-08-01 > anchor
+            actions = beauty.build_action_board_actions(db, today)
+            self.assertFalse(any(a["action_type"] == "system_audit" for a in actions))
+            summary = beauty.build_action_board_summary(db, today)
+            self.assertEqual(summary["total_count"], 0)
+
+    def test_quarterly_audit_completed_reminder_disappears(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(db, date(2026, 3, 10), "2026-Q1")
+            self.assertTrue(any(a["action_type"] == "system_audit" for a in beauty.build_action_board_actions(db, today)))
+            # 補登這一期（due 2026-06-10）的完成結果
+            self._insert_completed_quarterly(db, date(2026, 6, 12), "2026-Q2")
+            actions_after = beauty.build_action_board_actions(db, today)
+            self.assertFalse(any(a["action_type"] == "system_audit" for a in actions_after))
+
+    def test_quarterly_completion_rejected_without_required_evidence(self) -> None:
+        self._login(manager=True)
+        base_payload = {
+            "audit_type": "quarterly_deep", "period_key": "2026-Q9", "due_date": "2026-06-15",
+            "result": "PASS", "report_ref": "AUDIT-X",
+            "critical_count": "0", "high_count": "0", "medium_count": "0", "low_count": "0", "info_count": "0",
+        }
+        # 缺 report_ref
+        payload = dict(base_payload); payload.pop("report_ref")
+        self.assertEqual(self.client.post("/admin/system-audits/complete", data=payload).status_code, 400)
+        # 缺 result
+        payload = dict(base_payload); payload.pop("result")
+        self.assertEqual(self.client.post("/admin/system-audits/complete", data=payload).status_code, 400)
+        # 缺 counts
+        payload = dict(base_payload); payload.pop("critical_count")
+        self.assertEqual(self.client.post("/admin/system-audits/complete", data=payload).status_code, 400)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self.assertIsNone(
+                db.execute("SELECT 1 FROM system_audits WHERE period_key='2026-Q9'").fetchone()
+            )
+
+    def test_beautician_cannot_complete_audit(self) -> None:
+        self._login(manager=False)
+        payload = {
+            "audit_type": "quarterly_deep", "period_key": "2026-Q9", "due_date": "2026-06-15",
+            "result": "PASS", "report_ref": "AUDIT-X",
+            "critical_count": "0", "high_count": "0", "medium_count": "0", "low_count": "0", "info_count": "0",
+        }
+        self.assertEqual(self.client.post("/admin/system-audits/complete", data=payload).status_code, 403)
+
+    def test_manager_can_complete_audit(self) -> None:
+        self._login(manager=True)
+        payload = {
+            "audit_type": "quarterly_deep", "period_key": "2026-Q9", "due_date": "2026-06-15",
+            "result": "PASS_WITH_FINDINGS", "report_ref": "AUDIT-2026-Q9",
+            "critical_count": "0", "high_count": "1", "medium_count": "2", "low_count": "3", "info_count": "4",
+            "notes": "測試登記",
+        }
+        resp = self.client.post("/admin/system-audits/complete", data=payload)
+        self.assertEqual(resp.status_code, 302)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            row = db.execute("SELECT * FROM system_audits WHERE period_key='2026-Q9'").fetchone()
+            self.assertEqual(row["status"], "completed")
+            self.assertEqual(row["result"], "PASS_WITH_FINDINGS")
+            self.assertEqual(row["report_ref"], "AUDIT-2026-Q9")
+            self.assertEqual(row["completed_by"], "manager")
+
+    def test_completed_audit_computes_next_due_plus_3_calendar_months(self) -> None:
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(db, date(2026, 6, 15), "2026-Q2")
+            period_key, due_date = beauty.compute_next_quarterly_due(db, date(2026, 6, 20))
+            self.assertEqual(due_date, date(2026, 9, 15))
+            self.assertEqual(period_key, "2026-Q3")
+
+    def test_quarterly_due_uses_safe_month_end_arithmetic(self) -> None:
+        """baseline 完成日是 1/31 這種月底日，+3 個月落到沒有 31 號的月份要取該月最後一天，不能用固定 90 天。"""
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(db, date(2026, 1, 31), "2026-Q0")
+            period_key, due_date = beauty.compute_next_quarterly_due(db, date(2026, 2, 1))
+            self.assertEqual(due_date, date(2026, 4, 30))  # 4月無31日，取月底
+            self.assertNotEqual(due_date, date(2026, 1, 31) + timedelta(days=90))  # 不是固定90天
+
+    def test_quarterly_overdue_days_reported(self) -> None:
+        today = date(2026, 6, 20)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(db, date(2026, 3, 10), "2026-Q1")  # due 2026-06-10，anchor晚10天
+            action = beauty.build_system_audit_action(db, today)
+            self.assertIsNotNone(action)
+            self.assertIn("已逾期 10 天", action["detail"])
+            self.assertEqual(action["audit_priority_tier"], "high")  # overdue > 7 天
+
+    def test_quarterly_previous_high_critical_shown_and_forces_high_priority(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            # 上一期有 unresolved High/Critical，即使這期才剛到期（0 天逾期）也要是 high tier
+            self._insert_completed_quarterly(db, date(2026, 3, 15), "2026-Q1", critical=1, high=2)
+            action = beauty.build_system_audit_action(db, today)
+            self.assertIsNotNone(action)
+            self.assertEqual(action["audit_priority_tier"], "high")
+            self.assertIn("未解決的 High/Critical", action["detail"])
+
+    def test_navbar_modal_homepage_count_due_audit_exactly_once(self) -> None:
+        today = date.today()
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(db, today - timedelta(days=100), "count-once-baseline")
+            db.commit()
+        self._login()
+        home = self.client.get("/").get_data(as_text=True)
+        navbar_match = re.search(r"🔔 待關注 (\d+)", home)
+        modal_match = re.search(r"今日有 (\d+) 件待關注事項", home)
+        self.assertIsNotNone(navbar_match)
+        self.assertIsNotNone(modal_match)
+        self.assertEqual(navbar_match.group(1), modal_match.group(1))
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            summary = beauty.build_action_board_summary(db)
+            self.assertEqual(summary["categories"]["system_audit"]["count"], 1)  # 剛好一次，不重複
+
+    def test_monthly_quick_does_not_pollute_beautician_badge(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            actions = beauty.build_action_board_actions(db, today)
+            self.assertFalse(any(a["action_type"] == "monthly_quick" for a in actions))
+            summary = beauty.build_action_board_summary(db, today)
+            self.assertNotIn("monthly_quick", summary["categories"])
+            self.assertNotIn("monthly_quick", summary.get("informational", {}))
+
+    def test_waived_audit_requires_reason(self) -> None:
+        self._login(manager=True)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute(
+                "INSERT INTO system_audits(audit_type,period_key,due_date,status,created_at,updated_at) "
+                "VALUES('quarterly_deep','2026-Q-waive','2026-06-01','due','2026-01-01','2026-01-01')"
+            )
+            db.commit()
+        no_reason = self.client.post(
+            "/admin/system-audits/waive",
+            data={"audit_type": "quarterly_deep", "period_key": "2026-Q-waive", "reason": ""},
+        )
+        self.assertEqual(no_reason.status_code, 400)
+        with_reason = self.client.post(
+            "/admin/system-audits/waive",
+            data={"audit_type": "quarterly_deep", "period_key": "2026-Q-waive", "reason": "已於其他管道確認無風險"},
+        )
+        self.assertEqual(with_reason.status_code, 302)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            row = db.execute("SELECT status, notes FROM system_audits WHERE period_key='2026-Q-waive'").fetchone()
+            self.assertEqual(row["status"], "waived")
+            self.assertEqual(row["notes"], "已於其他管道確認無風險")
+
+    def test_audit_history_ordering(self) -> None:
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(db, date(2026, 1, 1), "hist-2026-Q1")
+            self._insert_completed_quarterly(db, date(2026, 4, 1), "hist-2026-Q2")
+            self._insert_completed_quarterly(db, date(2026, 2, 1), "hist-2026-Qmid")
+            rows = db.execute(
+                "SELECT period_key FROM system_audits ORDER BY due_date DESC, id DESC"
+            ).fetchall()
+            keys = [r["period_key"] for r in rows]
+            # due_date 降冪：最近到期在最前面
+            self.assertEqual(
+                keys.index("hist-2026-Q2") < keys.index("hist-2026-Qmid") < keys.index("hist-2026-Q1"),
+                True,
+            )
+
+    def test_report_ref_persisted(self) -> None:
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(db, date(2026, 5, 1), "2026-Q-ref", report_ref="AUDIT-2026-Q2-REF")
+            row = db.execute("SELECT report_ref FROM system_audits WHERE period_key='2026-Q-ref'").fetchone()
+            self.assertEqual(row["report_ref"], "AUDIT-2026-Q2-REF")
+
+    def test_audit_completion_does_not_change_financial_tables(self) -> None:
+        self._login(manager=True)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('財務不動測試','1990-01-01','2026-01-01')"
+            )
+            db.commit()
+            before = {
+                t: db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+                for t in ("customers", "transactions", "coin_batches", "coin_redemptions", "tier_upgrades", "review_flags")
+            }
+        self.client.post("/admin/system-audits/complete", data={
+            "audit_type": "quarterly_deep", "period_key": "2026-Q-fin", "due_date": "2026-06-15",
+            "result": "PASS", "report_ref": "AUDIT-FIN",
+            "critical_count": "0", "high_count": "0", "medium_count": "0", "low_count": "0", "info_count": "0",
+        })
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            after = {
+                t: db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+                for t in ("customers", "transactions", "coin_batches", "coin_redemptions", "tier_upgrades", "review_flags")
+            }
+        self.assertEqual(before, after)
+
+    def test_system_audits_page_requires_login(self) -> None:
+        unauth = self.client.get("/admin/system-audits").get_data(as_text=True)
+        # 未登入被 require_main_auth 擋下，渲染的是主網密碼鎖定頁，不是稽核頁內容。
+        # navbar 本身不分登入狀態都會出現「🛡️ 系統稽核」連結文字，所以用「有沒有頁面標題 h2」
+        # 而不是單純字串是否出現來判斷內容有沒有真的被擋下。
+        self.assertIn("系統存取驗證", unauth)
+        self.assertNotIn("<h2>🛡️ 系統稽核</h2>", unauth)
+
+        self._login()
+        authed = self.client.get("/admin/system-audits").get_data(as_text=True)
+        self.assertIn("<h2>🛡️ 系統稽核</h2>", authed)
+
+    def test_event_driven_audit_does_not_affect_quarterly_schedule_anchor(self) -> None:
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(db, date(2026, 3, 10), "2026-Q1")
+            before = beauty.compute_next_quarterly_due(db, date(2026, 6, 15))
+            db.execute(
+                "INSERT INTO system_audits(audit_type,period_key,due_date,status,notes,created_at,updated_at) "
+                "VALUES('event_driven','event-test','2026-05-01','due','制度變更','2026-05-01','2026-05-01')"
+            )
+            db.commit()
+            after = beauty.compute_next_quarterly_due(db, date(2026, 6, 15))
+        self.assertEqual(before, after)
+
+    def test_duplicate_audit_period_not_recreated(self) -> None:
+        self._login(manager=True)
+        payload = {"audit_type": "quarterly_deep", "period_key": "2026-Q-dup", "due_date": "2026-06-01"}
+        self.client.post("/admin/system-audits/start", data=payload)
+        self.client.post("/admin/system-audits/start", data=payload)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            count = db.execute(
+                "SELECT COUNT(*) FROM system_audits WHERE audit_type='quarterly_deep' AND period_key='2026-Q-dup'"
+            ).fetchone()[0]
+            self.assertEqual(count, 1)
+
+    def test_audit_reminder_action_key_is_deterministic(self) -> None:
+        today = date(2026, 6, 15)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._insert_completed_quarterly(db, date(2026, 3, 10), "2026-Q1")
+            action1 = beauty.build_system_audit_action(db, today)
+            action2 = beauty.build_system_audit_action(db, today)
+            self.assertEqual(action1["action_key"], action2["action_key"])
+            self.assertEqual(action1["action_key"], "system_audit:quarterly_deep:2026-Q2")
+
     def test_expiry_action_key_is_stable_for_partial_use_and_non_earlier_batch_addition(self) -> None:
         today = date.today()
         with beauty.app.app_context():

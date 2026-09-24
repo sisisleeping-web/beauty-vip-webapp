@@ -12,7 +12,7 @@
   <a href="/" style="color:var(--primary); font-weight:700; text-decoration:none;">← 回首頁</a>
 </div>
 
-{% set actionable_order = ['red_expiry', 'review', 'gift', 'birthday_today', 'birthday_missed', 'orange_expiry'] %}
+{% set actionable_order = ['red_expiry', 'review', 'system_audit', 'gift', 'birthday_today', 'birthday_missed', 'orange_expiry'] %}
 {% for key in actionable_order %}
   {% set meta = category_meta[key] %}
   {% set actions = action_groups.get(key, []) %}
@@ -28,6 +28,7 @@
             </div>
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
               <a href="{{ action.target_url }}" style="color:var(--primary); font-weight:700; text-decoration:none;">{{ action.target_label }}</a>
+              {% if action.action_type != 'system_audit' %}
               <form method="post" action="/actions/handle" style="margin:0;">
                 <input type="hidden" name="action_type" value="{{ action.action_type }}">
                 <input type="hidden" name="action_key" value="{{ action.action_key }}">
@@ -36,6 +37,7 @@
                   {% if action.action_type == 'birthday' %}標記已關心{% else %}標記已提醒{% endif %}
                 </button>
               </form>
+              {% endif %}
             </div>
           </div>
         {% endfor %}

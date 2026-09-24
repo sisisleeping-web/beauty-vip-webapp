@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+  <div>
+    <h2>🛡️ 系統稽核</h2>
+    <p class="text-muted" style="margin-top:0;">
+      網站只負責提醒到期與留存歷史；真正查核（財務獨立重算等）由 CC 以唯讀方式執行，稽核與修復分離。
+    </p>
+  </div>
+  <a href="/" style="color:var(--primary); font-weight:700; text-decoration:none;">← 回首頁</a>
+</div>
+
+<div class="card">
+  <h3>目前狀態</h3>
+  <table>
+    <tbody>
+      <tr><td class="text-muted">最近一次完整稽核</td>
+        <td>
+          {% if quarterly_latest_completed %}
+            {{ quarterly_latest_completed.completed_at[:10] }}｜{{ quarterly_latest_completed.result }}
+            （Critical {{ quarterly_latest_completed.critical_count }}／High {{ quarterly_latest_completed.high_count }}／Medium {{ quarterly_latest_completed.medium_count }}）
+          {% else %}
+            尚無紀錄（尚未建立 baseline）
+          {% endif %}
+        </td>
+      </tr>
+      <tr><td class="text-muted">下次完整稽核應完成</td>
+        <td>{{ quarterly_due_date or '尚無排程（需先建立 baseline）' }}</td>
+      </tr>
+      <tr><td class="text-muted">目前是否到期</td>
+        <td>
+          {% if quarterly_action %}
+            <span class="badge-pill badge-pill-danger">🛡️ 已到期</span>　{{ quarterly_action.detail }}
+          {% else %}
+            <span class="badge-pill badge-pill-neutral">未到期</span>
+          {% endif %}
+        </td>
+      </tr>
+      <tr><td class="text-muted">本月快速稽核</td>
+        <td>{% if monthly_done %}✅ 已完成（{{ monthly_row.completed_at[:10] }}）{% else %}⏳ 待執行（{{ monthly_period_key }}）{% endif %}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{% if is_manager %}
+<div class="card">
+  <h3>管理動作</h3>
+
+  {% if quarterly_action and (not quarterly_row or quarterly_row.status == 'due') %}
+  <form method="post" action="/admin/system-audits/start" style="margin-bottom:14px;">
+    <input type="hidden" name="audit_type" value="quarterly_deep">
+    <input type="hidden" name="period_key" value="{{ quarterly_period_key }}">
+    <input type="hidden" name="due_date" value="{{ quarterly_due_date }}">
+    <button type="submit">▶️ 啟動本期 Quarterly Deep Audit（{{ quarterly_period_key }}）</button>
+  </form>
+  {% endif %}
+
+  {% if quarterly_action %}
+  <details style="margin-bottom:14px;">
+    <summary style="cursor:pointer; font-weight:700;">📋 登記 Quarterly Deep 完成結果（{{ quarterly_period_key }}）</summary>
+    <form method="post" action="/admin/system-audits/complete" style="display:grid; gap:8px; max-width:480px; margin-top:10px;">
+      <input type="hidden" name="audit_type" value="quarterly_deep">
+      <input type="hidden" name="period_key" value="{{ quarterly_period_key }}">
+      <input type="hidden" name="due_date" value="{{ quarterly_due_date }}">
+      <label>結果
+        <select name="result" required>
+          {% for r in audit_results %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Report Ref（必填）<input type="text" name="report_ref" required placeholder="例如 AUDIT-2026-Q3-BASELINE 或報告路徑"></label>
+      <div style="display:flex; gap:8px;">
+        <label>Critical <input type="number" name="critical_count" min="0" value="0" required style="width:70px;"></label>
+        <label>High <input type="number" name="high_count" min="0" value="0" required style="width:70px;"></label>
+        <label>Medium <input type="number" name="medium_count" min="0" value="0" required style="width:70px;"></label>
+        <label>Low <input type="number" name="low_count" min="0" value="0" required style="width:70px;"></label>
+        <label>Info <input type="number" name="info_count" min="0" value="0" required style="width:70px;"></label>
+      </div>
+      <label>備註<textarea name="notes" rows="2"></textarea></label>
+      <button type="submit">✅ 登記完成</button>
+    </form>
+  </details>
+
+  <details style="margin-bottom:14px;">
+    <summary style="cursor:pointer; font-weight:700;">⏸️ Waive 本期（需理由）</summary>
+    <form method="post" action="/admin/system-audits/waive" style="display:grid; gap:8px; max-width:480px; margin-top:10px;">
+      <input type="hidden" name="audit_type" value="quarterly_deep">
+      <input type="hidden" name="period_key" value="{{ quarterly_period_key }}">
+      <label>理由（必填）<textarea name="reason" rows="2" required></textarea></label>
+      <button type="submit">Waive</button>
+    </form>
+  </details>
+  {% endif %}
+
+  {% if not monthly_done %}
+  <details style="margin-bottom:14px;">
+    <summary style="cursor:pointer; font-weight:700;">📋 登記本月快速稽核完成（{{ monthly_period_key }}）</summary>
+    <form method="post" action="/admin/system-audits/complete" style="display:grid; gap:8px; max-width:480px; margin-top:10px;">
+      <input type="hidden" name="audit_type" value="monthly_quick">
+      <input type="hidden" name="period_key" value="{{ monthly_period_key }}">
+      <input type="hidden" name="due_date" value="{{ today }}">
+      <label>結果
+        <select name="result" required>
+          {% for r in audit_results %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Report Ref<input type="text" name="report_ref" placeholder="選填"></label>
+      <div style="display:flex; gap:8px;">
+        <label>Critical <input type="number" name="critical_count" min="0" value="0" required style="width:70px;"></label>
+        <label>High <input type="number" name="high_count" min="0" value="0" required style="width:70px;"></label>
+        <label>Medium <input type="number" name="medium_count" min="0" value="0" required style="width:70px;"></label>
+        <label>Low <input type="number" name="low_count" min="0" value="0" required style="width:70px;"></label>
+        <label>Info <input type="number" name="info_count" min="0" value="0" required style="width:70px;"></label>
+      </div>
+      <label>備註<textarea name="notes" rows="2"></textarea></label>
+      <button type="submit">✅ 登記完成</button>
+    </form>
+  </details>
+  {% endif %}
+
+  <details>
+    <summary style="cursor:pointer; font-weight:700;">➕ 建立 Event-Driven Audit</summary>
+    <form method="post" action="/admin/system-audits/event" style="display:grid; gap:8px; max-width:480px; margin-top:10px;">
+      <label>觸發原因（必填，例如：會員制度規則變更／schema migration／Production incident）
+        <textarea name="reason" rows="2" required></textarea>
+      </label>
+      <button type="submit">建立</button>
+    </form>
+  </details>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3>稽核歷史</h3>
+  {% if history %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Period</th><th>Type</th><th>Due</th><th>Completed</th><th>Result</th><th>Findings (C/H/M/L/I)</th><th>Report Ref</th><th>Completed By</th></tr></thead>
+        <tbody>
+          {% for row in history %}
+            <tr>
+              <td>{{ row.period_key }}</td>
+              <td>{{ row.audit_type }}</td>
+              <td>{{ row.due_date }}</td>
+              <td>{{ row.completed_at[:10] if row.completed_at else '-' }}</td>
+              <td>{{ row.result or row.status }}</td>
+              <td>{{ row.critical_count }}/{{ row.high_count }}/{{ row.medium_count }}/{{ row.low_count }}/{{ row.info_count }}</td>
+              <td>{{ row.report_ref or '-' }}</td>
+              <td>{{ row.completed_by or '-' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted">尚無稽核紀錄。</p>
+  {% endif %}
+</div>
+{% endblock %}

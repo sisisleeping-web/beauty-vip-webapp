@@ -9,7 +9,7 @@
       <div style="opacity:.9; font-size:.95rem;">美容師可以先看這些顧客或事件，再開始今天的作業。</div>
     </div>
     <div style="padding:18px 24px 8px;">
-      {% for key in ['red_expiry', 'review', 'gift', 'birthday_today', 'birthday_missed', 'orange_expiry'] %}
+      {% for key in ['red_expiry', 'review', 'system_audit', 'gift', 'birthday_today', 'birthday_missed', 'orange_expiry'] %}
         {% set item = action_summary.categories[key] %}
         {% if item.count > 0 %}
           <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; padding:11px 0; border-bottom:1px solid var(--border-color);">
@@ -43,7 +43,7 @@
     <a href="/actions" style="color:var(--primary); font-weight:700; text-decoration:none;">查看全部 →</a>
   </div>
   <div style="display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 6px;">
-    {% for key in ['red_expiry', 'review', 'gift', 'birthday_today', 'birthday_missed', 'orange_expiry'] %}
+    {% for key in ['red_expiry', 'review', 'system_audit', 'gift', 'birthday_today', 'birthday_missed', 'orange_expiry'] %}
       {% set item = action_summary.categories[key] %}
       {% if item.count > 0 %}
         <span class="badge-pill {% if key == 'red_expiry' %}badge-pill-danger{% elif key == 'orange_expiry' or key == 'review' %}badge-pill-warning{% else %}badge-pill-neutral{% endif %}">
@@ -62,6 +62,7 @@
           </div>
           <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <a href="{{ action.target_url }}" style="color:var(--primary); font-weight:700; text-decoration:none;">{{ action.target_label }}</a>
+            {% if action.action_type != 'system_audit' %}
             <form method="post" action="/actions/handle" style="margin:0;">
               <input type="hidden" name="action_type" value="{{ action.action_type }}">
               <input type="hidden" name="action_key" value="{{ action.action_key }}">
@@ -70,6 +71,7 @@
                 {% if action.action_type == 'birthday' %}標記已關心{% else %}標記已提醒{% endif %}
               </button>
             </form>
+            {% endif %}
           </div>
         </div>
       {% endfor %}
