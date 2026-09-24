@@ -47,6 +47,16 @@
 <div class="card">
   <h3>管理動作</h3>
 
+  {% if not quarterly_latest_completed and not quarterly_period_key %}
+  <form method="post" action="/admin/system-audits/start" style="margin-bottom:14px;">
+    <input type="hidden" name="audit_type" value="quarterly_deep">
+    <input type="hidden" name="period_key" value="BASELINE_QUARTERLY_DEEP">
+    <input type="hidden" name="due_date" value="{{ today }}">
+    <button type="submit">🏁 建立第一次 Baseline Quarterly Deep Audit</button>
+  </form>
+  <p class="text-muted" style="margin-top:-8px; font-size:.85rem;">尚無任何完整稽核歷史，之後的季度排程都以這一期完成日為基準往後推算。</p>
+  {% endif %}
+
   {% if quarterly_action and (not quarterly_row or quarterly_row.status == 'due') %}
   <form method="post" action="/admin/system-audits/start" style="margin-bottom:14px;">
     <input type="hidden" name="audit_type" value="quarterly_deep">

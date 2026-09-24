@@ -1003,6 +1003,29 @@ class BeautyVipContractTests(unittest.TestCase):
             self.assertEqual(action1["action_key"], action2["action_key"])
             self.assertEqual(action1["action_key"], "system_audit:quarterly_deep:2026-Q2")
 
+    def test_admin_page_offers_baseline_creation_when_no_history_exists(self) -> None:
+        """完全沒有稽核歷史時（真正的第一次），compute_next_quarterly_due 會是 None，
+        一般的「啟動本期」按鈕不會出現——管理頁必須另外提供建立 baseline 的入口，
+        否則會卡死：永遠沒有第一筆 completed row 可以當排程 anchor。"""
+        self._login(manager=True)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self.assertIsNone(beauty.compute_next_quarterly_due(db, date.today()))
+        admin = self.client.get("/admin/system-audits").get_data(as_text=True)
+        self.assertIn("建立第一次 Baseline Quarterly Deep Audit", admin)
+
+        resp = self.client.post("/admin/system-audits/start", data={
+            "audit_type": "quarterly_deep", "period_key": "BASELINE_QUARTERLY_DEEP",
+            "due_date": date.today().isoformat(),
+        })
+        self.assertEqual(resp.status_code, 302)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            row = db.execute(
+                "SELECT status FROM system_audits WHERE period_key='BASELINE_QUARTERLY_DEEP'"
+            ).fetchone()
+            self.assertEqual(row["status"], "in_progress")
+
     def test_expiry_action_key_is_stable_for_partial_use_and_non_earlier_batch_addition(self) -> None:
         today = date.today()
         with beauty.app.app_context():
