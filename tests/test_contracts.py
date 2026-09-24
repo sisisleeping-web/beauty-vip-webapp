@@ -278,6 +278,31 @@ class BeautyVipContractTests(unittest.TestCase):
             self.assertEqual(db.execute("SELECT COUNT(*) FROM coin_batches").fetchone()[0], before_batches)
             self.assertEqual(db.execute("SELECT COUNT(*) FROM review_flags").fetchone()[0], before_reviews)
 
+    def test_action_board_birthdays_sort_by_day_not_birth_year(self) -> None:
+        """本月壽星要照生日「日期」排，不能被出生年支配（出生年較晚者不該排到後面）。"""
+        today = date.today()
+        month = today.month
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            # 刻意讓「日期較晚、出生年較早」排在插入順序前面，只有靠出生月-日排序才會正確
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('晚日早年',?,?)",
+                (f"1970-{month:02d}-28", today.isoformat()),
+            )
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('早日晚年',?,?)",
+                (f"2005-{month:02d}-03", today.isoformat()),
+            )
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at) VALUES('中日中年',?,?)",
+                (f"1990-{month:02d}-15", today.isoformat()),
+            )
+            db.commit()
+
+            actions = beauty.build_action_board_actions(db, today)
+            birthday_names = [a["customer_name"] for a in actions if a["action_type"] == "birthday"]
+            self.assertEqual(birthday_names, ["早日晚年", "中日中年", "晚日早年"])
+
     def test_action_board_modal_shows_once_per_login_session(self) -> None:
         today = date.today()
         with beauty.app.app_context():

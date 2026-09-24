@@ -1371,7 +1371,9 @@ def build_action_board_actions(db: sqlite3.Connection, today: date | None = None
             "detail": f"生日：{row['birthday']}，可自然關心生日月方案",
             "target_url": f"/contacts?q={quote(str(row['name']))}",
             "target_label": "查看會員",
-            "sort_date": row["birthday"],
+            # 只取 MM-DD 排序：sort_date 若用完整 birthday（含出生年），
+            # 會被出生年支配，同月不同年出生的壽星就會排錯順序。
+            "sort_date": row["birthday"][5:10],
         })
 
     pending = [a for a in actions if include_handled or _action_is_pending(a, handled)]
