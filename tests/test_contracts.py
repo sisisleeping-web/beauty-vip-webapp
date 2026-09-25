@@ -1165,6 +1165,254 @@ class BeautyVipContractTests(unittest.TestCase):
             row = db.execute("SELECT coin_balance FROM customers WHERE id=?", (cid,)).fetchone()
             self.assertEqual(row["coin_balance"], 453)  # 沒有變成 549
 
+    # ── Tier Current-State Remediation（7 位，2026-09-25，一次性）────────────
+
+    def _load_tier_remediation_module(self):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "remediate_tier_current_state_test",
+            str(Path(__file__).resolve().parent.parent / "scripts" / "remediate_tier_current_state_20260925.py"),
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.beauty.DB_PATH = beauty.DB_PATH
+        return mod
+
+    def _seed_tier_remediation_customers(self, mod, *, state: str = "before", skip_ids: tuple = ()) -> None:
+        """state: 'before' 全部灌 BEFORE 狀態；'after' 全部灌 AFTER 狀態。
+        skip_ids 指定的顧客不灌入（用來測 REFUSED: 找不到 customer_id）。"""
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            for cid, info in mod.CUSTOMERS.items():
+                if cid in skip_ids:
+                    continue
+                fields = dict(info[state])
+                db.execute(
+                    "INSERT INTO customers(id,name,birthday,created_at,member_tier,tier_effective_date,"
+                    "tier_expires_date,pending_tier,pending_effective_date,coin_balance) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,0)",
+                    (
+                        cid, info["name"], "1990-01-01", "2026-01-01",
+                        fields["member_tier"], fields["tier_effective_date"], fields["tier_expires_date"],
+                        fields["pending_tier"], fields["pending_effective_date"],
+                    ),
+                )
+            db.commit()
+
+    def _run_tier_remediation(self, mod, *, dry_run: bool = False) -> None:
+        """main() 內部直接讀 sys.argv 判斷 --dry-run，測試裡明確控制，不依賴測試執行器自己的 argv。"""
+        import sys
+
+        argv_backup = sys.argv
+        sys.argv = ["remediate_tier_current_state_20260925.py"] + (["--dry-run"] if dry_run else [])
+        try:
+            mod.main()
+        finally:
+            sys.argv = argv_backup
+
+    def _financial_and_other_fingerprint(self) -> tuple:
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            fin = tuple(
+                tuple(db.execute(q).fetchone())
+                for q in (
+                    "SELECT COUNT(*),COALESCE(SUM(final_amount),0) FROM transactions",
+                    "SELECT COUNT(*),COALESCE(SUM(remaining_amount),0) FROM coin_batches",
+                    "SELECT COUNT(*),COALESCE(SUM(amount),0) FROM coin_redemptions",
+                    "SELECT COUNT(*),COALESCE(SUM(points),0) FROM point_adjustments",
+                )
+            )
+            others = tuple(
+                db.execute(
+                    "SELECT id,member_tier,tier_effective_date,tier_expires_date FROM customers "
+                    "WHERE id NOT IN (246,301,336,352,354,392,402) ORDER BY id"
+                ).fetchall()
+            )
+        return fin, tuple(tuple(r) for r in others)
+
+    def test_tier_remediation_allowlist_is_exactly_the_seven_target_ids(self) -> None:
+        mod = self._load_tier_remediation_module()
+        self.assertEqual(set(mod.TARGET_IDS), {246, 301, 336, 352, 354, 392, 402})
+        self.assertEqual(len(mod.TARGET_IDS), 7)
+
+    def test_tier_remediation_covers_group_a_b_c(self) -> None:
+        mod = self._load_tier_remediation_module()
+        groups = {cid: info["group"] for cid, info in mod.CUSTOMERS.items()}
+        self.assertEqual(
+            {cid for cid, g in groups.items() if g == "A"}, {246, 301, 354, 392, 402}
+        )
+        self.assertEqual({cid for cid, g in groups.items() if g == "B"}, {336})
+        self.assertEqual({cid for cid, g in groups.items() if g == "C"}, {352})
+
+    def test_tier_remediation_dry_run_never_writes(self) -> None:
+        mod = self._load_tier_remediation_module()
+        self._seed_tier_remediation_customers(mod, state="before")
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute(
+                "INSERT INTO customers(name,birthday,created_at,member_tier,coin_balance) "
+                "VALUES('對照組不該被動','1990-05-05','2026-01-01','一般會員',0)"
+            )
+            db.commit()
+        before_fp = self._financial_and_other_fingerprint()
+
+        self._run_tier_remediation(mod, dry_run=True)
+
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            for cid in mod.TARGET_IDS:
+                row = db.execute(
+                    "SELECT member_tier,tier_effective_date FROM customers WHERE id=?", (cid,)
+                ).fetchone()
+                self.assertEqual(dict(row), {
+                    "member_tier": mod.CUSTOMERS[cid]["before"]["member_tier"],
+                    "tier_effective_date": mod.CUSTOMERS[cid]["before"]["tier_effective_date"],
+                })
+            tier_upgrades_count = db.execute("SELECT COUNT(*) FROM tier_upgrades").fetchone()[0]
+            self.assertEqual(tier_upgrades_count, 0)
+        self.assertEqual(self._financial_and_other_fingerprint(), before_fp)
+
+    def test_tier_remediation_happy_path_writes_all_seven_atomically(self) -> None:
+        mod = self._load_tier_remediation_module()
+        self._seed_tier_remediation_customers(mod, state="before")
+        before_fp = self._financial_and_other_fingerprint()
+
+        self._run_tier_remediation(mod)  # 無 --dry-run，實際寫入
+
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            for cid in mod.TARGET_IDS:
+                row = db.execute(
+                    "SELECT member_tier,tier_effective_date,tier_expires_date,pending_tier,pending_effective_date "
+                    "FROM customers WHERE id=?", (cid,)
+                ).fetchone()
+                self.assertEqual(dict(row), mod.CUSTOMERS[cid]["after"])
+            remediation_rows = db.execute(
+                "SELECT COUNT(*) FROM tier_upgrades WHERE trigger_reason LIKE '%TIER-REMEDIATION-20260925%'"
+            ).fetchone()[0]
+            self.assertEqual(remediation_rows, 7)
+        # 財務表與非目標顧客必須完全不變
+        self.assertEqual(self._financial_and_other_fingerprint(), before_fp)
+
+    def test_tier_remediation_idempotent_second_run_makes_no_further_writes(self) -> None:
+        mod = self._load_tier_remediation_module()
+        self._seed_tier_remediation_customers(mod, state="before")
+        self._run_tier_remediation(mod)
+        with beauty.app.app_context():
+            after_first = tuple(
+                beauty.get_db().execute(
+                    "SELECT id,member_tier,tier_effective_date FROM customers WHERE id IN (246,301,336,352,354,392,402)"
+                ).fetchall()
+            )
+            tier_upgrades_count_1 = beauty.get_db().execute(
+                "SELECT COUNT(*) FROM tier_upgrades"
+            ).fetchone()[0]
+
+        self._run_tier_remediation(mod)  # 第二次：應該是 ALREADY_REMEDIATED / NO_WRITE，不拋例外
+
+        with beauty.app.app_context():
+            after_second = tuple(
+                beauty.get_db().execute(
+                    "SELECT id,member_tier,tier_effective_date FROM customers WHERE id IN (246,301,336,352,354,392,402)"
+                ).fetchall()
+            )
+            tier_upgrades_count_2 = beauty.get_db().execute(
+                "SELECT COUNT(*) FROM tier_upgrades"
+            ).fetchone()[0]
+        self.assertEqual(after_first, after_second)
+        self.assertEqual(tier_upgrades_count_1, tier_upgrades_count_2)  # 沒有再多寫一筆
+
+    def test_tier_remediation_cas_mismatch_refuses_whole_batch(self) -> None:
+        mod = self._load_tier_remediation_module()
+        self._seed_tier_remediation_customers(mod, state="before")
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute("UPDATE customers SET tier_effective_date='2099-01-01' WHERE id=246")
+            db.commit()
+        before_fp = self._financial_and_other_fingerprint()
+
+        with self.assertRaises(SystemExit):
+            self._run_tier_remediation(mod)
+
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            # 246 以外的 6 位也必須維持原封不動（all-or-nothing）
+            for cid in (301, 336, 352, 354, 392, 402):
+                row = dict(db.execute(
+                    "SELECT member_tier,tier_effective_date FROM customers WHERE id=?", (cid,)
+                ).fetchone())
+                self.assertEqual(row, {
+                    "member_tier": mod.CUSTOMERS[cid]["before"]["member_tier"],
+                    "tier_effective_date": mod.CUSTOMERS[cid]["before"]["tier_effective_date"],
+                })
+            tier_upgrades_count = db.execute("SELECT COUNT(*) FROM tier_upgrades").fetchone()[0]
+            self.assertEqual(tier_upgrades_count, 0)
+        self.assertEqual(self._financial_and_other_fingerprint(), before_fp)
+
+    def test_tier_remediation_partial_after_state_refuses(self) -> None:
+        mod = self._load_tier_remediation_module()
+        self._seed_tier_remediation_customers(mod, state="before")
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            after_402 = mod.CUSTOMERS[402]["after"]
+            db.execute(
+                "UPDATE customers SET member_tier=?,tier_effective_date=?,tier_expires_date=? WHERE id=402",
+                (after_402["member_tier"], after_402["tier_effective_date"], after_402["tier_expires_date"]),
+            )
+            db.commit()
+
+        with self.assertRaises(SystemExit):
+            self._run_tier_remediation(mod)
+
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            # 246 仍應是 before（沒有被誤判成 after 而遭寫入其他東西）
+            row = dict(db.execute(
+                "SELECT member_tier,tier_effective_date FROM customers WHERE id=246"
+            ).fetchone())
+            self.assertEqual(row, {
+                "member_tier": mod.CUSTOMERS[246]["before"]["member_tier"],
+                "tier_effective_date": mod.CUSTOMERS[246]["before"]["tier_effective_date"],
+            })
+            tier_upgrades_count = db.execute("SELECT COUNT(*) FROM tier_upgrades").fetchone()[0]
+            self.assertEqual(tier_upgrades_count, 0)
+
+    def test_tier_remediation_missing_customer_refuses_whole_batch(self) -> None:
+        mod = self._load_tier_remediation_module()
+        self._seed_tier_remediation_customers(mod, state="before", skip_ids=(402,))
+        with self.assertRaises(SystemExit):
+            self._run_tier_remediation(mod)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            for cid in (246, 301, 336, 352, 354, 392):
+                row = dict(db.execute(
+                    "SELECT member_tier,tier_effective_date FROM customers WHERE id=?", (cid,)
+                ).fetchone())
+                self.assertEqual(row, {
+                    "member_tier": mod.CUSTOMERS[cid]["before"]["member_tier"],
+                    "tier_effective_date": mod.CUSTOMERS[cid]["before"]["tier_effective_date"],
+                })
+
+    def test_tier_remediation_never_touches_non_target_customers(self) -> None:
+        mod = self._load_tier_remediation_module()
+        self._seed_tier_remediation_customers(mod, state="before")
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            decoy_id = db.execute(
+                "INSERT INTO customers(name,birthday,created_at,member_tier,tier_effective_date,tier_expires_date,coin_balance) "
+                "VALUES('對照組','1990-05-05','2026-01-01','A級美咖','2026-08-01','2027-08-01',0)"
+            ).lastrowid
+            db.commit()
+        self._run_tier_remediation(mod)
+        with beauty.app.app_context():
+            row = dict(beauty.get_db().execute(
+                "SELECT member_tier,tier_effective_date,tier_expires_date FROM customers WHERE id=?", (decoy_id,)
+            ).fetchone())
+        self.assertEqual(row, {
+            "member_tier": "A級美咖", "tier_effective_date": "2026-08-01", "tier_expires_date": "2027-08-01",
+        })
+
     # ── H-1: update_transaction 與 create（entry）的有效等級判定必須一致 ────────
 
     def _update_txn(self, txn_id: int, *, name: str, birthday: str, store_id: str, amount, txn_date: str) -> dict:
