@@ -1,0 +1,323 @@
+customer_id,customer_name,transactions_replayed,classification,replay_event_count,stored_event_count,replay_events,stored_events,replay_current_tier,source_live_current_tier,current_state_impact,replay_valid_until,source_live_valid_until,future_expiry_impact,historical_point_impact,over_credit_points,under_credit_points,mismatched_transaction_count
+203,陳玫君,3,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+204,卓靜佐,1,EXACT_MATCH,2,2,2026-01-02:一般會員->S級美咖(upgrade) | 2026-01-02:S級美咖->P級美咖(upgrade),2026-01-02:一般會員->S級美咖(upgrade) | 2026-01-02:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-01-03,2027-01-03,False,False,0,0,0
+205,廖敏季,3,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+206,馬曉婷,5,EXACT_MATCH,3,3,2026-01-05:一般會員->S級美咖(upgrade) | 2026-01-05:S級美咖->P級美咖(upgrade) | 2026-01-05:P級美咖->A級美咖(upgrade),2026-01-05:一般會員->S級美咖(upgrade) | 2026-01-05:S級美咖->P級美咖(upgrade) | 2026-01-05:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-01-06,2027-01-06,False,False,0,0,0
+207,郭卜嫺,3,EXACT_MATCH,2,2,2026-07-09:一般會員->S級美咖(upgrade) | 2026-07-22:S級美咖->P級美咖(upgrade),2026-07-09:一般會員->S級美咖(upgrade) | 2026-07-22:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-07-23,2027-07-23,False,False,0,0,0
+208,柯嘉君,3,EXACT_MATCH,3,3,2026-01-06:一般會員->S級美咖(upgrade) | 2026-01-06:S級美咖->P級美咖(upgrade) | 2026-03-18:P級美咖->A級美咖(upgrade),2026-01-06:一般會員->S級美咖(upgrade) | 2026-01-06:S級美咖->P級美咖(upgrade) | 2026-03-18:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-03-19,2027-03-19,False,False,0,0,0
+209,邱筱喬,6,EXACT_MATCH,2,2,2026-03-05:一般會員->S級美咖(upgrade) | 2026-03-05:S級美咖->P級美咖(upgrade),2026-03-05:一般會員->S級美咖(upgrade) | 2026-03-05:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-03-06,2027-03-06,False,False,0,0,0
+210,葉惠菁,3,EXACT_MATCH,1,1,2026-02-14:一般會員->S級美咖(upgrade),2026-02-14:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-02-15,2027-02-15,False,False,0,0,0
+211,簡雅頻,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+212,蔡汶珈,6,EXACT_MATCH,3,3,2026-01-07:一般會員->S級美咖(upgrade) | 2026-01-07:S級美咖->P級美咖(upgrade) | 2026-01-07:P級美咖->A級美咖(upgrade),2026-01-07:一般會員->S級美咖(upgrade) | 2026-01-07:S級美咖->P級美咖(upgrade) | 2026-01-07:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-01-08,2027-01-08,False,False,0,0,0
+213,潘素秋,4,EXACT_MATCH,3,3,2026-01-07:一般會員->S級美咖(upgrade) | 2026-01-07:S級美咖->P級美咖(upgrade) | 2026-01-07:P級美咖->A級美咖(upgrade),2026-01-07:一般會員->S級美咖(upgrade) | 2026-01-07:S級美咖->P級美咖(upgrade) | 2026-01-07:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-01-08,2027-01-08,False,False,0,0,0
+214,孫珮珊,3,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+215,賴宜晨,3,EXACT_MATCH,2,2,2026-01-09:一般會員->S級美咖(upgrade) | 2026-06-12:S級美咖->P級美咖(upgrade),2026-01-09:一般會員->S級美咖(upgrade) | 2026-06-12:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-06-13,2027-06-13,False,False,0,0,0
+216,劉欣怡,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+217,王柔蘋,11,EXACT_MATCH,3,3,2026-01-10:一般會員->S級美咖(upgrade) | 2026-01-10:S級美咖->P級美咖(upgrade) | 2026-05-18:P級美咖->A級美咖(upgrade),2026-01-10:一般會員->S級美咖(upgrade) | 2026-01-10:S級美咖->P級美咖(upgrade) | 2026-05-18:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-05-19,2027-05-19,False,False,0,0,0
+218,林佩樺,1,EXACT_MATCH,2,2,2026-01-10:一般會員->S級美咖(upgrade) | 2026-01-10:S級美咖->P級美咖(upgrade),2026-01-10:一般會員->S級美咖(upgrade) | 2026-01-10:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-01-11,2027-01-11,False,False,0,0,0
+219,吳宜潔,2,EXACT_MATCH,3,3,2026-01-11:一般會員->S級美咖(upgrade) | 2026-01-11:S級美咖->P級美咖(upgrade) | 2026-01-11:P級美咖->A級美咖(upgrade),2026-01-11:一般會員->S級美咖(upgrade) | 2026-01-11:S級美咖->P級美咖(upgrade) | 2026-01-11:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-01-12,2027-01-12,False,False,0,0,0
+220,陳侯冊,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+221,巫宛蓉,3,EXACT_MATCH,3,3,2026-01-13:一般會員->S級美咖(upgrade) | 2026-02-04:S級美咖->P級美咖(upgrade) | 2026-03-11:P級美咖->A級美咖(upgrade),2026-01-13:一般會員->S級美咖(upgrade) | 2026-02-04:S級美咖->P級美咖(upgrade) | 2026-03-11:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-03-12,2027-03-12,False,False,0,0,0
+222,范淑芬,1,EXACT_MATCH,3,3,2026-01-13:一般會員->S級美咖(upgrade) | 2026-01-13:S級美咖->P級美咖(upgrade) | 2026-01-13:P級美咖->A級美咖(upgrade),2026-01-13:一般會員->S級美咖(upgrade) | 2026-01-13:S級美咖->P級美咖(upgrade) | 2026-01-13:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-01-14,2027-01-14,False,False,0,0,0
+223,李旻潔,3,EXACT_MATCH,3,3,2026-02-05:一般會員->S級美咖(upgrade) | 2026-02-05:S級美咖->P級美咖(upgrade) | 2026-02-05:P級美咖->A級美咖(upgrade),2026-02-05:一般會員->S級美咖(upgrade) | 2026-02-05:S級美咖->P級美咖(upgrade) | 2026-02-05:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-02-06,2027-02-06,False,False,0,0,0
+224,謝小貞,17,HISTORICAL_SOURCE_INCOMPLETE,3,3,2026-01-17:一般會員->S級美咖(upgrade) | 2026-01-17:S級美咖->P級美咖(upgrade) | 2026-01-17:P級美咖->A級美咖(upgrade),2026-01-17:一般會員->S級美咖(upgrade) | 2026-01-17:S級美咖->P級美咖(upgrade) | 2026-01-17:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-01-18,2027-01-18,False,False,0,0,0
+225,吳慧娟,7,EXACT_MATCH,3,3,2026-01-17:一般會員->S級美咖(upgrade) | 2026-01-17:S級美咖->P級美咖(upgrade) | 2026-01-17:P級美咖->A級美咖(upgrade),2026-01-17:一般會員->S級美咖(upgrade) | 2026-01-17:S級美咖->P級美咖(upgrade) | 2026-01-17:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-01-18,2027-01-18,False,False,0,0,0
+226,周千琦,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+227,解立筠,3,EXACT_MATCH,3,3,2026-06-07:一般會員->S級美咖(upgrade) | 2026-06-07:S級美咖->P級美咖(upgrade) | 2026-06-07:P級美咖->A級美咖(upgrade),2026-06-07:一般會員->S級美咖(upgrade) | 2026-06-07:S級美咖->P級美咖(upgrade) | 2026-06-07:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-06-08,2027-06-08,False,False,0,0,0
+228,陳鶴容,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+229,林曉彤,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+230,劉春貞,3,EXACT_MATCH,2,2,2026-01-21:一般會員->S級美咖(upgrade) | 2026-07-11:S級美咖->P級美咖(upgrade),2026-01-21:一般會員->S級美咖(upgrade) | 2026-07-11:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-07-12,2027-07-12,False,False,0,0,0
+231,賴美伶,1,EXACT_MATCH,3,3,2026-01-21:一般會員->S級美咖(upgrade) | 2026-01-21:S級美咖->P級美咖(upgrade) | 2026-01-21:P級美咖->A級美咖(upgrade),2026-01-21:一般會員->S級美咖(upgrade) | 2026-01-21:S級美咖->P級美咖(upgrade) | 2026-01-21:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-01-22,2027-01-22,False,False,0,0,0
+232,游雅筑,10,EXACT_MATCH,2,2,2026-03-12:一般會員->S級美咖(upgrade) | 2026-04-29:S級美咖->P級美咖(upgrade),2026-03-12:一般會員->S級美咖(upgrade) | 2026-04-29:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-04-30,2027-04-30,False,False,0,0,0
+233,黃碧慧,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+234,劉家容,3,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+235,梁雅雲,6,EXACT_MATCH,2,2,2026-06-22:一般會員->S級美咖(upgrade) | 2026-06-22:S級美咖->P級美咖(upgrade),2026-06-22:一般會員->S級美咖(upgrade) | 2026-06-22:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-06-23,2027-06-23,False,False,0,0,0
+236,賴羽茜,8,EXACT_MATCH,1,1,2026-08-03:一般會員->S級美咖(upgrade),2026-08-03:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-08-04,2027-08-04,False,False,0,0,0
+237,顏瑜霈,8,EXACT_MATCH,3,3,2026-02-01:一般會員->S級美咖(upgrade) | 2026-02-01:S級美咖->P級美咖(upgrade) | 2026-02-01:P級美咖->A級美咖(upgrade),2026-02-01:一般會員->S級美咖(upgrade) | 2026-02-01:S級美咖->P級美咖(upgrade) | 2026-02-01:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-02-02,2027-02-02,False,False,0,0,0
+238,黃舒郁,7,EARLY_UPGRADE,2,2,2026-02-23:一般會員->S級美咖(upgrade) | 2026-08-25:S級美咖->P級美咖(upgrade),2026-02-23:一般會員->S級美咖(upgrade) | 2026-05-06:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-08-26,2027-05-07,True,True,332,0,2
+239,吳佩琳,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+240,陳冠瑜,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+241,張善云,4,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+242,解竺庭,1,EXACT_MATCH,1,1,2026-01-07:一般會員->S級美咖(upgrade),2026-01-07:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-01-08,2027-01-08,False,False,0,0,0
+243,吳玉芬,3,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+244,林芝選,5,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+245,湯雅蘭,5,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+246,黃意玲,21,EXTRA_TIER_EVENT,2,3,2026-03-20:一般會員->S級美咖(upgrade) | 2026-05-29:S級美咖->P級美咖(upgrade),2026-03-20:一般會員->S級美咖(upgrade) | 2026-04-28:S級美咖->P級美咖(upgrade) | 2026-07-31:P級美咖->A級美咖(upgrade),P級美咖,A級美咖,True,2027-05-30,2027-08-01,True,True,882,0,9
+247,李佩育,1,EXACT_MATCH,1,1,2026-02-01:一般會員->S級美咖(upgrade),2026-02-01:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-02-02,2027-02-02,False,False,0,0,0
+248,黃奕綺,5,EXACT_MATCH,3,3,2026-04-10:一般會員->S級美咖(upgrade) | 2026-04-10:S級美咖->P級美咖(upgrade) | 2026-04-10:P級美咖->A級美咖(upgrade),2026-04-10:一般會員->S級美咖(upgrade) | 2026-04-10:S級美咖->P級美咖(upgrade) | 2026-04-10:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-04-11,2027-04-11,False,False,0,0,0
+249,李佾璇,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+250,劉惠珍,3,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+251,盧美岑,6,EXACT_MATCH,3,3,2026-02-07:一般會員->S級美咖(upgrade) | 2026-02-07:S級美咖->P級美咖(upgrade) | 2026-02-07:P級美咖->A級美咖(upgrade),2026-02-07:一般會員->S級美咖(upgrade) | 2026-02-07:S級美咖->P級美咖(upgrade) | 2026-02-07:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-02-08,2027-02-08,False,False,0,0,0
+252,張珮姍,3,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+253,陳雅琪,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+254,廖筱玟,4,HISTORICAL_SOURCE_INCOMPLETE,3,3,2026-05-24:一般會員->S級美咖(upgrade) | 2026-05-24:S級美咖->P級美咖(upgrade) | 2026-06-14:P級美咖->A級美咖(upgrade),2026-02-08:一般會員->S級美咖(upgrade) | 2026-02-08:S級美咖->P級美咖(upgrade) | 2026-02-08:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-06-15,2027-02-09,True,True,4938,0,3
+255,魏君玲,4,EXACT_MATCH,1,1,2026-03-23:一般會員->S級美咖(upgrade),2026-03-23:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-03-24,2027-03-24,False,False,0,0,0
+256,林怡杏,1,EXACT_MATCH,2,2,2026-02-10:一般會員->S級美咖(upgrade) | 2026-02-10:S級美咖->P級美咖(upgrade),2026-02-10:一般會員->S級美咖(upgrade) | 2026-02-10:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-02-11,2027-02-11,False,False,0,0,0
+257,詹筱雯,6,EARLY_UPGRADE,2,2,2026-02-10:一般會員->S級美咖(upgrade) | 2026-07-26:S級美咖->P級美咖(upgrade),2026-02-10:一般會員->S級美咖(upgrade) | 2026-04-30:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-07-27,2027-05-01,True,True,200,0,3
+258,吳玉惠,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+259,陳品潔,1,EXACT_MATCH,3,3,2026-02-12:一般會員->S級美咖(upgrade) | 2026-02-12:S級美咖->P級美咖(upgrade) | 2026-02-12:P級美咖->A級美咖(upgrade),2026-02-12:一般會員->S級美咖(upgrade) | 2026-02-12:S級美咖->P級美咖(upgrade) | 2026-02-12:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-02-13,2027-02-13,False,False,0,0,0
+260,張洳嫣,3,EXACT_MATCH,2,2,2026-02-13:一般會員->S級美咖(upgrade) | 2026-02-13:S級美咖->P級美咖(upgrade),2026-02-13:一般會員->S級美咖(upgrade) | 2026-02-13:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-02-14,2027-02-14,False,False,0,0,0
+261,吳季儒,2,EXACT_MATCH,2,2,2026-02-13:一般會員->S級美咖(upgrade) | 2026-02-13:S級美咖->P級美咖(upgrade),2026-02-13:一般會員->S級美咖(upgrade) | 2026-02-13:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-02-14,2027-02-14,False,False,0,0,0
+263,鄭歆敏,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+264,盧韻清,3,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+265,劉子玉,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+266,黃筠喬,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+267,王睿檸,9,HISTORICAL_SOURCE_INCOMPLETE,3,3,2026-03-07:一般會員->S級美咖(upgrade) | 2026-03-07:S級美咖->P級美咖(upgrade) | 2026-03-07:P級美咖->A級美咖(upgrade),2026-03-07:一般會員->S級美咖(upgrade) | 2026-03-07:S級美咖->P級美咖(upgrade) | 2026-03-07:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-03-08,2027-03-08,False,False,0,0,0
+268,徐裴琳,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+269,袁千惠,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+270,吳秀媚,6,EXACT_MATCH,3,3,2026-03-07:一般會員->S級美咖(upgrade) | 2026-03-07:S級美咖->P級美咖(upgrade) | 2026-03-07:P級美咖->A級美咖(upgrade),2026-03-07:一般會員->S級美咖(upgrade) | 2026-03-07:S級美咖->P級美咖(upgrade) | 2026-03-07:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-03-08,2027-03-08,False,False,0,0,0
+271,蔡孟澤,4,EXACT_MATCH,3,3,2026-03-04:一般會員->S級美咖(upgrade) | 2026-03-04:S級美咖->P級美咖(upgrade) | 2026-03-04:P級美咖->A級美咖(upgrade),2026-03-04:一般會員->S級美咖(upgrade) | 2026-03-04:S級美咖->P級美咖(upgrade) | 2026-03-04:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-03-05,2027-03-05,False,False,0,0,0
+272,陳紫妍,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+273,謝銘珠,5,EXTRA_TIER_EVENT,2,3,2026-04-16:一般會員->S級美咖(upgrade) | 2026-07-09:S級美咖->P級美咖(upgrade),2026-04-16:一般會員->S級美咖(upgrade) | 2026-06-08:S級美咖->P級美咖(upgrade) | 2026-07-09:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-07-10,2027-07-10,False,False,0,0,0
+274,林姿妤,3,EXACT_MATCH,1,1,2026-04-18:一般會員->S級美咖(upgrade),2026-04-18:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-04-19,2027-04-19,False,False,0,0,0
+276,林芸如,5,HISTORICAL_SOURCE_INCOMPLETE,2,2,2026-03-08:一般會員->S級美咖(upgrade) | 2026-03-08:S級美咖->P級美咖(upgrade),2026-03-08:一般會員->S級美咖(upgrade) | 2026-03-08:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-03-09,2027-03-09,False,False,0,0,0
+277,林晨瑜,2,EXACT_MATCH,2,2,2026-03-08:一般會員->S級美咖(upgrade) | 2026-03-08:S級美咖->P級美咖(upgrade),2026-03-08:一般會員->S級美咖(upgrade) | 2026-03-08:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-03-09,2027-03-09,False,False,0,0,0
+278,林思吟,4,EXACT_MATCH,3,3,2026-03-09:一般會員->S級美咖(upgrade) | 2026-03-09:S級美咖->P級美咖(upgrade) | 2026-04-27:P級美咖->A級美咖(upgrade),2026-03-09:一般會員->S級美咖(upgrade) | 2026-03-09:S級美咖->P級美咖(upgrade) | 2026-04-27:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-04-28,2027-04-28,False,False,0,0,0
+279,謝明峰,1,EXACT_MATCH,3,3,2026-03-10:一般會員->S級美咖(upgrade) | 2026-03-10:S級美咖->P級美咖(upgrade) | 2026-03-10:P級美咖->A級美咖(upgrade),2026-03-10:一般會員->S級美咖(upgrade) | 2026-03-10:S級美咖->P級美咖(upgrade) | 2026-03-10:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-03-11,2027-03-11,False,False,0,0,0
+280,廖佩瑛,2,EXACT_MATCH,1,1,2026-03-11:一般會員->S級美咖(upgrade),2026-03-11:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-03-12,2027-03-12,False,False,0,0,0
+281,張靜婷,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+282,高嘉琪,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+283,張慈慧,3,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+285,鄭惠娟,2,EXACT_MATCH,2,2,2026-03-17:一般會員->S級美咖(upgrade) | 2026-07-06:S級美咖->P級美咖(upgrade),2026-03-17:一般會員->S級美咖(upgrade) | 2026-07-06:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-07-07,2027-07-07,False,False,0,0,0
+286,歐靖妤,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+287,曾周佩誼,7,EXACT_MATCH,1,1,2026-06-18:一般會員->S級美咖(upgrade),2026-06-18:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-06-19,2027-06-19,False,False,0,0,0
+289,廖娸言,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+290,翁梓瑜,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+291,蔡雅文,5,EARLY_UPGRADE,2,2,2026-01-03:一般會員->S級美咖(upgrade) | 2026-06-27:S級美咖->P級美咖(upgrade),2026-01-03:一般會員->S級美咖(upgrade) | 2026-05-23:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-06-28,2027-05-24,True,True,100,0,1
+293,林庭韻,3,EXACT_MATCH,2,2,2026-03-14:一般會員->S級美咖(upgrade) | 2026-05-18:S級美咖->P級美咖(upgrade),2026-03-14:一般會員->S級美咖(upgrade) | 2026-05-18:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-19,2027-05-19,False,False,0,0,0
+294,鄭潔㚬,1,EXACT_MATCH,2,2,2026-01-05:一般會員->S級美咖(upgrade) | 2026-01-05:S級美咖->P級美咖(upgrade),2026-01-05:一般會員->S級美咖(upgrade) | 2026-01-05:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-01-06,2027-01-06,False,False,0,0,0
+295,張曉愛,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+296,華文芬,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+297,張麗玲,1,EXACT_MATCH,3,3,2026-01-07:一般會員->S級美咖(upgrade) | 2026-01-07:S級美咖->P級美咖(upgrade) | 2026-01-07:P級美咖->A級美咖(upgrade),2026-01-07:一般會員->S級美咖(upgrade) | 2026-01-07:S級美咖->P級美咖(upgrade) | 2026-01-07:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-01-08,2027-01-08,False,False,0,0,0
+298,林宥圻,7,EXACT_MATCH,3,3,2026-01-08:一般會員->S級美咖(upgrade) | 2026-01-08:S級美咖->P級美咖(upgrade) | 2026-09-01:P級美咖->A級美咖(upgrade),2026-01-08:一般會員->S級美咖(upgrade) | 2026-01-08:S級美咖->P級美咖(upgrade) | 2026-09-01:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-09-02,2027-09-02,False,False,0,0,0
+299,溫博媛,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+300,張淑芬,5,EXACT_MATCH,2,2,2026-07-10:一般會員->S級美咖(upgrade) | 2026-07-10:S級美咖->P級美咖(upgrade),2026-07-10:一般會員->S級美咖(upgrade) | 2026-07-10:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-07-11,2027-07-11,False,False,0,0,0
+301,唐怡芳,6,EXTRA_TIER_EVENT,1,3,2026-06-20:一般會員->S級美咖(upgrade),2026-06-20:一般會員->S級美咖(upgrade) | 2026-07-04:S級美咖->P級美咖(upgrade) | 2026-08-10:P級美咖->S級美咖(downgrade),S級美咖,P級美咖,True,2027-06-21,2027-07-05,True,True,70,0,1
+302,歐千詳,13,EXTRA_TIER_EVENT,3,4,2026-01-03:一般會員->S級美咖(upgrade) | 2026-01-03:S級美咖->P級美咖(upgrade) | 2026-05-30:P級美咖->A級美咖(upgrade),2026-01-03:一般會員->S級美咖(upgrade) | 2026-01-03:S級美咖->P級美咖(upgrade) | 2026-04-11:P級美咖->A級美咖(upgrade) | 2026-08-10:A級美咖->P級美咖(downgrade),A級美咖,A級美咖,False,2027-05-31,2027-04-12,True,True,570,900,5
+303,丁雅芸,7,EXACT_MATCH,3,3,2026-01-10:一般會員->S級美咖(upgrade) | 2026-01-10:S級美咖->P級美咖(upgrade) | 2026-01-10:P級美咖->A級美咖(upgrade),2026-01-10:一般會員->S級美咖(upgrade) | 2026-01-10:S級美咖->P級美咖(upgrade) | 2026-01-10:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-01-11,2027-01-11,False,False,0,0,0
+304,陳臆如,3,EXACT_MATCH,2,2,2026-01-10:一般會員->S級美咖(upgrade) | 2026-01-10:S級美咖->P級美咖(upgrade),2026-01-10:一般會員->S級美咖(upgrade) | 2026-01-10:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-01-11,2027-01-11,False,False,0,0,0
+305,邱芷緹,10,EARLY_UPGRADE,2,2,2026-04-27:一般會員->S級美咖(upgrade) | 2026-07-13:S級美咖->P級美咖(upgrade),2026-04-27:一般會員->S級美咖(upgrade) | 2026-07-06:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-07-14,2027-07-07,True,True,288,0,1
+306,許佩筠,5,EXACT_MATCH,2,2,2026-03-10:一般會員->S級美咖(upgrade) | 2026-03-10:S級美咖->P級美咖(upgrade),2026-03-10:一般會員->S級美咖(upgrade) | 2026-03-10:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-03-11,2027-03-11,False,False,0,0,0
+307,林畇秀,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+308,林芷楹,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+310,魏鈺錚,1,EXACT_MATCH,1,1,2026-01-16:一般會員->S級美咖(upgrade),2026-01-16:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-01-17,2027-01-17,False,False,0,0,0
+311,蔡佳蓉,3,EXACT_MATCH,2,2,2026-01-16:一般會員->S級美咖(upgrade) | 2026-01-16:S級美咖->P級美咖(upgrade),2026-01-16:一般會員->S級美咖(upgrade) | 2026-01-16:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-01-17,2027-01-17,False,False,0,0,0
+312,陳佩君,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+313,劉燕蓉,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+314,林曉玲,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+315,劉淑真,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+316,劉妍蓁,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+317,張芷箖,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+318,林麗蘭,2,EXACT_MATCH,3,3,2026-01-22:一般會員->S級美咖(upgrade) | 2026-01-22:S級美咖->P級美咖(upgrade) | 2026-01-22:P級美咖->A級美咖(upgrade),2026-01-22:一般會員->S級美咖(upgrade) | 2026-01-22:S級美咖->P級美咖(upgrade) | 2026-01-22:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-01-23,2027-01-23,False,False,0,0,0
+319,蔡青蓉,8,EXTRA_TIER_EVENT,1,2,2026-05-27:一般會員->S級美咖(upgrade),2026-05-27:一般會員->S級美咖(upgrade) | 2026-08-10:S級美咖->一般會員(downgrade),S級美咖,S級美咖,False,2027-05-28,2027-05-28,False,False,0,0,0
+321,吳淑玲,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+322,張瑜芬,1,EXACT_MATCH,1,1,2026-01-24:一般會員->S級美咖(upgrade),2026-01-24:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-01-25,2027-01-25,False,False,0,0,0
+324,劉玫君,7,EXACT_MATCH,2,2,2026-03-11:一般會員->S級美咖(upgrade) | 2026-03-11:S級美咖->P級美咖(upgrade),2026-03-11:一般會員->S級美咖(upgrade) | 2026-03-11:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-03-12,2027-03-12,False,False,0,0,0
+325,李侃築,4,EXACT_MATCH,2,2,2026-03-27:一般會員->S級美咖(upgrade) | 2026-03-27:S級美咖->P級美咖(upgrade),2026-03-27:一般會員->S級美咖(upgrade) | 2026-03-27:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-03-28,2027-03-28,False,False,0,0,0
+326,黃曦萱,2,EXACT_MATCH,2,2,2026-06-12:一般會員->S級美咖(upgrade) | 2026-06-12:S級美咖->P級美咖(upgrade),2026-06-12:一般會員->S級美咖(upgrade) | 2026-06-12:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-06-13,2027-06-13,False,False,0,0,0
+327,林恩雅,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+330,高智芳,3,EXACT_MATCH,3,3,2026-08-13:一般會員->S級美咖(upgrade) | 2026-08-13:S級美咖->P級美咖(upgrade) | 2026-08-13:P級美咖->A級美咖(upgrade),2026-08-13:一般會員->S級美咖(upgrade) | 2026-08-13:S級美咖->P級美咖(upgrade) | 2026-08-13:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-08-14,2027-08-14,False,False,0,0,0
+331,林妤融,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+332,廖家瑢,7,EARLY_UPGRADE,2,2,2026-02-02:一般會員->S級美咖(upgrade) | 2026-09-01:S級美咖->P級美咖(upgrade),2026-02-02:一般會員->S級美咖(upgrade) | 2026-02-26:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-09-02,2027-02-27,True,True,188,0,3
+333,林曉芬,3,EXACT_MATCH,3,3,2026-02-04:一般會員->S級美咖(upgrade) | 2026-07-02:S級美咖->P級美咖(upgrade) | 2026-07-02:P級美咖->A級美咖(upgrade),2026-02-04:一般會員->S級美咖(upgrade) | 2026-07-02:S級美咖->P級美咖(upgrade) | 2026-07-02:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-07-03,2027-07-03,False,False,0,0,0
+336,吳豫函,6,WRONG_CURRENT_TIER,2,2,2026-03-18:一般會員->S級美咖(upgrade) | 2026-03-18:S級美咖->P級美咖(upgrade),2026-03-18:一般會員->S級美咖(upgrade) | 2026-03-18:S級美咖->P級美咖(upgrade),P級美咖,A級美咖,True,2027-03-19,2027-09-09,True,False,0,0,0
+337,王儷倫,5,EXACT_MATCH,3,3,2026-03-26:一般會員->S級美咖(upgrade) | 2026-03-26:S級美咖->P級美咖(upgrade) | 2026-07-27:P級美咖->A級美咖(upgrade),2026-03-26:一般會員->S級美咖(upgrade) | 2026-03-26:S級美咖->P級美咖(upgrade) | 2026-07-27:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-07-28,2027-07-28,False,False,0,0,0
+338,游雪玲,4,EXACT_MATCH,2,2,2026-02-07:一般會員->S級美咖(upgrade) | 2026-05-31:S級美咖->P級美咖(upgrade),2026-02-07:一般會員->S級美咖(upgrade) | 2026-05-31:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-06-01,2027-06-01,False,False,0,0,0
+340,郭馨硯,3,EXACT_MATCH,2,2,2026-02-09:一般會員->S級美咖(upgrade) | 2026-02-09:S級美咖->P級美咖(upgrade),2026-02-09:一般會員->S級美咖(upgrade) | 2026-02-09:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-02-10,2027-02-10,False,False,0,0,0
+341,林家安,1,EXACT_MATCH,1,1,2026-02-10:一般會員->S級美咖(upgrade),2026-02-10:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-02-11,2027-02-11,False,False,0,0,0
+342,沈姿伶,2,EXACT_MATCH,1,1,2026-04-11:一般會員->S級美咖(upgrade),2026-04-11:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-04-12,2027-04-12,False,False,0,0,0
+343,陳佳莉,2,EXACT_MATCH,2,2,2026-02-13:一般會員->S級美咖(upgrade) | 2026-02-13:S級美咖->P級美咖(upgrade),2026-02-13:一般會員->S級美咖(upgrade) | 2026-02-13:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-02-14,2027-02-14,False,False,0,0,0
+344,王菁霙,2,EXACT_MATCH,3,3,2026-04-27:一般會員->S級美咖(upgrade) | 2026-04-27:S級美咖->P級美咖(upgrade) | 2026-04-27:P級美咖->A級美咖(upgrade),2026-04-27:一般會員->S級美咖(upgrade) | 2026-04-27:S級美咖->P級美咖(upgrade) | 2026-04-27:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-04-28,2027-04-28,False,False,0,0,0
+345,林梅芹,5,EXACT_MATCH,1,1,2026-04-11:一般會員->S級美咖(upgrade),2026-04-11:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-04-12,2027-04-12,False,False,0,0,0
+346,林春錦,3,EXACT_MATCH,3,3,2026-02-22:一般會員->S級美咖(upgrade) | 2026-02-22:S級美咖->P級美咖(upgrade) | 2026-07-11:P級美咖->A級美咖(upgrade),2026-02-22:一般會員->S級美咖(upgrade) | 2026-02-22:S級美咖->P級美咖(upgrade) | 2026-07-11:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-07-12,2027-07-12,False,False,0,0,0
+347,李蓓琳,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+348,李韋嬅,6,EXACT_MATCH,2,2,2026-06-09:一般會員->S級美咖(upgrade) | 2026-09-04:S級美咖->P級美咖(upgrade),2026-06-09:一般會員->S級美咖(upgrade) | 2026-09-04:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-09-05,2027-09-05,False,False,0,0,0
+349,曾杏園,6,EXACT_MATCH,2,2,2026-02-22:一般會員->S級美咖(upgrade) | 2026-02-22:S級美咖->P級美咖(upgrade),2026-02-22:一般會員->S級美咖(upgrade) | 2026-02-22:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-02-23,2027-02-23,False,False,0,0,0
+350,李佩玲,3,EXACT_MATCH,3,3,2026-01-23:一般會員->S級美咖(upgrade) | 2026-01-23:S級美咖->P級美咖(upgrade) | 2026-01-23:P級美咖->A級美咖(upgrade),2026-01-23:一般會員->S級美咖(upgrade) | 2026-01-23:S級美咖->P級美咖(upgrade) | 2026-01-23:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-01-24,2027-01-24,False,False,0,0,0
+351,許瓊文,8,HISTORICAL_SOURCE_INCOMPLETE,2,2,2026-02-25:一般會員->S級美咖(upgrade) | 2026-02-25:S級美咖->P級美咖(upgrade),2026-02-25:一般會員->S級美咖(upgrade) | 2026-02-25:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-02-26,2027-02-26,False,False,0,0,0
+352,游馥瑋,7,EXTRA_TIER_EVENT,0,1,,2026-03-11:一般會員->S級美咖(upgrade),一般會員,S級美咖,True,,2027-03-12,True,True,104,0,2
+353,曾周佩諭,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+354,馮曼婷,7,EXTRA_TIER_EVENT,1,2,2026-03-07:一般會員->S級美咖(upgrade),2026-03-07:一般會員->S級美咖(upgrade) | 2026-04-23:S級美咖->P級美咖(upgrade),S級美咖,P級美咖,True,2027-03-08,2027-04-24,True,True,66,0,2
+355,連冠淩,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+356,黃蘭媖,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+360,蕭貽云,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+362,鄭思廷,4,EXACT_MATCH,2,2,2026-07-03:一般會員->S級美咖(upgrade) | 2026-07-03:S級美咖->P級美咖(upgrade),2026-07-03:一般會員->S級美咖(upgrade) | 2026-07-03:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-07-04,2027-07-04,False,False,0,0,0
+364,許舒潔,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+365,邱雅毓,1,EXACT_MATCH,1,1,2026-03-06:一般會員->S級美咖(upgrade),2026-03-06:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-03-07,2027-03-07,False,False,0,0,0
+366,徐毓均,4,EXACT_MATCH,2,2,2026-03-07:一般會員->S級美咖(upgrade) | 2026-03-07:S級美咖->P級美咖(upgrade),2026-03-07:一般會員->S級美咖(upgrade) | 2026-03-07:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-03-08,2027-03-08,False,False,0,0,0
+367,翁淑惠,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+369,吳宜靜,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+371,林永貞,2,EXACT_MATCH,1,1,2026-03-11:一般會員->S級美咖(upgrade),2026-03-11:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-03-12,2027-03-12,False,False,0,0,0
+372,廖惠玲,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+374,蔡雅雯,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+375,呂蕙宇,1,EXACT_MATCH,3,3,2026-03-17:一般會員->S級美咖(upgrade) | 2026-03-17:S級美咖->P級美咖(upgrade) | 2026-03-17:P級美咖->A級美咖(upgrade),2026-03-17:一般會員->S級美咖(upgrade) | 2026-03-17:S級美咖->P級美咖(upgrade) | 2026-03-17:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-03-18,2027-03-18,False,False,0,0,0
+377,邱于瑄,1,EXACT_MATCH,2,2,2026-03-18:一般會員->S級美咖(upgrade) | 2026-03-18:S級美咖->P級美咖(upgrade),2026-03-18:一般會員->S級美咖(upgrade) | 2026-03-18:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-03-19,2027-03-19,False,False,0,0,0
+378,王怡婷,5,EXACT_MATCH,2,2,2026-03-17:一般會員->S級美咖(upgrade) | 2026-03-17:S級美咖->P級美咖(upgrade),2026-03-17:一般會員->S級美咖(upgrade) | 2026-03-17:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-03-18,2027-03-18,False,False,0,0,0
+379,蕭詒云,4,EXACT_MATCH,2,2,2026-02-01:一般會員->S級美咖(upgrade) | 2026-05-11:S級美咖->P級美咖(upgrade),2026-02-01:一般會員->S級美咖(upgrade) | 2026-05-11:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-12,2027-05-12,False,False,0,0,0
+380,林秋蘭,2,MANUAL_OR_LEGACY_UNCERTAIN,1,1,2026-03-14:一般會員->S級美咖(upgrade),2026-03-14:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-03-15,2027-03-15,False,True,0,96,1
+381,廖淑卿,5,EXACT_MATCH,3,3,2026-02-03:一般會員->S級美咖(upgrade) | 2026-02-03:S級美咖->P級美咖(upgrade) | 2026-02-03:P級美咖->A級美咖(upgrade),2026-02-03:一般會員->S級美咖(upgrade) | 2026-02-03:S級美咖->P級美咖(upgrade) | 2026-02-03:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-02-04,2027-02-04,False,False,0,0,0
+382,陳薏如,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+385,盧宜君,4,EXACT_MATCH,2,2,2026-01-30:一般會員->S級美咖(upgrade) | 2026-01-30:S級美咖->P級美咖(upgrade),2026-01-30:一般會員->S級美咖(upgrade) | 2026-01-30:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-01-31,2027-01-31,False,False,0,0,0
+386,洪芊珮,1,EXACT_MATCH,1,1,2026-03-23:一般會員->S級美咖(upgrade),2026-03-23:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-03-24,2027-03-24,False,False,0,0,0
+388,吳宜庭,2,EXACT_MATCH,1,1,2026-06-18:一般會員->S級美咖(upgrade),2026-06-18:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-06-19,2027-06-19,False,False,0,0,0
+392,李佩持,4,EXTRA_TIER_EVENT,1,2,2026-04-22:一般會員->S級美咖(upgrade),2026-04-22:一般會員->S級美咖(upgrade) | 2026-07-22:S級美咖->P級美咖(upgrade),S級美咖,P級美咖,True,2027-04-23,2027-07-23,True,True,140,0,1
+395,蘇依婷,2,EXACT_MATCH,2,2,2026-03-27:一般會員->S級美咖(upgrade) | 2026-03-27:S級美咖->P級美咖(upgrade),2026-03-27:一般會員->S級美咖(upgrade) | 2026-03-27:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-03-28,2027-03-28,False,False,0,0,0
+397,林攸靜,3,EXACT_MATCH,2,2,2026-03-27:一般會員->S級美咖(upgrade) | 2026-03-27:S級美咖->P級美咖(upgrade),2026-03-27:一般會員->S級美咖(upgrade) | 2026-03-27:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-03-28,2027-03-28,False,False,0,0,0
+400,林凌烟,4,EXACT_MATCH,2,2,2026-04-03:一般會員->S級美咖(upgrade) | 2026-04-03:S級美咖->P級美咖(upgrade),2026-04-03:一般會員->S級美咖(upgrade) | 2026-04-03:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-04-04,2027-04-04,False,False,0,0,0
+401,蘇雪茵,2,EXACT_MATCH,2,2,2026-04-03:一般會員->S級美咖(upgrade) | 2026-04-03:S級美咖->P級美咖(upgrade),2026-04-03:一般會員->S級美咖(upgrade) | 2026-04-03:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-04-04,2027-04-04,False,False,0,0,0
+402,莊惠如,10,WRONG_CURRENT_TIER,1,1,2026-06-08:一般會員->S級美咖(upgrade),2026-06-08:一般會員->S級美咖(upgrade),S級美咖,P級美咖,True,2027-06-09,2027-08-11,True,False,0,0,0
+403,宋宥雲,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+405,羅毓芳,7,EXACT_MATCH,3,3,2026-04-20:一般會員->S級美咖(upgrade) | 2026-05-23:S級美咖->P級美咖(upgrade) | 2026-05-23:P級美咖->A級美咖(upgrade),2026-04-20:一般會員->S級美咖(upgrade) | 2026-05-23:S級美咖->P級美咖(upgrade) | 2026-05-23:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-05-24,2027-05-24,False,False,0,0,0
+406,林育菱,2,EXACT_MATCH,1,1,2026-04-01:一般會員->S級美咖(upgrade),2026-04-01:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-04-02,2027-04-02,False,False,0,0,0
+407,林葳汝,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+408,吳佩倚,2,EXACT_MATCH,2,2,2026-04-30:一般會員->S級美咖(upgrade) | 2026-04-30:S級美咖->P級美咖(upgrade),2026-04-30:一般會員->S級美咖(upgrade) | 2026-04-30:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-01,2027-05-01,False,False,0,0,0
+409,鄭家茜,2,EXACT_MATCH,1,1,2026-04-05:一般會員->S級美咖(upgrade),2026-04-05:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-04-06,2027-04-06,False,False,0,0,0
+410,張慧玲,2,EXACT_MATCH,3,3,2026-04-10:一般會員->S級美咖(upgrade) | 2026-04-10:S級美咖->P級美咖(upgrade) | 2026-04-10:P級美咖->A級美咖(upgrade),2026-04-10:一般會員->S級美咖(upgrade) | 2026-04-10:S級美咖->P級美咖(upgrade) | 2026-04-10:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-04-11,2027-04-11,False,False,0,0,0
+411,王秀家,4,EXACT_MATCH,2,2,2026-05-02:一般會員->S級美咖(upgrade) | 2026-05-02:S級美咖->P級美咖(upgrade),2026-05-02:一般會員->S級美咖(upgrade) | 2026-05-02:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-03,2027-05-03,False,False,0,0,0
+412,張瑛真,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+413,黃毓文,6,HISTORICAL_SOURCE_INCOMPLETE,2,2,2026-04-11:一般會員->S級美咖(upgrade) | 2026-04-11:S級美咖->P級美咖(upgrade),2026-04-11:一般會員->S級美咖(upgrade) | 2026-04-11:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-04-12,2027-04-12,False,False,0,0,0
+414,劉慧寧,4,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+415,陳招鐶,6,HISTORICAL_SOURCE_INCOMPLETE,3,3,2026-04-13:一般會員->S級美咖(upgrade) | 2026-04-13:S級美咖->P級美咖(upgrade) | 2026-04-13:P級美咖->A級美咖(upgrade),2026-04-13:一般會員->S級美咖(upgrade) | 2026-04-13:S級美咖->P級美咖(upgrade) | 2026-04-13:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-04-14,2027-04-14,False,False,0,0,0
+416,黃韻如,4,EXACT_MATCH,1,1,2026-04-16:一般會員->S級美咖(upgrade),2026-04-16:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-04-17,2027-04-17,False,False,0,0,0
+417,林孟薇,1,EXACT_MATCH,1,1,2026-04-18:一般會員->S級美咖(upgrade),2026-04-18:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-04-19,2027-04-19,False,False,0,0,0
+418,蔡青吟,7,EXACT_MATCH,2,2,2026-09-19:一般會員->S級美咖(upgrade) | 2026-09-19:S級美咖->P級美咖(upgrade),2026-09-19:一般會員->S級美咖(upgrade) | 2026-09-19:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-09-20,2027-09-20,False,False,0,0,0
+419,侯宜伶,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+420,黃姵宸,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+421,林芳筑,5,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+422,林蕙芳,2,EXACT_MATCH,2,2,2026-04-20:一般會員->S級美咖(upgrade) | 2026-04-20:S級美咖->P級美咖(upgrade),2026-04-20:一般會員->S級美咖(upgrade) | 2026-04-20:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-04-21,2027-04-21,False,False,0,0,0
+423,蘇雪敏,2,EXACT_MATCH,2,2,2026-04-20:一般會員->S級美咖(upgrade) | 2026-04-20:S級美咖->P級美咖(upgrade),2026-04-20:一般會員->S級美咖(upgrade) | 2026-04-20:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-04-21,2027-04-21,False,False,0,0,0
+424,陳美鑾,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+425,黃美珍,3,EXACT_MATCH,2,2,2026-04-21:一般會員->S級美咖(upgrade) | 2026-04-21:S級美咖->P級美咖(upgrade),2026-04-21:一般會員->S級美咖(upgrade) | 2026-04-21:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-04-22,2027-04-22,False,False,0,0,0
+426,廖敏禎,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+427,辜文琴,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+428,黃妍旎,3,EXACT_MATCH,3,3,2026-04-22:一般會員->S級美咖(upgrade) | 2026-04-22:S級美咖->P級美咖(upgrade) | 2026-04-22:P級美咖->A級美咖(upgrade),2026-04-22:一般會員->S級美咖(upgrade) | 2026-04-22:S級美咖->P級美咖(upgrade) | 2026-04-22:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-04-23,2027-04-23,False,False,0,0,0
+429,王宜芳,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+430,張英勤,2,EXACT_MATCH,2,2,2026-04-24:一般會員->S級美咖(upgrade) | 2026-04-24:S級美咖->P級美咖(upgrade),2026-04-24:一般會員->S級美咖(upgrade) | 2026-04-24:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-04-25,2027-04-25,False,False,0,0,0
+431,陳昭惠,1,EXACT_MATCH,2,2,2026-04-25:一般會員->S級美咖(upgrade) | 2026-04-25:S級美咖->P級美咖(upgrade),2026-04-25:一般會員->S級美咖(upgrade) | 2026-04-25:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-04-26,2027-04-26,False,False,0,0,0
+432,蔡宛靜,2,EXACT_MATCH,2,2,2026-04-30:一般會員->S級美咖(upgrade) | 2026-04-30:S級美咖->P級美咖(upgrade),2026-04-30:一般會員->S級美咖(upgrade) | 2026-04-30:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-01,2027-05-01,False,False,0,0,0
+433,謝明甄,1,EXACT_MATCH,1,1,2026-04-25:一般會員->S級美咖(upgrade),2026-04-25:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-04-26,2027-04-26,False,False,0,0,0
+434,周宥薰,2,EXACT_MATCH,2,2,2026-04-27:一般會員->S級美咖(upgrade) | 2026-04-27:S級美咖->P級美咖(upgrade),2026-04-27:一般會員->S級美咖(upgrade) | 2026-04-27:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-04-28,2027-04-28,False,False,0,0,0
+435,陳秋燕,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+436,江慧怡,3,EXACT_MATCH,3,3,2026-04-27:一般會員->S級美咖(upgrade) | 2026-07-28:S級美咖->P級美咖(upgrade) | 2026-07-28:P級美咖->A級美咖(upgrade),2026-04-27:一般會員->S級美咖(upgrade) | 2026-07-28:S級美咖->P級美咖(upgrade) | 2026-07-28:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-07-29,2027-07-29,False,False,0,0,0
+437,簡雅玉,1,EXACT_MATCH,1,1,2026-04-27:一般會員->S級美咖(upgrade),2026-04-27:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-04-28,2027-04-28,False,False,0,0,0
+438,張惠瑜,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+439,黃金葉,2,EXACT_MATCH,2,2,2026-04-30:一般會員->S級美咖(upgrade) | 2026-04-30:S級美咖->P級美咖(upgrade),2026-04-30:一般會員->S級美咖(upgrade) | 2026-04-30:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-01,2027-05-01,False,False,0,0,0
+440,徐淑卿,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+441,尤秋蘭,1,EXACT_MATCH,1,1,2026-04-30:一般會員->S級美咖(upgrade),2026-04-30:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-05-01,2027-05-01,False,False,0,0,0
+442,江靜怡,3,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+443,彭雅祺,2,EXACT_MATCH,2,2,2026-08-16:一般會員->S級美咖(upgrade) | 2026-08-16:S級美咖->P級美咖(upgrade),2026-08-16:一般會員->S級美咖(upgrade) | 2026-08-16:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-08-17,2027-08-17,False,False,0,0,0
+445,林素蘭,1,EXACT_MATCH,1,1,2026-04-12:一般會員->S級美咖(upgrade),2026-04-12:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-04-13,2027-04-13,False,False,0,0,0
+446,林毓晴,3,HISTORICAL_SOURCE_INCOMPLETE,3,3,2026-04-30:一般會員->S級美咖(upgrade) | 2026-04-30:S級美咖->P級美咖(upgrade) | 2026-04-30:P級美咖->A級美咖(upgrade),2026-04-30:一般會員->S級美咖(upgrade) | 2026-04-30:S級美咖->P級美咖(upgrade) | 2026-04-30:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-05-01,2027-05-01,False,False,0,0,0
+447,廖秋萍,2,EXACT_MATCH,2,2,2026-05-04:一般會員->S級美咖(upgrade) | 2026-05-04:S級美咖->P級美咖(upgrade),2026-05-04:一般會員->S級美咖(upgrade) | 2026-05-04:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-05,2027-05-05,False,False,0,0,0
+448,謝佩芳,3,EXACT_MATCH,3,3,2026-05-04:一般會員->S級美咖(upgrade) | 2026-05-04:S級美咖->P級美咖(upgrade) | 2026-05-04:P級美咖->A級美咖(upgrade),2026-05-04:一般會員->S級美咖(upgrade) | 2026-05-04:S級美咖->P級美咖(upgrade) | 2026-05-04:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-05-05,2027-05-05,False,False,0,0,0
+449,王惠芬,1,EXACT_MATCH,2,2,2026-05-05:一般會員->S級美咖(upgrade) | 2026-05-05:S級美咖->P級美咖(upgrade),2026-05-05:一般會員->S級美咖(upgrade) | 2026-05-05:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-06,2027-05-06,False,False,0,0,0
+450,林雅婷,2,EXACT_MATCH,1,1,2026-09-04:一般會員->S級美咖(upgrade),2026-09-04:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-09-05,2027-09-05,False,False,0,0,0
+451,林桂如,1,EXACT_MATCH,2,2,2026-05-06:一般會員->S級美咖(upgrade) | 2026-05-06:S級美咖->P級美咖(upgrade),2026-05-06:一般會員->S級美咖(upgrade) | 2026-05-06:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-07,2027-05-07,False,False,0,0,0
+452,林素敏,1,EXACT_MATCH,1,1,2026-05-11:一般會員->S級美咖(upgrade),2026-05-11:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-05-12,2027-05-12,False,False,0,0,0
+453,廖若鈞,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+454,張麗珠,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+455,江珈儀,3,EXACT_MATCH,1,1,2026-07-29:一般會員->S級美咖(upgrade),2026-07-29:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-07-30,2027-07-30,False,False,0,0,0
+456,陳維媺,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+457,李惠齡,3,EXACT_MATCH,2,2,2026-05-15:一般會員->S級美咖(upgrade) | 2026-05-15:S級美咖->P級美咖(upgrade),2026-05-15:一般會員->S級美咖(upgrade) | 2026-05-15:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-16,2027-05-16,False,False,0,0,0
+458,陳怡潔,1,EXACT_MATCH,2,2,2026-05-15:一般會員->S級美咖(upgrade) | 2026-05-15:S級美咖->P級美咖(upgrade),2026-05-15:一般會員->S級美咖(upgrade) | 2026-05-15:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-16,2027-05-16,False,False,0,0,0
+459,嚴淑娥,2,EXACT_MATCH,2,2,2026-05-16:一般會員->S級美咖(upgrade) | 2026-05-16:S級美咖->P級美咖(upgrade),2026-05-16:一般會員->S級美咖(upgrade) | 2026-05-16:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-17,2027-05-17,False,False,0,0,0
+460,陳玉臻,1,EXACT_MATCH,3,3,2026-05-18:一般會員->S級美咖(upgrade) | 2026-05-18:S級美咖->P級美咖(upgrade) | 2026-05-18:P級美咖->A級美咖(upgrade),2026-05-18:一般會員->S級美咖(upgrade) | 2026-05-18:S級美咖->P級美咖(upgrade) | 2026-05-18:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-05-19,2027-05-19,False,False,0,0,0
+461,林宸瑀,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+462,許書敏,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+463,陳秀娟,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+464,潘慧如,2,EXTRA_TIER_EVENT,0,2,,2026-09-12:一般會員->S級美咖(upgrade) | 2026-09-13:S級美咖->一般會員(downgrade),一般會員,一般會員,False,,,False,False,0,0,0
+465,羅琦鴒,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+466,黃嶧旂,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+467,陳家琪,2,EXACT_MATCH,3,3,2026-06-21:一般會員->S級美咖(upgrade) | 2026-06-21:S級美咖->P級美咖(upgrade) | 2026-06-21:P級美咖->A級美咖(upgrade),2026-06-21:一般會員->S級美咖(upgrade) | 2026-06-21:S級美咖->P級美咖(upgrade) | 2026-06-21:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-06-22,2027-06-22,False,False,0,0,0
+468,楊玉雲,1,EXACT_MATCH,2,2,2026-05-15:一般會員->S級美咖(upgrade) | 2026-05-15:S級美咖->P級美咖(upgrade),2026-05-15:一般會員->S級美咖(upgrade) | 2026-05-15:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-16,2027-05-16,False,False,0,0,0
+469,魏妙純,1,EXACT_MATCH,2,2,2026-05-22:一般會員->S級美咖(upgrade) | 2026-05-22:S級美咖->P級美咖(upgrade),2026-05-22:一般會員->S級美咖(upgrade) | 2026-05-22:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-23,2027-05-23,False,False,0,0,0
+470,周佳蓉,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+471,陳美善,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+472,劉容而,2,MANUAL_OR_LEGACY_UNCERTAIN,2,2,2026-05-26:一般會員->S級美咖(upgrade) | 2026-05-26:S級美咖->P級美咖(upgrade),2026-05-26:一般會員->S級美咖(upgrade) | 2026-05-26:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-27,2027-05-27,False,True,486,0,1
+473,周孟儀,2,EXACT_MATCH,1,1,2026-05-29:一般會員->S級美咖(upgrade),2026-05-29:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-05-30,2027-05-30,False,False,0,0,0
+474,張慧雪,3,EXACT_MATCH,2,2,2026-05-28:一般會員->S級美咖(upgrade) | 2026-05-28:S級美咖->P級美咖(upgrade),2026-05-28:一般會員->S級美咖(upgrade) | 2026-05-28:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-05-29,2027-05-29,False,False,0,0,0
+475,牟惠詩,1,EXACT_MATCH,3,3,2026-05-29:一般會員->S級美咖(upgrade) | 2026-05-29:S級美咖->P級美咖(upgrade) | 2026-05-29:P級美咖->A級美咖(upgrade),2026-05-29:一般會員->S級美咖(upgrade) | 2026-05-29:S級美咖->P級美咖(upgrade) | 2026-05-29:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-05-30,2027-05-30,False,False,0,0,0
+476,林珮晴,2,EXACT_MATCH,3,3,2026-05-28:一般會員->S級美咖(upgrade) | 2026-05-28:S級美咖->P級美咖(upgrade) | 2026-05-28:P級美咖->A級美咖(upgrade),2026-05-28:一般會員->S級美咖(upgrade) | 2026-05-28:S級美咖->P級美咖(upgrade) | 2026-05-28:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-05-29,2027-05-29,False,False,0,0,0
+477,朱梅瑄,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+478,李貞鈺,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+479,劉晏潔,2,EXACT_MATCH,2,2,2026-06-05:一般會員->S級美咖(upgrade) | 2026-06-05:S級美咖->P級美咖(upgrade),2026-06-05:一般會員->S級美咖(upgrade) | 2026-06-05:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-06-06,2027-06-06,False,False,0,0,0
+480,陳佩怡,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+481,謝泓暐,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+482,吳芷瑩,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+483,楊淑如,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+484,黃依玲,1,EXACT_MATCH,2,2,2026-06-13:一般會員->S級美咖(upgrade) | 2026-06-13:S級美咖->P級美咖(upgrade),2026-06-13:一般會員->S級美咖(upgrade) | 2026-06-13:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-06-14,2027-06-14,False,False,0,0,0
+485,廖誼宣,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+486,尤雅萍,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+487,李悅瑄,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+488,莊孟宜,3,EXACT_MATCH,3,3,2026-08-22:一般會員->S級美咖(upgrade) | 2026-08-22:S級美咖->P級美咖(upgrade) | 2026-08-22:P級美咖->A級美咖(upgrade),2026-08-22:一般會員->S級美咖(upgrade) | 2026-08-22:S級美咖->P級美咖(upgrade) | 2026-08-22:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-08-23,2027-08-23,False,False,0,0,0
+489,劉如雲,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+490,周品君,3,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+491,陳怡纹,1,EXACT_MATCH,1,1,2026-06-22:一般會員->S級美咖(upgrade),2026-06-22:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-06-23,2027-06-23,False,False,0,0,0
+492,吳湘紜,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+493,鍾宜釗,1,EXACT_MATCH,2,2,2026-06-27:一般會員->S級美咖(upgrade) | 2026-06-27:S級美咖->P級美咖(upgrade),2026-06-27:一般會員->S級美咖(upgrade) | 2026-06-27:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-06-28,2027-06-28,False,False,0,0,0
+494,張秀文,1,EXACT_MATCH,2,2,2026-06-27:一般會員->S級美咖(upgrade) | 2026-06-27:S級美咖->P級美咖(upgrade),2026-06-27:一般會員->S級美咖(upgrade) | 2026-06-27:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-06-28,2027-06-28,False,False,0,0,0
+495,張睿靜,1,EXACT_MATCH,1,1,2026-06-30:一般會員->S級美咖(upgrade),2026-06-30:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-07-01,2027-07-01,False,False,0,0,0
+496,謝鈞,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+497,楊淑艷,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+498,劉秀容,0,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+499,留綉容,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+500,丁慈賢,2,EXACT_MATCH,3,3,2026-07-04:一般會員->S級美咖(upgrade) | 2026-07-04:S級美咖->P級美咖(upgrade) | 2026-07-04:P級美咖->A級美咖(upgrade),2026-07-04:一般會員->S級美咖(upgrade) | 2026-07-04:S級美咖->P級美咖(upgrade) | 2026-07-04:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-07-05,2027-07-05,False,False,0,0,0
+501,廖潔芳,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+502,張雅婷,1,EXACT_MATCH,3,3,2026-07-05:一般會員->S級美咖(upgrade) | 2026-07-05:S級美咖->P級美咖(upgrade) | 2026-07-05:P級美咖->A級美咖(upgrade),2026-07-05:一般會員->S級美咖(upgrade) | 2026-07-05:S級美咖->P級美咖(upgrade) | 2026-07-05:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-07-06,2027-07-06,False,False,0,0,0
+503,蔡惠姿,1,EXACT_MATCH,2,2,2026-07-06:一般會員->S級美咖(upgrade) | 2026-07-06:S級美咖->P級美咖(upgrade),2026-07-06:一般會員->S級美咖(upgrade) | 2026-07-06:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-07-07,2027-07-07,False,False,0,0,0
+504,張麗華,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+505,林宜婷,1,EXACT_MATCH,2,2,2026-07-08:一般會員->S級美咖(upgrade) | 2026-07-08:S級美咖->P級美咖(upgrade),2026-07-08:一般會員->S級美咖(upgrade) | 2026-07-08:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-07-09,2027-07-09,False,False,0,0,0
+506,許芯寧,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+507,陳翠茜,3,EXACT_MATCH,3,3,2026-07-19:一般會員->S級美咖(upgrade) | 2026-07-19:S級美咖->P級美咖(upgrade) | 2026-07-19:P級美咖->A級美咖(upgrade),2026-07-19:一般會員->S級美咖(upgrade) | 2026-07-19:S級美咖->P級美咖(upgrade) | 2026-07-19:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-07-20,2027-07-20,False,False,0,0,0
+508,林幼懿,2,EXACT_MATCH,2,2,2026-07-31:一般會員->S級美咖(upgrade) | 2026-07-31:S級美咖->P級美咖(upgrade),2026-07-31:一般會員->S級美咖(upgrade) | 2026-07-31:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-08-01,2027-08-01,False,False,0,0,0
+509,許雅惠,2,EXACT_MATCH,1,1,2026-07-20:一般會員->S級美咖(upgrade),2026-07-20:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-07-21,2027-07-21,False,False,0,0,0
+510,王品淳,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+511,曹家寧,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+512,林敏玲,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+513,江沛婕,1,EXACT_MATCH,2,2,2026-07-20:一般會員->S級美咖(upgrade) | 2026-07-20:S級美咖->P級美咖(upgrade),2026-07-20:一般會員->S級美咖(upgrade) | 2026-07-20:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-07-21,2027-07-21,False,False,0,0,0
+514,陳怡婷,2,EXACT_MATCH,3,3,2026-07-20:一般會員->S級美咖(upgrade) | 2026-07-20:S級美咖->P級美咖(upgrade) | 2026-07-20:P級美咖->A級美咖(upgrade),2026-07-20:一般會員->S級美咖(upgrade) | 2026-07-20:S級美咖->P級美咖(upgrade) | 2026-07-20:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-07-21,2027-07-21,False,False,0,0,0
+515,洪雪淑,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+516,李知惠,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+517,黃麗華,2,HISTORICAL_SOURCE_INCOMPLETE,3,3,2026-07-22:一般會員->S級美咖(upgrade) | 2026-07-22:S級美咖->P級美咖(upgrade) | 2026-07-22:P級美咖->A級美咖(upgrade),2026-07-22:一般會員->S級美咖(upgrade) | 2026-07-22:S級美咖->P級美咖(upgrade) | 2026-07-22:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-07-23,2027-07-23,False,False,0,0,0
+518,曾玉華,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+519,吳瑞娟,2,EXACT_MATCH,3,3,2026-07-27:一般會員->S級美咖(upgrade) | 2026-07-27:S級美咖->P級美咖(upgrade) | 2026-07-27:P級美咖->A級美咖(upgrade),2026-07-27:一般會員->S級美咖(upgrade) | 2026-07-27:S級美咖->P級美咖(upgrade) | 2026-07-27:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-07-28,2027-07-28,False,False,0,0,0
+520,沈君玲,1,EXACT_MATCH,2,2,2026-07-27:一般會員->S級美咖(upgrade) | 2026-07-27:S級美咖->P級美咖(upgrade),2026-07-27:一般會員->S級美咖(upgrade) | 2026-07-27:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-07-28,2027-07-28,False,False,0,0,0
+521,沈家蓁,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+522,莊媛婷,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+523,高鈺嵐,1,EXACT_MATCH,3,3,2026-08-03:一般會員->S級美咖(upgrade) | 2026-08-03:S級美咖->P級美咖(upgrade) | 2026-08-03:P級美咖->A級美咖(upgrade),2026-08-03:一般會員->S級美咖(upgrade) | 2026-08-03:S級美咖->P級美咖(upgrade) | 2026-08-03:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-08-04,2027-08-04,False,False,0,0,0
+524,張蓓禎,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+525,莊宜維,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+526,龔翊婷,1,EXACT_MATCH,2,2,2026-08-07:一般會員->S級美咖(upgrade) | 2026-08-07:S級美咖->P級美咖(upgrade),2026-08-07:一般會員->S級美咖(upgrade) | 2026-08-07:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-08-08,2027-08-08,False,False,0,0,0
+527,段蒔希,1,EXACT_MATCH,1,1,2026-08-08:一般會員->S級美咖(upgrade),2026-08-08:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-08-09,2027-08-09,False,False,0,0,0
+528,蘇姿菁,1,EXACT_MATCH,2,2,2026-08-08:一般會員->S級美咖(upgrade) | 2026-08-08:S級美咖->P級美咖(upgrade),2026-08-08:一般會員->S級美咖(upgrade) | 2026-08-08:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-08-09,2027-08-09,False,False,0,0,0
+529,林麗珠,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+530,張嘉芸,3,EXACT_MATCH,3,3,2026-08-11:一般會員->S級美咖(upgrade) | 2026-08-11:S級美咖->P級美咖(upgrade) | 2026-08-11:P級美咖->A級美咖(upgrade),2026-08-11:一般會員->S級美咖(upgrade) | 2026-08-11:S級美咖->P級美咖(upgrade) | 2026-08-11:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-08-12,2027-08-12,False,False,0,0,0
+531,呂仕鈞,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+532,吳怡君,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+533,陳姿樺,2,EXTRA_TIER_EVENT,3,9,2026-08-16:一般會員->S級美咖(upgrade) | 2026-08-16:S級美咖->P級美咖(upgrade) | 2026-08-16:P級美咖->A級美咖(upgrade),2026-08-16:一般會員->S級美咖(upgrade) | 2026-08-16:S級美咖->P級美咖(upgrade) | 2026-08-16:P級美咖->A級美咖(upgrade) | 2026-08-17:A級美咖->P級美咖(downgrade) | 2026-08-17:P級美咖->S級美咖(downgrade) | 2026-08-17:S級美咖->一般會員(downgrade) | 2026-08-16:一般會員->S級美咖(upgrade) | 2026-08-16:S級美咖->P級美咖(upgrade) | 2026-08-16:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-08-17,2027-08-17,False,True,78,0,1
+534,周怡君,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+535,林瓊玉,2,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+536,黃于軒,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+537,王凱沄,1,EXACT_MATCH,1,1,2026-08-21:一般會員->S級美咖(upgrade),2026-08-21:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-08-22,2027-08-22,False,False,0,0,0
+538,陳黎青,1,EXACT_MATCH,1,1,2026-08-21:一般會員->S級美咖(upgrade),2026-08-21:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-08-22,2027-08-22,False,False,0,0,0
+539,黃佩真,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+540,吳嘉玉,1,EXACT_MATCH,1,1,2026-09-02:一般會員->S級美咖(upgrade),2026-09-02:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-09-03,2027-09-03,False,False,0,0,0
+541,蔡瓊慧,5,EXACT_MATCH,1,1,2026-09-08:一般會員->S級美咖(upgrade),2026-09-08:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-09-09,2027-09-09,False,False,0,0,0
+542,紀芳旻,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+543,徐珮慈,1,EXACT_MATCH,2,2,2026-08-27:一般會員->S級美咖(upgrade) | 2026-08-27:S級美咖->P級美咖(upgrade),2026-08-27:一般會員->S級美咖(upgrade) | 2026-08-27:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-08-28,2027-08-28,False,False,0,0,0
+545,文湘娥,1,EXACT_MATCH,2,2,2026-08-31:一般會員->S級美咖(upgrade) | 2026-08-31:S級美咖->P級美咖(upgrade),2026-08-31:一般會員->S級美咖(upgrade) | 2026-08-31:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-09-01,2027-09-01,False,False,0,0,0
+546,陳姮羽,2,EXACT_MATCH,1,1,2026-08-31:一般會員->S級美咖(upgrade),2026-08-31:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-09-01,2027-09-01,False,False,0,0,0
+547,許素滿,1,EXACT_MATCH,1,1,2026-09-02:一般會員->S級美咖(upgrade),2026-09-02:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-09-03,2027-09-03,False,False,0,0,0
+548,李佩華,1,EXACT_MATCH,1,1,2026-09-02:一般會員->S級美咖(upgrade),2026-09-02:一般會員->S級美咖(upgrade),S級美咖,S級美咖,False,2027-09-03,2027-09-03,False,False,0,0,0
+549,林美伶,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+550,陳淑君,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+551,盧妍潔,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+552,劉昱汝,1,EXACT_MATCH,2,2,2026-09-05:一般會員->S級美咖(upgrade) | 2026-09-05:S級美咖->P級美咖(upgrade),2026-09-05:一般會員->S級美咖(upgrade) | 2026-09-05:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-09-06,2027-09-06,False,False,0,0,0
+553,謝宛容,1,EXACT_MATCH,2,2,2026-09-05:一般會員->S級美咖(upgrade) | 2026-09-05:S級美咖->P級美咖(upgrade),2026-09-05:一般會員->S級美咖(upgrade) | 2026-09-05:S級美咖->P級美咖(upgrade),P級美咖,P級美咖,False,2027-09-06,2027-09-06,False,False,0,0,0
+554,葉姿妤,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+555,何欣庭,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+556,張庭甄,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+557,廖婕妤,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+558,蔡宜安,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+559,周蘊籽,1,EXACT_MATCH,0,0,,,一般會員,一般會員,False,,,False,False,0,0,0
+560,張馨方,1,EXACT_MATCH,3,3,2026-09-24:一般會員->S級美咖(upgrade) | 2026-09-24:S級美咖->P級美咖(upgrade) | 2026-09-24:P級美咖->A級美咖(upgrade),2026-09-24:一般會員->S級美咖(upgrade) | 2026-09-24:S級美咖->P級美咖(upgrade) | 2026-09-24:P級美咖->A級美咖(upgrade),A級美咖,A級美咖,False,2027-09-25,2027-09-25,False,False,0,0,0
