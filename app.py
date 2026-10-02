@@ -39,6 +39,7 @@ MAIN_PIN = os.getenv("MAIN_PIN", "27789254")
 
 AUTH_WINDOW_SECONDS = 300
 AUTH_MAX_FAILURES = 5
+DUPLICATE_ENTRY_WINDOW_SECONDS = 300
 _auth_failures: dict[str, list[float]] = {}
 _auth_lock = threading.Lock()
 
@@ -925,6 +926,22 @@ def get_or_create_customer(db: sqlite3.Connection, name: str, birthday: str, pho
         (name, phone, birthday, now),
     )
     return int(cur.lastrowid)
+
+
+def has_recent_duplicate_entry(
+    db: sqlite3.Connection, name: str, birthday: str, store_id: str, txn_day: date, amount: float,
+) -> bool:
+    """同顧客、同店、同日、同金額的未作廢消費，在短時間內重複送出視為連點（正式站曾因此
+    重複記點）。只查詢、不建立顧客；查無顧客即不可能重複。"""
+    cutoff = (datetime.now() - timedelta(seconds=DUPLICATE_ENTRY_WINDOW_SECONDS)).isoformat(timespec="seconds")
+    row = db.execute(
+        "SELECT 1 FROM transactions t JOIN customers c ON c.id=t.customer_id "
+        "WHERE c.name=? AND c.birthday=? AND c.merged_into_customer_id IS NULL "
+        "AND t.entry_mode='normal' AND t.voided_at IS NULL AND t.store_id=? AND t.txn_date=? "
+        "AND t.final_amount=? AND t.created_at>=? LIMIT 1",
+        (name, birthday, store_id, txn_day.isoformat(), round(amount, 2), cutoff),
+    ).fetchone()
+    return row is not None
 
 
 def customer_year_total(db: sqlite3.Connection, customer_id: int, year_str: str) -> float:
@@ -2222,7 +2239,14 @@ def entry():
             except ValueError:
                 amount = 0.0
 
-            if store_id and name and birthday and amount > 0:
+            if (store_id and name and birthday and amount > 0
+                    and has_recent_duplicate_entry(db, name, birthday, store_id, txn_day, amount)):
+                error_message = (
+                    f"{name} 在 {DUPLICATE_ENTRY_WINDOW_SECONDS // 60} 分鐘內已登錄過同店、同日、"
+                    f"同金額（{amount:,.0f} 元）的消費，疑似重複送出，未重複記點。"
+                    f"若確實是另一筆消費，請稍後再登錄。"
+                )
+            elif store_id and name and birthday and amount > 0:
                 customer_id = get_or_create_customer(db, name, birthday, phone)
                 month_key = current_month_key(txn_day)
                 year_str = txn_day.strftime("%Y")

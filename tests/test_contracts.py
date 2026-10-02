@@ -2038,6 +2038,55 @@ class BeautyVipContractTests(unittest.TestCase):
             400,
         )
 
+    def _post_normal_entry(self, **overrides: str):
+        payload = {
+            "store_id": "store_a", "entry_mode": "normal", "name": "重複測試",
+            "phone": "0912000111", "birthday": self._birthday_far_from_today(),
+            "amount": "2500", "txn_date": date.today().isoformat(),
+        }
+        payload.update(overrides)
+        return self.client.post("/entry", data=payload)
+
+    def _live_txn_count(self) -> int:
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            return db.execute(
+                "SELECT COUNT(*) FROM transactions WHERE voided_at IS NULL"
+            ).fetchone()[0]
+
+    def test_entry_rejects_identical_normal_entry_within_window(self) -> None:
+        self._login()
+        self._post_normal_entry()
+        resp = self._post_normal_entry()
+        self.assertEqual(self._live_txn_count(), 1)
+        self.assertIn("重複", resp.get_data(as_text=True))
+
+    def test_entry_allows_different_amount_same_day(self) -> None:
+        self._login()
+        self._post_normal_entry()
+        self._post_normal_entry(amount="1800")
+        self.assertEqual(self._live_txn_count(), 2)
+
+    def test_entry_allows_identical_entry_after_window(self) -> None:
+        self._login()
+        self._post_normal_entry()
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute("UPDATE transactions SET created_at='2000-01-01T00:00:00'")
+            db.commit()
+        self._post_normal_entry()
+        self.assertEqual(self._live_txn_count(), 2)
+
+    def test_entry_allows_identical_entry_when_first_is_voided(self) -> None:
+        self._login()
+        self._post_normal_entry()
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute("UPDATE transactions SET voided_at='2026-01-01T00:00:00'")
+            db.commit()
+        self._post_normal_entry()
+        self.assertEqual(self._live_txn_count(), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
