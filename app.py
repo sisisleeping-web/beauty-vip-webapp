@@ -1096,6 +1096,34 @@ def reverse_earning(
             )
 
 
+def txn_covered_by_legacy_opening(db: sqlite3.Connection, txn_id: int) -> bool:
+    """交易建立早於該顧客的 is_legacy 起始餘額批次 → 它賺的點數已併入起始餘額，
+    沒有（或已被 superseded）自己的批次。編輯時不能再替它開一筆全額新批次。"""
+    row = db.execute(
+        "SELECT 1 FROM transactions t JOIN coin_batches b ON b.customer_id=t.customer_id "
+        "WHERE t.id=? AND b.is_legacy=1 AND b.created_at>t.created_at LIMIT 1",
+        (txn_id,),
+    ).fetchone()
+    return row is not None
+
+
+def flag_legacy_txn_edit(db: sqlite3.Connection, txn_id: int, old_coins: int, new_coins: int) -> None:
+    """舊制交易被編輯：起始餘額批次不自動調整，點數差額寫 review_flags 交人工複核。"""
+    if old_coins == new_coins:
+        return
+    db.execute(
+        "INSERT INTO review_flags(item_type, item_key, status, note, updated_at) VALUES(?,?,?,?,?)",
+        (
+            "coin_legacy_txn_edit",
+            f"txn{txn_id}_{datetime.now().timestamp()}",
+            "unreviewed",
+            f"交易 id={txn_id} 屬 8/9 前舊制交易（點數已併入起始餘額），被編輯後應得點數由 "
+            f"{old_coins} 變 {new_coins}，起始餘額批次未自動調整，請人工複核差額 {new_coins - old_coins:+d}",
+            datetime.now().isoformat(timespec="seconds"),
+        ),
+    )
+
+
 def adjust_coin_batch_for_edit(
     db: sqlite3.Connection, source_txn_id: int, new_earned_amount: int, customer_id: int, txn_day: date,
 ) -> None:
@@ -2799,7 +2827,10 @@ def update_transaction(txn_id):
 
     # 5. 調整對應的點數批次（normal/birthday_recharge 才有批次；coin_deduct 這個路由不會動）
     if old_mode in ("normal", "birthday_recharge"):
-        adjust_coin_batch_for_edit(db, txn_id, new_coins_earned, old_customer_id, d)
+        if txn_covered_by_legacy_opening(db, txn_id):
+            flag_legacy_txn_edit(db, txn_id, old_coins_earned, new_coins_earned)
+        else:
+            adjust_coin_batch_for_edit(db, txn_id, new_coins_earned, old_customer_id, d)
     sync_coin_balance(db, old_customer_id)
 
     db.commit()

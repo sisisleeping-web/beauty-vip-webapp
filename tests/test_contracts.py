@@ -2061,6 +2061,38 @@ class BeautyVipContractTests(unittest.TestCase):
         self.assertEqual(self._live_txn_count(), 1)
         self.assertIn("重複", resp.get_data(as_text=True))
 
+    def _active_batch_total(self, customer_id: int) -> int:
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            return db.execute(
+                "SELECT COALESCE(SUM(remaining_amount),0) FROM coin_batches "
+                "WHERE customer_id=? AND status='active'", (customer_id,)
+            ).fetchone()[0]
+
+    def test_editing_legacy_covered_txn_does_not_double_count_coins(self) -> None:
+        """8/9 切換前的交易，點數已併入 is_legacy 起始餘額批次、沒有自己的 active 批次。
+        編輯它不可再開一筆全額新批次（會讓同一筆消費的點數算兩次）。"""
+        self._login()
+        birthday = self._birthday_far_from_today()
+        self._post_normal_entry(birthday=birthday)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            txn = db.execute("SELECT id, customer_id, coins_earned FROM transactions").fetchone()
+            txn_id, cid, coins = txn["id"], txn["customer_id"], txn["coins_earned"]
+            db.execute("UPDATE coin_batches SET status='superseded_by_legacy' WHERE source_txn_id=?", (txn_id,))
+            db.execute(
+                "INSERT INTO coin_batches(customer_id, earned_amount, remaining_amount, credit_date, "
+                "expires_date, status, is_legacy, created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (cid, coins, coins, "2026-08-09", "2027-08-09", "active", 1, "2999-01-01T00:00:00"),
+            )
+            db.commit()
+        resp = self._update_txn(
+            txn_id, name="重複測試", birthday=birthday, store_id="store_b",
+            amount=2500, txn_date=date.today().isoformat(),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self._active_batch_total(cid), coins)
+
     def test_entry_allows_different_amount_same_day(self) -> None:
         self._login()
         self._post_normal_entry()
