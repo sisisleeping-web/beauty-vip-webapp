@@ -1991,10 +1991,12 @@ class BeautyVipContractTests(unittest.TestCase):
                 self.client.post("/api/spa/book", data=self._booking_payload(customer_name=name, customer_phone=phone)).status_code,
                 200,
             )
+        # 時段依星期而異（平日 13:00、假日 14:00），不能寫死，否則測試結果隨執行日漂移
+        other_slot = beauty.get_spa_slots("store_a", date.fromisoformat(self._future_day()))[1]
         self.assertEqual(
             self.client.post(
                 "/api/spa/book",
-                data=self._booking_payload(customer_name="丙", customer_phone="0933333333", booking_time="14:00"),
+                data=self._booking_payload(customer_name="丙", customer_phone="0933333333", booking_time=other_slot),
             ).status_code,
             200,
         )
