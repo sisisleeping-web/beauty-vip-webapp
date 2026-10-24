@@ -707,10 +707,13 @@ GIFT_INVALID_REASON_SQL = """
       WHEN u.event_type = 'upgrade' AND u.trigger_txn_id IS NOT NULL AND EXISTS(
         SELECT 1 FROM transactions t WHERE t.id = u.trigger_txn_id AND t.voided_at IS NOT NULL
       ) THEN 'voided'
+      WHEN u.event_type = 'upgrade' AND u.gift_delivered_by IS NOT NULL AND u.gift_status != 'delivered'
+        THEN 'already_delivered'
       WHEN u.event_type = 'upgrade' AND EXISTS(
         SELECT 1 FROM tier_upgrades d
         WHERE d.customer_id = u.customer_id AND d.tier_after = u.tier_after
-          AND d.event_type = 'upgrade' AND d.gift_status = 'delivered' AND d.id != u.id
+          AND d.event_type = 'upgrade' AND d.id != u.id
+          AND (d.gift_status = 'delivered' OR d.gift_delivered_by IS NOT NULL)
       ) THEN 'already_delivered'
       ELSE NULL
     END
@@ -718,21 +721,24 @@ GIFT_INVALID_REASON_SQL = """
 GIFT_INVALID_LABELS = {"voided": "觸發交易已作廢", "already_delivered": "同級升級禮已送達過"}
 
 
-def tier_gift_block_reason(db: sqlite3.Connection, customer_id: int, tier_after: str) -> str | None:
+def tier_gift_block_reason(
+    db: sqlite3.Connection, customer_id: int, tier_after: str, exclude_id: int | None = None
+) -> str | None:
     """升級禮資格的唯一判定：每會員每級終身一次。
     delivered 同級 → 擋；有效 pending（觸發交易未作廢）同級 → 擋；skipped 或已失效的 pending 不擋。"""
     if tier_after not in GIFT_TIERS:
         return f"{tier_after} 無升級禮"
     row = db.execute(
         f"""
-        SELECT u.gift_status, ({GIFT_INVALID_REASON_SQL}) AS invalid_reason
+        SELECT u.gift_status, (u.gift_delivered_by IS NOT NULL) AS traced,
+               ({GIFT_INVALID_REASON_SQL}) AS invalid_reason
         FROM tier_upgrades u
-        WHERE u.customer_id = ? AND u.tier_after = ? AND u.event_type = 'upgrade'
-          AND u.gift_status IN ('delivered', 'pending')
+        WHERE u.customer_id = ? AND u.tier_after = ? AND u.event_type = 'upgrade' AND u.id != ?
+          AND (u.gift_status IN ('delivered', 'pending') OR u.gift_delivered_by IS NOT NULL)
         """,
-        (customer_id, tier_after),
+        (customer_id, tier_after, exclude_id or 0),
     ).fetchall()
-    if any(r["gift_status"] == "delivered" for r in row):
+    if any(r["gift_status"] == "delivered" or r["traced"] for r in row):
         return f"已領過{tier_after}升級禮"
     if any(r["gift_status"] == "pending" and r["invalid_reason"] is None for r in row):
         return f"已有待發的{tier_after}升級禮"
@@ -3931,64 +3937,88 @@ def upgrades_page():
     )
 
 
-def _gift_action_block_reason(db: sqlite3.Connection, upgrade_id: int) -> str | None:
-    """發放／重開前的資格檢查：觸發交易已作廢或同級禮已送達 → 拒絕（略過不受限）。"""
+def _transition_gift(db: sqlite3.Connection, upgrade_id: int, action: str, note: str = ""):
+    """升級禮狀態機（唯一入口）。允許的轉換：
+    pending → delivered（需資格有效）、pending → skipped、
+    skipped → pending（僅限從未送達、帶禮品、且目前符合終身一次資格）。
+    delivered 為終態：不可略過、重開或再次發放，送達時間與備註不被覆寫。
+    回傳 None 表成功，否則為 (訊息, HTTP 狀態碼)。"""
     row = db.execute(
         f"""
-        SELECT ({GIFT_INVALID_REASON_SQL}) AS invalid_reason
+        SELECT u.id, u.customer_id, u.tier_after, u.event_type, u.gift_status, u.gift_name,
+               u.gift_delivered_by, ({GIFT_INVALID_REASON_SQL}) AS invalid_reason
         FROM tier_upgrades u WHERE u.id = ?
         """,
         (upgrade_id,),
     ).fetchone()
-    if row and row["invalid_reason"]:
-        return f"資格失效：{GIFT_INVALID_LABELS[row['invalid_reason']]}"
+    if not row:
+        return "升級禮紀錄不存在", 404
+    status = row["gift_status"]
+    now_str = datetime.now().isoformat(timespec="seconds")
+
+    if action == "deliver":
+        if status != "pending":
+            return f"目前狀態為 {status}，只有待發放可標記送達", 409
+        if row["invalid_reason"]:
+            return f"資格失效：{GIFT_INVALID_LABELS[row['invalid_reason']]}", 409
+        sql, params = (
+            "UPDATE tier_upgrades SET gift_status='delivered', gift_delivered_at=?, gift_delivered_by='staff', note=? "
+            "WHERE id=? AND gift_status='pending'", (now_str, note, upgrade_id))
+    elif action == "skip":
+        if status != "pending":
+            return f"目前狀態為 {status}，只有待發放可略過（已送達不可撤銷）", 409
+        sql, params = (
+            "UPDATE tier_upgrades SET gift_status='skipped', gift_delivered_at=?, note=? "
+            "WHERE id=? AND gift_status='pending'", (now_str, note, upgrade_id))
+    elif action == "reopen":
+        if status != "skipped":
+            return f"目前狀態為 {status}，只有已略過可重新開啟", 409
+        if row["gift_delivered_by"] is not None:
+            return "此禮曾有送達紀錄，不可重新開啟", 409
+        if not row["gift_name"]:
+            return "此紀錄不含禮品，不可重新開啟", 409
+        if row["invalid_reason"]:
+            return f"資格失效：{GIFT_INVALID_LABELS[row['invalid_reason']]}", 409
+        if row["event_type"] == "upgrade":
+            blocked = tier_gift_block_reason(db, row["customer_id"], row["tier_after"], exclude_id=upgrade_id)
+            if blocked:
+                return f"不符合目前資格：{blocked}", 409
+        sql, params = (
+            "UPDATE tier_upgrades SET gift_status='pending', gift_delivered_at=NULL "
+            "WHERE id=? AND gift_status='skipped' AND gift_delivered_by IS NULL", (upgrade_id,))
+    else:
+        return "未知操作", 400
+
+    if db.execute(sql, params).rowcount != 1:
+        return "狀態已變更，請重新整理", 409
+    db.commit()
     return None
+
+
+def _gift_endpoint(upgrade_id: int, action: str):
+    db = get_db()
+    error = _transition_gift(db, upgrade_id, action, request.form.get("note", "").strip())
+    if error:
+        return {"status": "error", "message": error[0]}, error[1]
+    return redirect(request.referrer or url_for("upgrades_page"))
 
 
 @app.route("/api/upgrades/<int:upgrade_id>/deliver", methods=["POST"])
 def deliver_upgrade_gift(upgrade_id):
     """標記升級禮已送達"""
-    db = get_db()
-    note = request.form.get("note", "").strip()
-    now_str = datetime.now().isoformat(timespec="seconds")
-    blocked = _gift_action_block_reason(db, upgrade_id)
-    if blocked:
-        return {"status": "error", "message": blocked}, 409
-    db.execute(
-        "UPDATE tier_upgrades SET gift_status='delivered', gift_delivered_at=?, gift_delivered_by='staff', note=? WHERE id=?",
-        (now_str, note, upgrade_id),
-    )
-    db.commit()
-    return redirect(request.referrer or url_for("upgrades_page"))
+    return _gift_endpoint(upgrade_id, "deliver")
 
 
 @app.route("/api/upgrades/<int:upgrade_id>/skip", methods=["POST"])
 def skip_upgrade_gift(upgrade_id):
-    """標記升級禮略過（不發放）"""
-    db = get_db()
-    note = request.form.get("note", "").strip()
-    now_str = datetime.now().isoformat(timespec="seconds")
-    db.execute(
-        "UPDATE tier_upgrades SET gift_status='skipped', gift_delivered_at=?, note=? WHERE id=?",
-        (now_str, note, upgrade_id),
-    )
-    db.commit()
-    return redirect(request.referrer or url_for("upgrades_page"))
+    """標記升級禮略過（不發放）；僅待發放可略過"""
+    return _gift_endpoint(upgrade_id, "skip")
 
 
 @app.route("/api/upgrades/<int:upgrade_id>/reopen", methods=["POST"])
 def reopen_upgrade_gift(upgrade_id):
-    """重新開啟升級禮為待發放（補發機制）"""
-    db = get_db()
-    blocked = _gift_action_block_reason(db, upgrade_id)
-    if blocked:
-        return {"status": "error", "message": blocked}, 409
-    db.execute(
-        "UPDATE tier_upgrades SET gift_status='pending', gift_delivered_at=NULL, gift_delivered_by=NULL WHERE id=?",
-        (upgrade_id,),
-    )
-    db.commit()
-    return redirect(request.referrer or url_for("upgrades_page"))
+    """重新開啟為待發放；僅限從未送達且目前符合資格者"""
+    return _gift_endpoint(upgrade_id, "reopen")
 
 
 # ── Customer Self-Service Lookup ─────────────────────────────────────────────

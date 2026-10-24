@@ -203,14 +203,96 @@ class UpgradeGiftEntitlementTests(unittest.TestCase):
         self.assertEqual(self.client.post(f"/api/upgrades/{dup_skipped}/reopen").status_code, 409)
         self.assertEqual({r["id"]: r["gift_status"] for r in self._rows()}[dup_pending], "pending")
 
-    def test_normal_deliver_skip_reopen_still_work(self) -> None:
+    def test_normal_skip_reopen_deliver_cycle_for_never_delivered_gift(self) -> None:
         self._entry("8000")
         rid = self._rows()[0]["id"]
-        self.client.post(f"/api/upgrades/{rid}/deliver")
-        self.assertEqual(self._rows()[0]["gift_status"], "delivered")
-        self.client.post(f"/api/upgrades/{rid}/skip")
-        self.client.post(f"/api/upgrades/{rid}/reopen")
+        self.assertEqual(self.client.post(f"/api/upgrades/{rid}/skip").status_code, 302)
+        self.assertEqual(self._rows()[0]["gift_status"], "skipped")
+        self.assertEqual(self.client.post(f"/api/upgrades/{rid}/reopen").status_code, 302)
         self.assertEqual(self._rows()[0]["gift_status"], "pending")
+        self.assertEqual(self.client.post(f"/api/upgrades/{rid}/deliver").status_code, 302)
+        self.assertEqual(self._rows()[0]["gift_status"], "delivered")
+
+    # --- 狀態轉換：已送達不可被洗回待發 ---
+    def _delivered_row(self) -> dict:
+        self._entry("8000")
+        rid = self._rows()[0]["id"]
+        self.client.post(f"/api/upgrades/{rid}/deliver", data={"note": "原始備註"})
+        return self._rows()[0]
+
+    def test_delivered_cannot_be_skipped_and_keeps_its_evidence(self) -> None:
+        before = self._delivered_row()
+        r = self.client.post(f"/api/upgrades/{before['id']}/skip", data={"note": "洗掉"})
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(self._rows()[0], before)
+
+    def test_delivered_cannot_be_reopened_or_redelivered(self) -> None:
+        before = self._delivered_row()
+        self.assertEqual(self.client.post(f"/api/upgrades/{before['id']}/reopen").status_code, 409)
+        self.assertEqual(self.client.post(f"/api/upgrades/{before['id']}/deliver").status_code, 409)
+        self.assertEqual(self._rows()[0], before)
+
+    def test_delivered_skip_reopen_deliver_chain_is_blocked_at_every_step(self) -> None:
+        before = self._delivered_row()
+        rid = before["id"]
+        codes = [self.client.post(f"/api/upgrades/{rid}/{step}").status_code for step in ("skip", "reopen", "deliver")]
+        self.assertEqual(codes, [409, 409, 409])
+        self.assertEqual(self._rows()[0], before)
+
+    def test_skipped_gift_cannot_be_delivered_without_reopen(self) -> None:
+        self._entry("8000")
+        rid = self._rows()[0]["id"]
+        self.client.post(f"/api/upgrades/{rid}/skip")
+        self.assertEqual(self.client.post(f"/api/upgrades/{rid}/deliver").status_code, 409)
+        self.assertEqual(self.client.post(f"/api/upgrades/{rid}/skip").status_code, 409)
+        self.assertEqual(self._rows()[0]["gift_status"], "skipped")
+
+    def test_unknown_upgrade_id_returns_404(self) -> None:
+        for step in ("deliver", "skip", "reopen"):
+            self.assertEqual(self.client.post(f"/api/upgrades/9999/{step}").status_code, 404, step)
+
+    def test_reopen_blocked_when_same_tier_valid_pending_exists(self) -> None:
+        cid = self._make_customer("禮品測試")
+        skipped = self._seed_row(cid, NORMAL, S, "skipped")
+        self._seed_row(cid, NORMAL, S, "pending")
+        self.assertEqual(self.client.post(f"/api/upgrades/{skipped}/reopen").status_code, 409)
+
+    def test_reopen_blocked_for_gift_cancelled_by_void(self) -> None:
+        self._entry("8000")
+        row = self._rows()[0]
+        self.client.post(f"/api/transactions/{row['trigger_txn_id']}/delete")
+        self.assertEqual(self._rows()[0]["gift_status"], "skipped")
+        self.assertEqual(self.client.post(f"/api/upgrades/{row['id']}/reopen").status_code, 409)
+
+    def test_reopen_blocked_for_no_gift_audit_rows(self) -> None:
+        cid = self._make_customer("禮品測試")
+        self._seed_row(cid, NORMAL, P, "delivered")
+        self._entry("12000")
+        audit = [r for r in self._rows(cid) if r["trigger_txn_id"]][0]
+        self.assertEqual((audit["gift_status"], audit["gift_name"]), ("skipped", ""))
+        self.assertEqual(self.client.post(f"/api/upgrades/{audit['id']}/reopen").status_code, 409)
+
+    def test_legacy_delivered_trace_on_skipped_row_counts_as_delivered(self) -> None:
+        cid = self._make_customer("禮品測試")
+        traced = self._seed_row(cid, NORMAL, S, "skipped")
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute("UPDATE tier_upgrades SET gift_delivered_by='staff', gift_delivered_at='2026-02-01T00:00:00' WHERE id=?", (traced,))
+            db.commit()
+        self.assertEqual(self.client.post(f"/api/upgrades/{traced}/reopen").status_code, 409)
+        self._entry("8000")
+        new = [r for r in self._rows(cid) if r["trigger_txn_id"]]
+        self.assertEqual([(r["tier_after"], r["gift_status"]) for r in new], [(S, "skipped")])
+
+    def test_pending_row_carrying_delivery_trace_is_not_valid_entitlement(self) -> None:
+        cid = self._make_customer("禮品測試")
+        rid = self._seed_row(cid, NORMAL, S, "pending")
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            db.execute("UPDATE tier_upgrades SET gift_delivered_by='staff' WHERE id=?", (rid,))
+            db.commit()
+        self.assertEqual(self._gift_actions(), [])
+        self.assertEqual(self.client.post(f"/api/upgrades/{rid}/deliver").status_code, 409)
 
     # --- 到期重判與續會 ---
     def test_expiry_upgrade_event_uses_shared_entitlement(self) -> None:
