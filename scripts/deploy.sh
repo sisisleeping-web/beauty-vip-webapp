@@ -48,6 +48,7 @@ PY
 
 echo "==> 同步 PythonAnywhere 程式檔"
 git ls-files -z -- app.py rules.json requirements.txt Procfile 'templates/*.html' \
+    scripts/migrate_tier_anniversary_anchor.py \
     | while IFS= read -r -d '' FILE; do
         CODE=$(curl -sS -o /tmp/beauty-vip-upload-response -w '%{http_code}' \
             -X POST "$REMOTE_BASE/$FILE" -H "$AUTH_HEADER" -F "content=@$FILE")
