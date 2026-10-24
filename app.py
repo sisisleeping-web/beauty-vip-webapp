@@ -3726,6 +3726,11 @@ def merge_customers():
     if not keep or not absorb:
         return "找不到指定顧客", 404
 
+    # Reject conflicting anchors before any ledger or membership mutation.
+    keep_anchor, absorb_anchor = keep["tier_anniversary_anchor"], absorb["tier_anniversary_anchor"]
+    if keep_anchor and absorb_anchor and keep_anchor != absorb_anchor:
+        return "兩位會員週年錨點不同，合併需人工審核。", 409
+
     # Snapshot both effective states before deleting either record.  The retained
     # account may be lower tier solely because the qualifying history is on the
     # duplicate account.
@@ -3753,10 +3758,6 @@ def merge_customers():
     _reconcile_tier_after_merge(db, keep_id, pre_merge_states, date.today())
     # B1-01 does not infer a new anchor from conflicting membership histories.
     # Preserve a known anchor only when both sides agree or the other is NULL.
-    keep_anchor, absorb_anchor = keep["tier_anniversary_anchor"], absorb["tier_anniversary_anchor"]
-    if keep_anchor and absorb_anchor and keep_anchor != absorb_anchor:
-        db.rollback()
-        return "兩位會員週年錨點不同，合併需人工審核。", 409
     db.execute(
         "UPDATE customers SET tier_anniversary_anchor=? WHERE id=?",
         (keep_anchor or absorb_anchor, keep_id),
