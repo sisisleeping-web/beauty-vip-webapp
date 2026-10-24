@@ -228,6 +228,29 @@ def get_spa_slots(store_id: str, booking_day: date) -> tuple[str, ...]:
     return ()
 
 
+def has_active_customer_booking(
+    db: sqlite3.Connection,
+    name: str,
+    phone: str,
+    booking_date: str,
+    booking_time: str | None = None,
+    exclude_id: int | None = None,
+) -> bool:
+    """顧客識別沿用現行 (姓名, 電話)；booking_time 為 None 時檢查整天，否則只檢查該時段。"""
+    sql = (
+        "SELECT 1 FROM spa_bookings WHERE booking_date=? AND customer_name=? AND customer_phone=? "
+        "AND status!='cancelled'"
+    )
+    params: list[Any] = [booking_date, name, phone]
+    if booking_time is not None:
+        sql += " AND booking_time=?"
+        params.append(booking_time)
+    if exclude_id is not None:
+        sql += " AND id!=?"
+        params.append(exclude_id)
+    return db.execute(sql + " LIMIT 1", params).fetchone() is not None
+
+
 def init_db() -> None:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
@@ -4335,6 +4358,19 @@ def spa_capacity_update():
 
 @app.route("/api/spa/book", methods=["POST"])
 def spa_book():
+    """顧客端點：任何登入狀態都維持「同一天只能一個時段」，例外只存在於後台專用端點。"""
+    return _process_spa_booking(allow_same_day_multi=False)
+
+
+@app.route("/api/spa/admin/book", methods=["POST"])
+def spa_admin_book():
+    """後台專用端點：由伺服器端 session 驗證管理身分，才允許同顧客同日多時段。"""
+    if not (session.get("manager_authed") or session.get("main_authed")):
+        return {"error": "Unauthorized"}, 403
+    return _process_spa_booking(allow_same_day_multi=True)
+
+
+def _process_spa_booking(*, allow_same_day_multi: bool):
     store_id = request.form.get("store_id", "").strip()
     booking_date = request.form.get("booking_date", "").strip()
     booking_time = request.form.get("booking_time", "").strip()
@@ -4385,13 +4421,11 @@ def spa_book():
     # SQLite 的讀取後寫入不是原子操作；先取得寫入鎖，避免兩個同時送出的請求都通過容量檢查。
     db.execute("BEGIN IMMEDIATE")
     
-    # Check if same person already booked on the same day
-    same_day_bookings = db.execute(
-        "SELECT COUNT(*) as cnt FROM spa_bookings WHERE booking_date = ? AND customer_name = ? AND customer_phone = ? AND status != 'cancelled'",
-        (booking_date, customer_name, customer_phone)
-    ).fetchone()["cnt"]
-    
-    if same_day_bookings >= 1:
+    # 顧客端維持「同一天只能一個時段」；僅後台專用端點可同日多時段，但同時段仍不可重複。
+    if allow_same_day_multi:
+        if has_active_customer_booking(db, customer_name, customer_phone, booking_date, booking_time):
+            return {"error": "此顧客在該時段已有預約"}, 400
+    elif has_active_customer_booking(db, customer_name, customer_phone, booking_date):
         return {"error": "同一天只能預約一個時段，若需更改請聯繫客服"}, 400
     
     # Check if this slot is full based on dynamic capacity
@@ -4493,13 +4527,19 @@ def spa_admin_update_time(booking_id):
         datetime.strptime(new_time, "%H:%M")
     except ValueError:
         return {"error": "Invalid date or time"}, 400
-    booking = db.execute("SELECT store_id FROM spa_bookings WHERE id=?", (booking_id,)).fetchone()
+    booking = db.execute(
+        "SELECT store_id, customer_name, customer_phone FROM spa_bookings WHERE id=?", (booking_id,)
+    ).fetchone()
     if not booking:
         return {"error": "Booking not found"}, 404
     new_day = datetime.strptime(new_date, "%Y-%m-%d").date()
     if new_time not in get_spa_slots(booking["store_id"], new_day):
         return {"error": "此分店當日不開放該時段"}, 400
     db.execute("BEGIN IMMEDIATE")
+    if has_active_customer_booking(
+        db, booking["customer_name"], booking["customer_phone"], new_date, new_time, exclude_id=booking_id
+    ):
+        return {"error": "此顧客在該時段已有預約"}, 409
     count = db.execute(
         "SELECT COUNT(*) AS cnt FROM spa_bookings WHERE store_id=? AND booking_date=? AND booking_time=? "
         "AND status!='cancelled' AND id!=?",
