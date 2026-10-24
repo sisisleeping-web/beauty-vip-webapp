@@ -1,17 +1,20 @@
 from __future__ import annotations
 
+import sqlite3
 import tempfile
+import threading
 import unittest
 from datetime import date
 from pathlib import Path
 
 import app as beauty
+from flask import g
 
 S, P, A = "S級美咖", "P級美咖", "A級美咖"
 NORMAL = "一般會員"
 
 
-class UpgradeGiftEntitlementTests(unittest.TestCase):
+class GiftTestBase(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         beauty.DB_PATH = Path(self.tmp.name) / "beauty_vip.db"
@@ -72,6 +75,8 @@ class UpgradeGiftEntitlementTests(unittest.TestCase):
         start = html.index(marker) + len(marker)
         return int(html[start:html.index(")", start)])
 
+
+class UpgradeGiftEntitlementTests(GiftTestBase):
     # --- 1/2 跨級只一筆 ---
     def test_direct_jump_to_p_creates_single_final_tier_event(self) -> None:
         self._entry("12000")
@@ -352,6 +357,121 @@ class UpgradeGiftEntitlementTests(unittest.TestCase):
         self.assertIn(f"{A} <strong", html)
         self.assertNotIn(f"{S} <strong", html)
         self.assertNotIn(f"{P} <strong", html)
+
+
+class _SpyConnection:
+    """包住 sqlite3 連線：記錄 commit/rollback，並可在『標記送達』UPDATE 前卡一個 barrier，
+    把「資格讀取後、狀態寫入前」的競態窗口變成確定性。"""
+
+    def __init__(self, real, barrier: threading.Barrier | None = None) -> None:
+        self._real, self._barrier, self.calls = real, barrier, []
+
+    def execute(self, sql, *args):
+        if self._barrier and sql.lstrip().startswith("UPDATE tier_upgrades SET gift_status='delivered'"):
+            try:
+                self._barrier.wait(timeout=0.6)
+            except threading.BrokenBarrierError:
+                pass  # 有寫入鎖時，另一請求根本進不到這裡 → 逾時放行
+        return self._real.execute(sql, *args)
+
+    def commit(self):
+        self.calls.append("commit")
+        return self._real.commit()
+
+    def rollback(self):
+        self.calls.append("rollback")
+        return self._real.rollback()
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+
+class UpgradeGiftConcurrencyTests(GiftTestBase):
+    """沿用 setUp / helpers；只跑並發與鎖釋放相關測試。"""
+
+    def _patch_get_db(self, barrier=None, spies=None):
+        original = beauty.get_db
+
+        def patched():
+            if "spy" not in g:
+                g.spy = _SpyConnection(original(), barrier)
+                if spies is not None:
+                    spies.append(g.spy)
+            return g.spy
+
+        beauty.get_db = patched
+        self.addCleanup(setattr, beauty, "get_db", original)
+
+    def _two_same_tier_pending(self) -> tuple[int, int, int]:
+        cid = self._make_customer("並發會員")
+        return cid, self._seed_row(cid, NORMAL, S, "pending"), self._seed_row(cid, NORMAL, S, "pending")
+
+    def _status(self, rid: int) -> str:
+        return {r["id"]: r["gift_status"] for r in self._rows()}[rid]
+
+    def test_concurrent_delivery_of_two_same_tier_pending_rows_succeeds_only_once(self) -> None:
+        cid, a, b = self._two_same_tier_pending()
+        self._patch_get_db(barrier=threading.Barrier(2))
+        codes: list[int] = []
+
+        def deliver(rid: int) -> None:
+            c = beauty.app.test_client()
+            with c.session_transaction() as s:
+                s["main_authed"] = True
+            codes.append(c.post(f"/api/upgrades/{rid}/deliver").status_code)
+
+        threads = [threading.Thread(target=deliver, args=(rid,)) for rid in (a, b)]
+        [th.start() for th in threads]
+        [th.join() for th in threads]
+        self.assertEqual(sorted(codes), [302, 409])
+        statuses = sorted([self._status(a), self._status(b)])
+        self.assertEqual(statuses, ["delivered", "pending"])
+
+    def test_loser_of_concurrent_delivery_is_invalid_not_deliverable_later(self) -> None:
+        cid, a, b = self._two_same_tier_pending()
+        self.assertEqual(self.client.post(f"/api/upgrades/{a}/deliver").status_code, 302)
+        self.assertEqual(self.client.post(f"/api/upgrades/{b}/deliver").status_code, 409)
+        self.assertEqual(self._gift_actions(), [])
+
+    def test_failed_transition_rolls_back_and_releases_write_lock(self) -> None:
+        cid, a, b = self._two_same_tier_pending()
+        self.client.post(f"/api/upgrades/{a}/deliver")
+        spies: list[_SpyConnection] = []
+        self._patch_get_db(spies=spies)
+        self.assertEqual(self.client.post(f"/api/upgrades/{b}/deliver").status_code, 409)
+        self.assertEqual(spies[-1].calls[-1], "rollback")
+        self.assertNotIn("commit", spies[-1].calls[spies[-1].calls.index("rollback"):])
+        other = sqlite3.connect(beauty.DB_PATH, timeout=0.5)  # 若鎖沒放，這裡會 database is locked
+        other.execute("BEGIN IMMEDIATE")
+        other.rollback()
+        other.close()
+        self.assertEqual(self.client.post(f"/api/upgrades/{b}/skip").status_code, 302)
+
+    def test_exception_inside_transition_rolls_back_and_releases_lock(self) -> None:
+        cid = self._make_customer("並發會員")
+        skipped = self._seed_row(cid, NORMAL, S, "skipped")
+        spies: list[_SpyConnection] = []
+        self._patch_get_db(spies=spies)
+        original = beauty.tier_gift_block_reason
+        beauty.tier_gift_block_reason = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom"))
+        self.addCleanup(setattr, beauty, "tier_gift_block_reason", original)
+        with self.assertRaises(RuntimeError):
+            self.client.post(f"/api/upgrades/{skipped}/reopen")
+        self.assertEqual(spies[-1].calls[-1], "rollback")
+        self.assertNotIn("commit", spies[-1].calls[spies[-1].calls.index("rollback"):])
+        other = sqlite3.connect(beauty.DB_PATH, timeout=0.5)
+        other.execute("BEGIN IMMEDIATE")
+        other.rollback()
+        other.close()
+        self.assertEqual(self._status(skipped), "skipped")
+
+    def test_successful_transition_commits_without_rollback(self) -> None:
+        cid, a, _ = self._two_same_tier_pending()
+        spies: list[_SpyConnection] = []
+        self._patch_get_db(spies=spies)
+        self.assertEqual(self.client.post(f"/api/upgrades/{a}/skip").status_code, 302)
+        self.assertEqual(spies[-1].calls[-1], "commit")
+        self.assertNotIn("rollback", spies[-1].calls)
 
 
 if __name__ == "__main__":

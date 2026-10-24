@@ -3938,6 +3938,24 @@ def upgrades_page():
 
 
 def _transition_gift(db: sqlite3.Connection, upgrade_id: int, action: str, note: str = ""):
+    """在同一個寫入交易內完成「資格讀取＋狀態更新」，避免同會員同級兩筆待發禮並發都通過檢查。
+    BEGIN IMMEDIATE 先取得 SQLite 寫入鎖；失敗或例外一律 rollback 釋放鎖，成功才 commit。"""
+    if db.in_transaction:
+        db.commit()  # 先結束請求中可能殘留的隱式交易，才能開啟顯式寫入交易
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        error = _apply_gift_transition(db, upgrade_id, action, note)
+    except BaseException:
+        db.rollback()
+        raise
+    if error:
+        db.rollback()
+    else:
+        db.commit()
+    return error
+
+
+def _apply_gift_transition(db: sqlite3.Connection, upgrade_id: int, action: str, note: str):
     """升級禮狀態機（唯一入口）。允許的轉換：
     pending → delivered（需資格有效）、pending → skipped、
     skipped → pending（僅限從未送達、帶禮品、且目前符合終身一次資格）。
@@ -3991,7 +4009,6 @@ def _transition_gift(db: sqlite3.Connection, upgrade_id: int, action: str, note:
 
     if db.execute(sql, params).rowcount != 1:
         return "狀態已變更，請重新整理", 409
-    db.commit()
     return None
 
 
