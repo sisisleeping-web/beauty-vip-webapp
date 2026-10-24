@@ -3815,6 +3815,13 @@ def undo_customer_merge(operation_id: int):
     moved = json.loads(op["moved_ids_json"])
     keep_before, absorbed_before = json.loads(op["keep_before_json"]), json.loads(op["absorbed_before_json"])
     # Do not split a customer again after new transactions were entered; it would be ambiguous.
+    # Validate snapshot evidence before moving any ledger rows.
+    for snapshot in (keep_before, absorbed_before):
+        current_anchor = db.execute(
+            "SELECT tier_anniversary_anchor FROM customers WHERE id=?", (snapshot["id"],)
+        ).fetchone()
+        if current_anchor is None or ("tier_anniversary_anchor" not in snapshot and current_anchor[0] is not None):
+            return "合併快照缺少週年錨點證據，請由資料管理員人工處理。", 409
     moved_txns = moved.get("transactions", [])
     placeholders = ",".join("?" * len(moved_txns)) or "0"
     newer = db.execute(
@@ -3832,14 +3839,6 @@ def undo_customer_merge(operation_id: int):
         if ids:
             marks = ",".join("?" * len(ids))
             db.execute(f"UPDATE {table} SET customer_id=? WHERE id IN ({marks})", [op["absorbed_customer_id"], *ids])
-    # Old merge snapshots predate B1-01. Do not invent an anniversary anchor.
-    # A non-NULL current anchor with no snapshot evidence requires manual review.
-    for snapshot in (keep_before, absorbed_before):
-        current_anchor = db.execute(
-            "SELECT tier_anniversary_anchor FROM customers WHERE id=?", (snapshot["id"],)
-        ).fetchone()
-        if current_anchor is None or ("tier_anniversary_anchor" not in snapshot and current_anchor[0] is not None):
-            return "合併快照缺少週年錨點證據，請由資料管理員人工處理。", 409
     for snapshot in (keep_before, absorbed_before):
         db.execute(
             "UPDATE customers SET phone=?,member_tier=?,tier_effective_date=?,tier_expires_date=?,pending_tier=?,pending_effective_date=?,merged_into_customer_id=?,merged_at=?,tier_anniversary_anchor=? WHERE id=?",
