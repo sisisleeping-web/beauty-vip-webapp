@@ -4358,6 +4358,19 @@ def spa_capacity_update():
 
 @app.route("/api/spa/book", methods=["POST"])
 def spa_book():
+    """顧客端點：任何登入狀態都維持「同一天只能一個時段」，例外只存在於後台專用端點。"""
+    return _process_spa_booking(allow_same_day_multi=False)
+
+
+@app.route("/api/spa/admin/book", methods=["POST"])
+def spa_admin_book():
+    """後台專用端點：由伺服器端 session 驗證管理身分，才允許同顧客同日多時段。"""
+    if not (session.get("manager_authed") or session.get("main_authed")):
+        return {"error": "Unauthorized"}, 403
+    return _process_spa_booking(allow_same_day_multi=True)
+
+
+def _process_spa_booking(*, allow_same_day_multi: bool):
     store_id = request.form.get("store_id", "").strip()
     booking_date = request.form.get("booking_date", "").strip()
     booking_time = request.form.get("booking_time", "").strip()
@@ -4408,8 +4421,8 @@ def spa_book():
     # SQLite 的讀取後寫入不是原子操作；先取得寫入鎖，避免兩個同時送出的請求都通過容量檢查。
     db.execute("BEGIN IMMEDIATE")
     
-    # 顧客維持「同一天只能一個時段」；僅伺服器驗證的管理員可同日多時段，但同時段仍不可重複。
-    if is_admin:
+    # 顧客端維持「同一天只能一個時段」；僅後台專用端點可同日多時段，但同時段仍不可重複。
+    if allow_same_day_multi:
         if has_active_customer_booking(db, customer_name, customer_phone, booking_date, booking_time):
             return {"error": "此顧客在該時段已有預約"}, 400
     elif has_active_customer_booking(db, customer_name, customer_phone, booking_date):
