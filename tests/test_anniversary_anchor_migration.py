@@ -39,6 +39,31 @@ class AnniversaryAnchorMigrationTests(unittest.TestCase):
                 apply(db)
             self.assertEqual(db.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").fetchone()[0], 0)
 
+    def test_fresh_database_has_nullable_anchor(self):
+        with sqlite3.connect(self.db_path) as db:
+            verify(db)
+            db.execute("INSERT INTO customers(name,birthday,created_at) VALUES('新會員','1991-01-01','2026-01-01')")
+            db.commit()
+            self.assertIsNone(db.execute("SELECT tier_anniversary_anchor FROM customers").fetchone()[0])
+
+    def test_conflicting_anchors_block_merge_without_moving_transactions(self):
+        with app.app.app_context():
+            db = app.get_db()
+            first = db.execute("INSERT INTO customers(name,birthday,created_at,tier_anniversary_anchor) VALUES('甲','1990-01-01','2026-01-01','2024-02-29')").lastrowid
+            second = db.execute("INSERT INTO customers(name,birthday,created_at,tier_anniversary_anchor) VALUES('乙','1991-01-01','2026-01-01','2024-03-01')").lastrowid
+            db.commit()
+        client = app.app.test_client()
+        with client.session_transaction() as session:
+            session["manager_authed"] = True
+        response = client.post("/api/customers/merge", data={
+            "keep_id": str(first), "absorb_id": str(second),
+            "confirmed": "1", "reason": "測試衝突錨點"
+        })
+        self.assertEqual(response.status_code, 409)
+        with app.app.app_context():
+            db = app.get_db()
+            self.assertIsNone(db.execute("SELECT merged_into_customer_id FROM customers WHERE id=?", (second,)).fetchone()[0])
+
 
 if __name__ == "__main__":
     unittest.main()
