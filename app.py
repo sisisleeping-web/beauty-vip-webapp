@@ -269,6 +269,7 @@ def init_db() -> None:
             birthday TEXT NOT NULL,
             created_at TEXT NOT NULL,
             coin_balance INTEGER NOT NULL DEFAULT 0,
+            tier_anniversary_anchor TEXT DEFAULT NULL,
             UNIQUE(name, birthday)
         );
 
@@ -3821,11 +3822,20 @@ def undo_customer_merge(operation_id: int):
         if ids:
             marks = ",".join("?" * len(ids))
             db.execute(f"UPDATE {table} SET customer_id=? WHERE id IN ({marks})", [op["absorbed_customer_id"], *ids])
+    # Old merge snapshots predate B1-01. Do not invent an anniversary anchor.
+    # A non-NULL current anchor with no snapshot evidence requires manual review.
+    for snapshot in (keep_before, absorbed_before):
+        current_anchor = db.execute(
+            "SELECT tier_anniversary_anchor FROM customers WHERE id=?", (snapshot["id"],)
+        ).fetchone()
+        if current_anchor is None or ("tier_anniversary_anchor" not in snapshot and current_anchor[0] is not None):
+            return "合併快照缺少週年錨點證據，請由資料管理員人工處理。", 409
     for snapshot in (keep_before, absorbed_before):
         db.execute(
-            "UPDATE customers SET phone=?,member_tier=?,tier_effective_date=?,tier_expires_date=?,pending_tier=?,pending_effective_date=?,merged_into_customer_id=?,merged_at=? WHERE id=?",
+            "UPDATE customers SET phone=?,member_tier=?,tier_effective_date=?,tier_expires_date=?,pending_tier=?,pending_effective_date=?,merged_into_customer_id=?,merged_at=?,tier_anniversary_anchor=? WHERE id=?",
             (snapshot["phone"], snapshot["member_tier"], snapshot["tier_effective_date"], snapshot["tier_expires_date"],
-             snapshot["pending_tier"], snapshot["pending_effective_date"], snapshot.get("merged_into_customer_id"), snapshot.get("merged_at"), snapshot["id"]),
+             snapshot["pending_tier"], snapshot["pending_effective_date"], snapshot.get("merged_into_customer_id"), snapshot.get("merged_at"),
+             snapshot.get("tier_anniversary_anchor"), snapshot["id"]),
         )
     sync_coin_balance(db, int(op["keep_customer_id"]))
     sync_coin_balance(db, int(op["absorbed_customer_id"]))
