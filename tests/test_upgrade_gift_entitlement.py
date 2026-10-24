@@ -474,5 +474,74 @@ class UpgradeGiftConcurrencyTests(GiftTestBase):
         self.assertNotIn("rollback", spies[-1].calls)
 
 
+class UpgradeGiftCallerTransactionTests(GiftTestBase):
+    """呼叫端已在交易中時，_transition_gift 不得替它 commit 或 rollback。"""
+
+    def _open_caller_txn(self, db, name: str = "呼叫端未提交") -> None:
+        db.execute("INSERT INTO customers(name, birthday, created_at) VALUES(?, '1991-01-01', '2026-01-01')", (name,))
+        self.assertTrue(db.in_transaction)
+
+    def _customer_exists(self, name: str) -> bool:
+        other = sqlite3.connect(beauty.DB_PATH, timeout=0.5)
+        try:
+            return other.execute("SELECT 1 FROM customers WHERE name=?", (name,)).fetchone() is not None
+        finally:
+            other.close()
+
+    def test_existing_transaction_is_rejected_without_commit_or_rollback(self) -> None:
+        cid = self._make_customer("並發會員")
+        rid = self._seed_row(cid, NORMAL, S, "pending")
+        for action in ("deliver", "skip", "reopen"):
+            with beauty.app.app_context():
+                db = _SpyConnection(beauty.get_db())
+                self._open_caller_txn(db, f"未提交-{action}")
+                result = beauty._transition_gift(db, rid, action)
+                self.assertIsNotNone(result, action)
+                self.assertEqual(result[1], 409, action)
+                self.assertEqual(db.calls, [], action)  # 沒有 commit 也沒有 rollback
+                self.assertTrue(db.in_transaction, action)  # 呼叫端的交易仍開著
+                db.rollback()
+        self.assertEqual({r["id"]: r["gift_status"] for r in self._rows()}[rid], "pending")
+
+    def test_callers_uncommitted_data_is_not_committed_by_rejected_transition(self) -> None:
+        cid = self._make_customer("並發會員")
+        rid = self._seed_row(cid, NORMAL, S, "pending")
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._open_caller_txn(db, "未提交資料")
+            self.assertIsNotNone(beauty._transition_gift(db, rid, "deliver"))
+            self.assertFalse(self._customer_exists("未提交資料"))  # 別的連線看不到 → 沒被提交
+            db.rollback()
+        self.assertFalse(self._customer_exists("未提交資料"))
+
+    def test_callers_uncommitted_data_is_not_discarded_by_rejected_transition(self) -> None:
+        cid = self._make_customer("並發會員")
+        rid = self._seed_row(cid, NORMAL, S, "pending")
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._open_caller_txn(db, "仍可提交資料")
+            self.assertIsNotNone(beauty._transition_gift(db, rid, "skip"))
+            self.assertIsNotNone(db.execute("SELECT 1 FROM customers WHERE name='仍可提交資料'").fetchone())
+            db.commit()  # 由呼叫端自行決定提交
+        self.assertTrue(self._customer_exists("仍可提交資料"))
+        self.assertEqual({r["id"]: r["gift_status"] for r in self._rows()}[rid], "pending")
+
+    def test_transition_works_normally_once_caller_transaction_is_closed(self) -> None:
+        cid = self._make_customer("並發會員")
+        rid = self._seed_row(cid, NORMAL, S, "pending")
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            self._open_caller_txn(db)
+            self.assertIsNotNone(beauty._transition_gift(db, rid, "deliver"))
+            db.commit()
+            self.assertIsNone(beauty._transition_gift(db, rid, "deliver"))
+        self.assertEqual({r["id"]: r["gift_status"] for r in self._rows()}[rid], "delivered")
+
+    def test_http_endpoints_still_work_for_normal_requests(self) -> None:
+        cid = self._make_customer("並發會員")
+        rid = self._seed_row(cid, NORMAL, S, "pending")
+        self.assertEqual(self.client.post(f"/api/upgrades/{rid}/deliver").status_code, 302)
+
+
 if __name__ == "__main__":
     unittest.main()

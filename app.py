@@ -3939,9 +3939,10 @@ def upgrades_page():
 
 def _transition_gift(db: sqlite3.Connection, upgrade_id: int, action: str, note: str = ""):
     """在同一個寫入交易內完成「資格讀取＋狀態更新」，避免同會員同級兩筆待發禮並發都通過檢查。
-    BEGIN IMMEDIATE 先取得 SQLite 寫入鎖；失敗或例外一律 rollback 釋放鎖，成功才 commit。"""
+    BEGIN IMMEDIATE 先取得 SQLite 寫入鎖；失敗或例外一律 rollback 釋放鎖，成功才 commit。
+    呼叫端若已在交易中則安全拒絕（不 commit、不 rollback 對方的交易），由呼叫端先自行結束交易。"""
     if db.in_transaction:
-        db.commit()  # 先結束請求中可能殘留的隱式交易，才能開啟顯式寫入交易
+        return "已有進行中的資料庫交易，請先提交或回復後再操作", 409
     db.execute("BEGIN IMMEDIATE")
     try:
         error = _apply_gift_transition(db, upgrade_id, action, note)
