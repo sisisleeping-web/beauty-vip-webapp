@@ -3751,6 +3751,16 @@ def merge_customers():
     merged_phone = keep["phone"] or absorb["phone"] or ""
     db.execute("UPDATE customers SET phone=? WHERE id=?", (merged_phone, keep_id))
     _reconcile_tier_after_merge(db, keep_id, pre_merge_states, date.today())
+    # B1-01 does not infer a new anchor from conflicting membership histories.
+    # Preserve a known anchor only when both sides agree or the other is NULL.
+    keep_anchor, absorb_anchor = keep["tier_anniversary_anchor"], absorb["tier_anniversary_anchor"]
+    if keep_anchor and absorb_anchor and keep_anchor != absorb_anchor:
+        db.rollback()
+        return "兩位會員週年錨點不同，合併需人工審核。", 409
+    db.execute(
+        "UPDATE customers SET tier_anniversary_anchor=? WHERE id=?",
+        (keep_anchor or absorb_anchor, keep_id),
+    )
     sync_coin_balance(db, keep_id)
 
     # Keep the absorbed identity as a soft-merged record so this operation is reversible.
