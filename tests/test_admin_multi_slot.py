@@ -95,25 +95,34 @@ class AdminMultiSlotTests(unittest.TestCase):
         self.assertIn(SAME_DAY_MSG, r.get_json()["error"])
         self.assertEqual(self._active(), 1)
 
-    def test_logged_in_admin_using_customer_endpoint_keeps_same_day_limit(self) -> None:
-        for manager in (False, True):
-            self.setUp()
-            self._login(manager=manager)
-            self.assertEqual(self._cust(0).status_code, 200)
-            r = self._cust(1)
-            self.assertEqual(r.status_code, 400, manager)
-            self.assertIn(SAME_DAY_MSG, r.get_json()["error"])
-            self.assertEqual(self._active(), 1)
+    def _assert_customer_endpoint_keeps_same_day_limit(self) -> None:
+        self.assertEqual(self._cust(0).status_code, 200)
+        r = self._cust(1)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn(SAME_DAY_MSG, r.get_json()["error"])
+        self.assertEqual(self._active(), 1)
 
-    def test_client_supplied_flags_never_grant_exception(self) -> None:
-        for logged_in in (False, True):
-            self.setUp()
-            if logged_in:
-                self._login()
-            self.assertEqual(self._cust(0).status_code, 200)
-            for extra in ({"source": "admin"}, {"is_admin": "1"}, {"admin": "true"}):
-                self.assertEqual(self._cust(1, **extra).status_code, 400, (logged_in, extra))
-            self.assertEqual(self._active(), 1)
+    def test_main_pin_admin_using_customer_endpoint_keeps_same_day_limit(self) -> None:
+        self._login(manager=False)
+        self._assert_customer_endpoint_keeps_same_day_limit()
+
+    def test_manager_pin_admin_using_customer_endpoint_keeps_same_day_limit(self) -> None:
+        self._login(manager=True)
+        self._assert_customer_endpoint_keeps_same_day_limit()
+
+    def _assert_flags_never_grant_exception(self) -> None:
+        self.assertEqual(self._cust(0).status_code, 200)
+        for extra in ({"source": "admin"}, {"is_admin": "1"}, {"admin": "true"}):
+            with self.subTest(extra=extra):
+                self.assertEqual(self._cust(1, **extra).status_code, 400)
+        self.assertEqual(self._active(), 1)
+
+    def test_client_flags_never_grant_exception_when_logged_out(self) -> None:
+        self._assert_flags_never_grant_exception()
+
+    def test_client_flags_never_grant_exception_when_logged_in(self) -> None:
+        self._login()
+        self._assert_flags_never_grant_exception()
 
     def test_admin_endpoint_requires_server_side_admin_session(self) -> None:
         self.assertEqual(self._book(0).get_json(silent=True), None)  # 未登入只拿到鎖定頁
