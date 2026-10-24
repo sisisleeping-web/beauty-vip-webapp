@@ -1,5 +1,33 @@
 {% extends 'base.html' %}
 {% block content %}
+<style>
+  .booking-table { width:100%; table-layout:fixed; }
+  .booking-table th, .booking-table td { vertical-align:top; }
+  .booking-table .booking-datetime { width:11%; }
+  .booking-table .booking-customer { width:18%; }
+  .booking-table .booking-store { width:9%; }
+  .booking-table .booking-service { width:15%; }
+  .booking-table .booking-status { width:11%; }
+  .booking-table .booking-audit { width:18%; }
+  .booking-table .booking-actions { width:18%; }
+  .booking-table .booking-phone { display:block; margin-top:4px; overflow-wrap:anywhere; }
+  .booking-table .booking-service-name { display:block; margin-bottom:5px; }
+  .booking-table details { margin-top:6px; font-size:.8rem; color:#666; }
+  .booking-table summary { cursor:pointer; color:#6c3fc5; }
+  .booking-table .booking-note { margin:5px 0 0; overflow-wrap:anywhere; white-space:pre-wrap; }
+  .booking-table .booking-action { margin:0 4px 4px 0; }
+
+  @media (max-width: 760px) {
+    .booking-table, .booking-table tbody, .booking-table tr, .booking-table td { display:block; width:100%; }
+    .booking-table thead { display:none; }
+    .booking-table tr { border:1px solid #e5e7eb; border-radius:10px; margin:0 0 12px; padding:10px; }
+    .booking-table td { border:none; padding:5px 0; }
+    .booking-table td::before { content:attr(data-label); display:block; color:#6b7280; font-size:.75rem; margin-bottom:2px; }
+    .booking-table .booking-actions { padding-top:8px; border-top:1px solid #eee; }
+    .booking-table .booking-actions::before { display:none; }
+    .booking-table .booking-action { min-width:72px; }
+  }
+</style>
 <div class="card">
   <h3>📅 SPA 預約管理</h3>
   <form method="get" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin-bottom:1rem;">
@@ -35,17 +63,13 @@
   </form>
 
   <p style="font-size:0.85rem; color:#888; margin:0 0 8px;">共 {{ bookings|length }} 筆預約</p>
-  <div class="table-wrap"><table>
+  <div class="table-wrap"><table class="booking-table">
     <thead>
       <tr>
-        <th>預約日期</th>
-        <th>時段</th>
-        <th>分店</th>
-        <th>客戶姓名</th>
-        <th>聯絡電話</th>
-        <th>客群</th>
-        <th>服務項目</th>
-        <th>備註</th>
+        <th class="booking-datetime">預約／時段</th>
+        <th class="booking-customer">客戶</th>
+        <th class="booking-store">分店</th>
+        <th class="booking-service">服務／客群</th>
         <th>狀態</th>
         <th>建立／最後修改</th>
         <th>操作</th>
@@ -54,28 +78,33 @@
     <tbody>
     {% for b in bookings %}
     <tr id="booking-{{ b.id }}">
-      <td style="font-weight:600;">{{ b.booking_date }}</td>
-      <td style="font-weight:600; color:#6c3fc5;">{{ b.booking_time }}</td>
-      <td>{{ b.store_name }}</td>
-      <td><strong>{{ b.customer_name }}</strong></td>
-      <td>
-        <a href="tel:{{ b.customer_phone }}" style="color:#0e7fa8; text-decoration:none;">📞 {{ b.customer_phone }}</a>
+      <td class="booking-datetime" data-label="預約／時段" style="font-weight:600;">
+        <div>{{ b.booking_date }}</div>
+        <div style="color:#6c3fc5;">{{ b.booking_time }}</div>
       </td>
-      <td>
+      <td class="booking-customer" data-label="客戶">
+        <strong>{{ b.customer_name }}</strong>
+        <a class="booking-phone" href="tel:{{ b.customer_phone }}" style="color:#0e7fa8; text-decoration:none;">📞 {{ b.customer_phone }}</a>
+      </td>
+      <td class="booking-store" data-label="分店">{{ b.store_name }}</td>
+      <td class="booking-service" data-label="服務／客群">
+        <span class="booking-service-name">{% if b.service_type == 'body' %}身體課程
+        {% elif b.service_type == 'facial' %}臉部課程
+        {% elif b.service_type == 'nail' %}美甲課程
+        {% else %}其他{% endif %}</span>
         {% if b.customer_type == 'new' %}
         <span class="badge-pill badge-pill-warning">新客</span>
         {% else %}
         <span class="badge-pill badge-pill-neutral">舊客</span>
         {% endif %}
+        {% if b.note %}
+        <details>
+          <summary>查看備註</summary>
+          <p class="booking-note">{{ b.note }}</p>
+        </details>
+        {% endif %}
       </td>
-      <td>
-        {% if b.service_type == 'body' %}身體課程
-        {% elif b.service_type == 'facial' %}臉部課程
-        {% elif b.service_type == 'nail' %}美甲課程
-        {% else %}其他{% endif %}
-      </td>
-      <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ b.note }}">{{ b.note }}</td>
-      <td id="status-{{ b.id }}">
+      <td class="booking-status" data-label="狀態" id="status-{{ b.id }}">
         {% if b.status == 'confirmed' %}
         <span class="badge-pill badge-pill-success">✅ 已確認</span>
         {% elif b.status == 'cancelled' %}
@@ -84,21 +113,21 @@
         <span class="badge-pill badge-pill-warning">⏳ 待確認</span>
         {% endif %}
       </td>
-      <td style="font-size:0.8rem; color:#666; white-space:nowrap;">
+      <td class="booking-audit" data-label="建立／最後修改" style="font-size:0.8rem; color:#666; overflow-wrap:anywhere;">
         <div>建：{{ b.created_at }}</div>
         <div>改：{{ b.updated_at or b.created_at }}</div>
       </td>
-      <td>
+      <td class="booking-actions" data-label="操作">
         {% if b.status == 'pending' %}
-        <button onclick="confirmBooking({{ b.id }})" style="background:var(--success);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;box-shadow:none;min-height:unset;">確認</button>
+        <button class="booking-action" onclick="confirmBooking({{ b.id }})" style="background:var(--success);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;box-shadow:none;min-height:unset;">確認</button>
         {% endif %}
-        <button onclick="openEditModal({{ b.id }}, '{{ b.store_id }}', '{{ b.store_name }}', '{{ b.booking_date }}', '{{ b.booking_time }}')" style="background:var(--tier-s);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;box-shadow:none;min-height:unset;">修改時段</button>
-        {% if b.status != 'cancelled' %}<button onclick="deleteBooking({{ b.id }})" style="background:var(--danger);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;box-shadow:none;min-height:unset;">取消</button>{% endif %}
+        <button class="booking-action" onclick="openEditModal({{ b.id }}, '{{ b.store_id }}', '{{ b.store_name }}', '{{ b.booking_date }}', '{{ b.booking_time }}')" style="background:var(--tier-s);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;box-shadow:none;min-height:unset;">修改時段</button>
+        {% if b.status != 'cancelled' %}<button class="booking-action" onclick="deleteBooking({{ b.id }})" style="background:var(--danger);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;box-shadow:none;min-height:unset;">取消</button>{% endif %}
       </td>
     </tr>
     {% else %}
     <tr>
-      <td colspan="11" class="text-muted" style="text-align:center; padding:2rem;">尚無預約資料</td>
+      <td colspan="7" class="text-muted" style="text-align:center; padding:2rem;">尚無預約資料</td>
     </tr>
     {% endfor %}
     </tbody>

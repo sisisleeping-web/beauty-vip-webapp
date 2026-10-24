@@ -163,6 +163,18 @@ class AdminBookingUxTests(unittest.TestCase):
         self.assertIn("建：2000-01-01T00:00:00", html)
         self.assertIn("改：", html)
 
+    def test_booking_list_uses_compact_columns_and_keeps_notes_available(self) -> None:
+        self._login()
+        self.assertEqual(self.client.post("/api/spa/admin/book", data=self._payload(note="請預留停車位")).status_code, 200)
+
+        html = self.client.get("/spa/admin/bookings").get_data(as_text=True)
+        self.assertIn("預約／時段", html)
+        self.assertIn("服務／客群", html)
+        self.assertIn('class="booking-table"', html)
+        self.assertIn('data-label="建立／最後修改"', html)
+        self.assertIn("查看備註", html)
+        self.assertIn("請預留停車位", html)
+
     def test_invalid_pax_is_rejected_without_writing(self) -> None:
         self._login(manager=True)
         for bad in ("3", "0", "-1", "abc", "", "1.5", "99"):
