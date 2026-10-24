@@ -117,6 +117,52 @@ class AdminBookingUxTests(unittest.TestCase):
         self.assertEqual(self.client.post("/api/spa/book", data=payload).status_code, 200)
         self.assertEqual(self._row_count(), 1)
 
+    def test_admin_list_hides_cancelled_by_default_but_keeps_it_filterable(self) -> None:
+        self._login()
+        self.assertEqual(self.client.post("/api/spa/admin/book", data=self._payload(customer_name="進行中顧客")).status_code, 200)
+        self.assertEqual(self.client.post("/api/spa/admin/book", data=self._payload(
+            customer_name="已取消顧客",
+            customer_phone="0922222222",
+            booking_time=beauty.get_spa_slots("store_a", date.fromisoformat(self._open_day()))[1],
+        )).status_code, 200)
+        with beauty.app.app_context():
+            cancelled_id = beauty.get_db().execute(
+                "SELECT id FROM spa_bookings WHERE customer_name='已取消顧客'"
+            ).fetchone()[0]
+        self.assertEqual(self.client.post(f"/api/spa/bookings/{cancelled_id}/delete").status_code, 200)
+
+        default_html = self.client.get("/spa/admin/bookings").get_data(as_text=True)
+        cancelled_html = self.client.get("/spa/admin/bookings?status=cancelled").get_data(as_text=True)
+        all_html = self.client.get("/spa/admin/bookings?status=all").get_data(as_text=True)
+        self.assertIn("進行中顧客", default_html)
+        self.assertNotIn("已取消顧客", default_html)
+        self.assertIn("已取消顧客", cancelled_html)
+        self.assertIn("已取消顧客", all_html)
+
+    def test_booking_audit_timestamps_are_recorded_and_displayed(self) -> None:
+        self._login()
+        self.assertEqual(self.client.post("/api/spa/admin/book", data=self._payload()).status_code, 200)
+        with beauty.app.app_context():
+            db = beauty.get_db()
+            booking = db.execute("SELECT id, created_at, updated_at FROM spa_bookings").fetchone()
+            self.assertTrue(booking["created_at"])
+            self.assertEqual(booking["updated_at"], booking["created_at"])
+            db.execute("UPDATE spa_bookings SET created_at='2000-01-01T00:00:00' WHERE id=?", (booking["id"],))
+            db.commit()
+
+        self.assertEqual(self.client.post(f"/api/spa/bookings/{booking['id']}/confirm").status_code, 200)
+        with beauty.app.app_context():
+            updated = beauty.get_db().execute(
+                "SELECT created_at, updated_at FROM spa_bookings WHERE id=?", (booking["id"],)
+            ).fetchone()
+        self.assertEqual(updated["created_at"], "2000-01-01T00:00:00")
+        self.assertNotEqual(updated["updated_at"], updated["created_at"])
+
+        html = self.client.get("/spa/admin/bookings").get_data(as_text=True)
+        self.assertIn("建立／最後修改", html)
+        self.assertIn("建：2000-01-01T00:00:00", html)
+        self.assertIn("改：", html)
+
     def test_invalid_pax_is_rejected_without_writing(self) -> None:
         self._login(manager=True)
         for bad in ("3", "0", "-1", "abc", "", "1.5", "99"):
