@@ -269,6 +269,7 @@ def init_db() -> None:
             birthday TEXT NOT NULL,
             created_at TEXT NOT NULL,
             coin_balance INTEGER NOT NULL DEFAULT 0,
+            tier_anniversary_anchor TEXT DEFAULT NULL,
             UNIQUE(name, birthday)
         );
 
@@ -3725,6 +3726,11 @@ def merge_customers():
     if not keep or not absorb:
         return "找不到指定顧客", 404
 
+    # Reject conflicting anchors before any ledger or membership mutation.
+    keep_anchor, absorb_anchor = keep["tier_anniversary_anchor"], absorb["tier_anniversary_anchor"]
+    if keep_anchor and absorb_anchor and keep_anchor != absorb_anchor:
+        return "兩位會員週年錨點不同，合併需人工審核。", 409
+
     # Snapshot both effective states before deleting either record.  The retained
     # account may be lower tier solely because the qualifying history is on the
     # duplicate account.
@@ -3750,6 +3756,12 @@ def merge_customers():
     merged_phone = keep["phone"] or absorb["phone"] or ""
     db.execute("UPDATE customers SET phone=? WHERE id=?", (merged_phone, keep_id))
     _reconcile_tier_after_merge(db, keep_id, pre_merge_states, date.today())
+    # B1-01 does not infer a new anchor from conflicting membership histories.
+    # Preserve a known anchor only when both sides agree or the other is NULL.
+    db.execute(
+        "UPDATE customers SET tier_anniversary_anchor=? WHERE id=?",
+        (keep_anchor or absorb_anchor, keep_id),
+    )
     sync_coin_balance(db, keep_id)
 
     # Keep the absorbed identity as a soft-merged record so this operation is reversible.
@@ -3804,6 +3816,13 @@ def undo_customer_merge(operation_id: int):
     moved = json.loads(op["moved_ids_json"])
     keep_before, absorbed_before = json.loads(op["keep_before_json"]), json.loads(op["absorbed_before_json"])
     # Do not split a customer again after new transactions were entered; it would be ambiguous.
+    # Validate snapshot evidence before moving any ledger rows.
+    for snapshot in (keep_before, absorbed_before):
+        current_anchor = db.execute(
+            "SELECT tier_anniversary_anchor FROM customers WHERE id=?", (snapshot["id"],)
+        ).fetchone()
+        if current_anchor is None or ("tier_anniversary_anchor" not in snapshot and current_anchor[0] is not None):
+            return "合併快照缺少週年錨點證據，請由資料管理員人工處理。", 409
     moved_txns = moved.get("transactions", [])
     placeholders = ",".join("?" * len(moved_txns)) or "0"
     newer = db.execute(
@@ -3823,9 +3842,10 @@ def undo_customer_merge(operation_id: int):
             db.execute(f"UPDATE {table} SET customer_id=? WHERE id IN ({marks})", [op["absorbed_customer_id"], *ids])
     for snapshot in (keep_before, absorbed_before):
         db.execute(
-            "UPDATE customers SET phone=?,member_tier=?,tier_effective_date=?,tier_expires_date=?,pending_tier=?,pending_effective_date=?,merged_into_customer_id=?,merged_at=? WHERE id=?",
+            "UPDATE customers SET phone=?,member_tier=?,tier_effective_date=?,tier_expires_date=?,pending_tier=?,pending_effective_date=?,merged_into_customer_id=?,merged_at=?,tier_anniversary_anchor=? WHERE id=?",
             (snapshot["phone"], snapshot["member_tier"], snapshot["tier_effective_date"], snapshot["tier_expires_date"],
-             snapshot["pending_tier"], snapshot["pending_effective_date"], snapshot.get("merged_into_customer_id"), snapshot.get("merged_at"), snapshot["id"]),
+             snapshot["pending_tier"], snapshot["pending_effective_date"], snapshot.get("merged_into_customer_id"), snapshot.get("merged_at"),
+             snapshot.get("tier_anniversary_anchor"), snapshot["id"]),
         )
     sync_coin_balance(db, int(op["keep_customer_id"]))
     sync_coin_balance(db, int(op["absorbed_customer_id"]))
