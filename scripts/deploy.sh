@@ -46,17 +46,42 @@ if result != "ok":
     raise SystemExit(f"正式 DB 完整性檢查失敗：{result}")
 PY
 
+sync_file() {
+    local file="$1"
+    local code
+    code=$(curl -sS -o /tmp/beauty-vip-upload-response -w '%{http_code}' \
+        -X POST "$REMOTE_BASE/$file" -H "$AUTH_HEADER" -F "content=@$file")
+    case "$code" in 200|201) ;; *) echo "上傳失敗：$file（HTTP $code）" >&2; exit 1;; esac
+    local local_hash remote_hash
+    local_hash=$(shasum -a 256 "$file" | awk '{print $1}')
+    remote_hash=$(curl -sS -H "$AUTH_HEADER" "$REMOTE_BASE/$file" | shasum -a 256 | awk '{print $1}')
+    test "$local_hash" = "$remote_hash" || { echo "遠端 hash 不一致：$file" >&2; exit 1; }
+    echo "    $file ok"
+}
+
+# B1-01 must never reload app.py against a legacy DB that lacks this column.
+# Stage the explicit migration first, then stop safely until an operator applies it.
+echo "==> 先同步 B1-01 遷移腳本"
+sync_file scripts/migrate_tier_anniversary_anchor.py
+if ! python3 - "$BACKUP_DIR/data/beauty_vip.db" <<'PY'
+import sqlite3
+import sys
+
+with sqlite3.connect(sys.argv[1]) as db:
+    columns = {row[1] for row in db.execute("PRAGMA table_info(customers)")}
+sys.exit(0 if "tier_anniversary_anchor" in columns else 1)
+PY
+then
+    echo "B1-01 欄位尚未套用：遷移腳本已同步，但本次不會上傳 app.py 或 reload。" >&2
+    echo "請在 PA 對正式 DB 先執行 scripts/migrate_tier_anniversary_anchor.py --apply，" >&2
+    echo "再用 --check 驗證後，重新執行部署。" >&2
+    exit 1
+fi
+
 echo "==> 同步 PythonAnywhere 程式檔"
 git ls-files -z -- app.py rules.json requirements.txt Procfile 'templates/*.html' \
-    scripts/migrate_tier_anniversary_anchor.py \
     | while IFS= read -r -d '' FILE; do
-        CODE=$(curl -sS -o /tmp/beauty-vip-upload-response -w '%{http_code}' \
-            -X POST "$REMOTE_BASE/$FILE" -H "$AUTH_HEADER" -F "content=@$FILE")
-        case "$CODE" in 200|201) ;; *) echo "上傳失敗：$FILE（HTTP $CODE）" >&2; exit 1;; esac
-        LOCAL_HASH=$(shasum -a 256 "$FILE" | awk '{print $1}')
-        REMOTE_HASH=$(curl -sS -H "$AUTH_HEADER" "$REMOTE_BASE/$FILE" | shasum -a 256 | awk '{print $1}')
-        test "$LOCAL_HASH" = "$REMOTE_HASH" || { echo "遠端 hash 不一致：$FILE" >&2; exit 1; }
-        echo "    $FILE ok"
+        sync_file "$FILE"
     done
 
 RELOAD_CODE=$(curl -sS -o /tmp/beauty-vip-reload-response -w '%{http_code}' \
