@@ -699,6 +699,93 @@ def get_effective_tier_state(db: sqlite3.Connection, customer_id: int, as_of: da
     }
 
 
+GIFT_TIERS = tuple(TIER_ORDER[1:])
+
+# 待發升級禮「失效」判定（只讀，不改資料）：觸發交易已作廢，或同級升級禮已由另一筆送達（終身一次）。
+GIFT_INVALID_REASON_SQL = """
+    CASE
+      WHEN u.event_type = 'upgrade' AND u.trigger_txn_id IS NOT NULL AND EXISTS(
+        SELECT 1 FROM transactions t WHERE t.id = u.trigger_txn_id AND t.voided_at IS NOT NULL
+      ) THEN 'voided'
+      WHEN u.event_type = 'upgrade' AND EXISTS(
+        SELECT 1 FROM tier_upgrades d
+        WHERE d.customer_id = u.customer_id AND d.tier_after = u.tier_after
+          AND d.event_type = 'upgrade' AND d.gift_status = 'delivered' AND d.id != u.id
+      ) THEN 'already_delivered'
+      ELSE NULL
+    END
+"""
+GIFT_INVALID_LABELS = {"voided": "觸發交易已作廢", "already_delivered": "同級升級禮已送達過"}
+
+
+def tier_gift_block_reason(db: sqlite3.Connection, customer_id: int, tier_after: str) -> str | None:
+    """升級禮資格的唯一判定：每會員每級終身一次。
+    delivered 同級 → 擋；有效 pending（觸發交易未作廢）同級 → 擋；skipped 或已失效的 pending 不擋。"""
+    if tier_after not in GIFT_TIERS:
+        return f"{tier_after} 無升級禮"
+    row = db.execute(
+        f"""
+        SELECT u.gift_status, ({GIFT_INVALID_REASON_SQL}) AS invalid_reason
+        FROM tier_upgrades u
+        WHERE u.customer_id = ? AND u.tier_after = ? AND u.event_type = 'upgrade'
+          AND u.gift_status IN ('delivered', 'pending')
+        """,
+        (customer_id, tier_after),
+    ).fetchall()
+    if any(r["gift_status"] == "delivered" for r in row):
+        return f"已領過{tier_after}升級禮"
+    if any(r["gift_status"] == "pending" and r["invalid_reason"] is None for r in row):
+        return f"已有待發的{tier_after}升級禮"
+    return None
+
+
+def record_tier_upgrade_event(
+    db: sqlite3.Connection, customer_id: int, upgrade_date: str, tier_before: str, tier_after: str,
+    trigger_txn_id: int | None, reason: str, now_str: str,
+) -> int | None:
+    """寫入一筆升等事件（一次升等只一筆，不拆中間級）。同一事件重複呼叫回傳 None；
+    不具資格時仍留稽核列但 gift_status='skipped'、不帶禮品名。"""
+    if trigger_txn_id is not None:
+        dup = db.execute(
+            "SELECT 1 FROM tier_upgrades WHERE customer_id=? AND trigger_txn_id=? AND event_type='upgrade'",
+            (customer_id, trigger_txn_id),
+        ).fetchone()
+    else:
+        dup = db.execute(
+            "SELECT 1 FROM tier_upgrades WHERE customer_id=? AND trigger_txn_id IS NULL AND upgrade_date=? "
+            "AND tier_before=? AND tier_after=? AND event_type='upgrade'",
+            (customer_id, upgrade_date, tier_before, tier_after),
+        ).fetchone()
+    if dup:
+        return None
+    blocked = tier_gift_block_reason(db, customer_id, tier_after)
+    gift_name, gift_status = ("", "skipped") if blocked else (f"{tier_after} 升級禮", "pending")
+    full_reason = f"{reason}（不發禮：{blocked}）" if blocked else reason
+    cur = db.execute(
+        """
+        INSERT INTO tier_upgrades(
+            customer_id, upgrade_date, tier_before, tier_after,
+            trigger_txn_id, trigger_reason, gift_name, gift_status, event_type, created_at
+        ) VALUES(?,?,?,?,?,?,?,?,'upgrade',?)
+        """,
+        (customer_id, upgrade_date, tier_before, tier_after, trigger_txn_id, full_reason,
+         gift_name, gift_status, now_str),
+    )
+    return int(cur.lastrowid)
+
+
+def cancel_pending_gifts_for_voided_txn(db: sqlite3.Connection, txn_id: int, void_reason: str) -> int:
+    """交易作廢時，只取消「由該筆交易產生」的待發禮（改 skipped 留痕，不刪除）；
+    其他交易合法產生的待發禮、已送達紀錄都不動。"""
+    note = f"觸發交易 id={txn_id} 已作廢" + (f"（{void_reason}）" if void_reason else "")
+    cur = db.execute(
+        "UPDATE tier_upgrades SET gift_status='skipped', gift_delivered_at=?, note=? "
+        "WHERE trigger_txn_id=? AND event_type='upgrade' AND gift_status='pending'",
+        (datetime.now().isoformat(timespec="seconds"), note, txn_id),
+    )
+    return cur.rowcount
+
+
 _EMPTY_TIER_STATE = {
     "member_tier": "一般會員", "tier_effective_date": None, "tier_expires_date": None,
     "pending_tier": None, "pending_effective_date": None,
@@ -722,11 +809,13 @@ def _log_tier_events(db: sqlite3.Connection, customer_id: int, events: list[dict
             gift_name, gift_status = "", "skipped"
             reason = f"會員年度效期屆滿，續會維持 {e['tier_after']}（本期年度累計 {int(e['window_total']):,} 元）"
         elif e["event_type"] == "upgrade":
-            gift_name, gift_status = f"{e['tier_after']} 升級禮", "pending"
-            reason = (
+            record_tier_upgrade_event(
+                db, customer_id, e["date"], e["tier_before"], e["tier_after"], None,
                 f"會員年度效期屆滿重新判定，由 {e['tier_before']} 升為 {e['tier_after']}"
-                f"（本期年度累計 {int(e['window_total']):,} 元）"
+                f"（本期年度累計 {int(e['window_total']):,} 元）",
+                now_str,
             )
+            continue
         elif e["event_type"] == "downgrade":
             gift_name, gift_status = "", "skipped"
             reason = f"會員年度效期屆滿，依累計降為 {e['tier_after']}（本期年度累計 {int(e['window_total']):,} 元）"
@@ -1678,13 +1767,14 @@ def build_action_board_actions(db: sqlite3.Connection, today: date | None = None
         })
 
     gift_rows = db.execute(
-        """
+        f"""
         SELECT u.id, u.customer_id, u.upgrade_date, u.tier_before, u.tier_after,
                u.gift_name, c.name AS customer_name
         FROM tier_upgrades u
         JOIN customers c ON c.id = u.customer_id
         WHERE u.gift_status = 'pending'
           AND c.merged_into_customer_id IS NULL
+          AND ({GIFT_INVALID_REASON_SQL}) IS NULL
         ORDER BY u.upgrade_date ASC, u.id ASC
         """
     ).fetchall()
@@ -2399,29 +2489,18 @@ def entry():
                         else:
                             reason = f"年度累計 {int(accum_total):,} 元達標"
                         now_str_up = datetime.now().isoformat(timespec="seconds")
-                        # Record each intermediate upgrade level
-                        for step in range(idx_before + 1, idx_after + 1):
-                            step_from = TIER_ORDER[step - 1]
-                            step_to = TIER_ORDER[step]
-                            # Look up gift name from rules
-                            gift_name = ""
-                            for t in rules["vip_tiers"]:
-                                if t["name"] == step_to:
-                                    gift_name = f"{step_to} 升級禮"
-                                    break
-                            db.execute("""
-                                INSERT INTO tier_upgrades(
-                                    customer_id, upgrade_date, tier_before, tier_after,
-                                    trigger_txn_id, trigger_reason, gift_name,
-                                    gift_status, created_at
-                                ) VALUES(?,?,?,?,?,?,?,?,?)
-                            """, (
-                                customer_id, txn_day.isoformat(),
-                                step_from, step_to,
-                                last_txn_id, reason, gift_name,
-                                "pending", now_str_up,
-                            ))
-                            upgrades_recorded.append({"from": step_from, "to": step_to, "gift": gift_name})
+                        # 同一次交易跨級只建立一筆「原等級→最終等級」事件，不拆中間級禮品。
+                        event_id = record_tier_upgrade_event(
+                            db, customer_id, txn_day.isoformat(), baseline_name, candidate_tier.name,
+                            last_txn_id, reason, now_str_up,
+                        )
+                        if event_id is not None:
+                            gift_name = db.execute(
+                                "SELECT gift_name FROM tier_upgrades WHERE id=?", (event_id,)
+                            ).fetchone()["gift_name"]
+                            upgrades_recorded.append(
+                                {"from": baseline_name, "to": candidate_tier.name, "gift": gift_name}
+                            )
 
                         # 達標當筆仍用舊等級（tier_before 已經是這樣），新等級排到隔天正式生效。
                         db.execute(
@@ -2904,6 +2983,7 @@ def delete_transaction(txn_id):
     # V3 Phase 2：normal 交易作廢後，扣除的金額可能讓等級撐不住，重新判定（可能即時降級）。
     # 其他模式（coin_deduct/birthday_recharge）不計入會員年度累計，不影響等級。
     if mode == "normal":
+        cancel_pending_gifts_for_voided_txn(db, txn_id, void_reason)
         reevaluate_tier_after_void(db, customer_id, load_rules(), date.today(), txn_id, void_reason)
 
     db.commit()
@@ -3795,7 +3875,8 @@ def upgrades_page():
 
     rows = db.execute(
         f"""
-        SELECT u.*, c.name AS customer_name, c.phone AS customer_phone, c.birthday
+        SELECT u.*, c.name AS customer_name, c.phone AS customer_phone, c.birthday,
+               CASE WHEN u.gift_status = 'pending' THEN ({GIFT_INVALID_REASON_SQL}) END AS invalid_reason
         FROM tier_upgrades u
         JOIN customers c ON c.id = u.customer_id
         WHERE {' AND '.join(where)}
@@ -3808,9 +3889,17 @@ def upgrades_page():
 
     # Count by status (all time, ignores date filter for the general tabs if we want, or we can apply it. The original code didn't apply date filter to status tabs, but let's leave status_counts as is)
     counts = db.execute(
-        "SELECT gift_status, COUNT(*) AS cnt FROM tier_upgrades GROUP BY gift_status"
+        f"""
+        SELECT u.gift_status, COUNT(*) AS cnt,
+               SUM(CASE WHEN u.gift_status = 'pending' AND ({GIFT_INVALID_REASON_SQL}) IS NOT NULL THEN 1 ELSE 0 END) AS invalid_cnt
+        FROM tier_upgrades u GROUP BY u.gift_status
+        """
     ).fetchall()
+    # 「待發放」只計有效資格，與首頁待關注一致；失效的 pending 另列。
+    invalid_pending = sum(int(r["invalid_cnt"] or 0) for r in counts)
     status_counts = {r["gift_status"]: r["cnt"] for r in counts}
+    status_counts["pending"] = status_counts.get("pending", 0) - invalid_pending
+    status_counts["invalid_pending"] = invalid_pending
 
     # Count delivered gifts by tier (applying date filter)
     where_delivered = ["gift_status = 'delivered'"]
@@ -3842,12 +3931,29 @@ def upgrades_page():
     )
 
 
+def _gift_action_block_reason(db: sqlite3.Connection, upgrade_id: int) -> str | None:
+    """發放／重開前的資格檢查：觸發交易已作廢或同級禮已送達 → 拒絕（略過不受限）。"""
+    row = db.execute(
+        f"""
+        SELECT ({GIFT_INVALID_REASON_SQL}) AS invalid_reason
+        FROM tier_upgrades u WHERE u.id = ?
+        """,
+        (upgrade_id,),
+    ).fetchone()
+    if row and row["invalid_reason"]:
+        return f"資格失效：{GIFT_INVALID_LABELS[row['invalid_reason']]}"
+    return None
+
+
 @app.route("/api/upgrades/<int:upgrade_id>/deliver", methods=["POST"])
 def deliver_upgrade_gift(upgrade_id):
     """標記升級禮已送達"""
     db = get_db()
     note = request.form.get("note", "").strip()
     now_str = datetime.now().isoformat(timespec="seconds")
+    blocked = _gift_action_block_reason(db, upgrade_id)
+    if blocked:
+        return {"status": "error", "message": blocked}, 409
     db.execute(
         "UPDATE tier_upgrades SET gift_status='delivered', gift_delivered_at=?, gift_delivered_by='staff', note=? WHERE id=?",
         (now_str, note, upgrade_id),
@@ -3874,6 +3980,9 @@ def skip_upgrade_gift(upgrade_id):
 def reopen_upgrade_gift(upgrade_id):
     """重新開啟升級禮為待發放（補發機制）"""
     db = get_db()
+    blocked = _gift_action_block_reason(db, upgrade_id)
+    if blocked:
+        return {"status": "error", "message": blocked}, 409
     db.execute(
         "UPDATE tier_upgrades SET gift_status='pending', gift_delivered_at=NULL, gift_delivered_by=NULL WHERE id=?",
         (upgrade_id,),

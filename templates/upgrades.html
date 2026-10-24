@@ -123,7 +123,13 @@
       </div>
 
       <div style="display:flex; flex-direction:column; gap:6px; min-width:120px;">
-        {% if u.gift_status == 'pending' %}
+        {% if u.gift_status == 'pending' and u.invalid_reason %}
+          <p style="margin:0 0 4px; font-size:0.8rem; color:#b91c1c;">⚠️ 資格失效：{{ '觸發交易已作廢' if u.invalid_reason == 'voided' else '同級升級禮已送達過' }}，不可發放</p>
+          <form method="post" action="/api/upgrades/{{ u.id }}/skip" style="margin:0;" onsubmit="return confirm('確定要略過此升級禮嗎？')">
+            <input type="hidden" name="note" value="資格失效，管理者略過">
+            <button type="submit" style="width:100%; background:#f3f4f6; color:#6b7280; padding:6px 12px; border-radius:6px; font-size:0.85rem; cursor:pointer; border:1px solid #ddd;">⏭️ 略過</button>
+          </form>
+        {% elif u.gift_status == 'pending' %}
           <form method="post" action="/api/upgrades/{{ u.id }}/deliver" style="margin:0;">
             <input type="text" name="note" placeholder="備註（選填）" style="width:100%; margin-bottom:4px; padding:4px 8px; font-size:0.8rem; border:1px solid #ccc; border-radius:4px;">
             <button type="submit" style="width:100%; background:#059669; color:#fff; padding:6px 12px; border-radius:6px; font-size:0.85rem; cursor:pointer; border:none;">
@@ -144,11 +150,13 @@
           <span class="badge-pill badge-pill-neutral" style="display:block; text-align:center;">
             ⏭️ 已略過
           </span>
+          {% if u.gift_name %}
           <form method="post" action="/api/upgrades/{{ u.id }}/reopen" style="margin:0;">
             <button type="submit" style="width:100%; background:#fef3c7; color:#92400e; padding:6px 12px; border-radius:6px; font-size:0.85rem; cursor:pointer; border:1px solid #f59e0b;">
               🔄 補發
             </button>
           </form>
+          {% endif %}
         {% endif %}
       </div>
     </div>
@@ -156,17 +164,29 @@
 {% endmacro %}
 
 {% if upgrades %}
-  {% set pending_list = upgrades | selectattr("gift_status", "ne", "delivered") | list %}
+  {% set pending_list = upgrades | selectattr("gift_status", "equalto", "pending") | list %}
+  {% set skipped_list = upgrades | selectattr("gift_status", "equalto", "skipped") | list %}
   {% set delivered_list = upgrades | selectattr("gift_status", "equalto", "delivered") | list %}
 
-  {% if not filters.status or filters.status != 'delivered' %}
-  <h4 style="margin:24px 0 12px; color:#2d1b69; font-size:1.15rem; border-left:4px solid #f59e0b; padding-left:8px;">待處理 / 略過未發</h4>
+  {% if not filters.status or filters.status == 'pending' %}
+  <h4 style="margin:24px 0 12px; color:#2d1b69; font-size:1.15rem; border-left:4px solid #f59e0b; padding-left:8px;">待處理</h4>
   {% if pending_list %}
     {% for u in pending_list %}
       {{ render_upgrade_card(u) }}
     {% endfor %}
   {% else %}
     <p style="color:#888; font-size:0.9rem; margin-bottom:20px;">目前此區間沒有待處理的升級禮記錄。</p>
+  {% endif %}
+  {% endif %}
+
+  {% if not filters.status or filters.status == 'skipped' %}
+  <h4 style="margin:32px 0 12px; color:#6b7280; font-size:1.15rem; border-left:4px solid #6b7280; padding-left:8px;">已略過</h4>
+  {% if skipped_list %}
+    {% for u in skipped_list %}
+      {{ render_upgrade_card(u) }}
+    {% endfor %}
+  {% else %}
+    <p style="color:#888; font-size:0.9rem; margin-bottom:20px;">目前此區間沒有已略過的升級禮記錄。</p>
   {% endif %}
   {% endif %}
 
