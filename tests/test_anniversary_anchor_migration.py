@@ -21,7 +21,10 @@ class AnniversaryAnchorMigrationTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_additive_and_idempotent_without_backfill(self):
+        # Emulate a pre-B1-01 schema; fresh init_db already includes the column.
         with sqlite3.connect(self.db_path) as db:
+            db.execute("DROP TABLE customers")
+            db.execute("CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, birthday TEXT, created_at TEXT)")
             db.execute("INSERT INTO customers(name,birthday,created_at) VALUES('舊會員','1990-01-01','2026-01-01')")
             db.commit()
             with self.assertRaises(RuntimeError):
