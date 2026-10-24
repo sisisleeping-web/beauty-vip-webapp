@@ -24,6 +24,7 @@ DB_PATH = BASE_DIR / "data" / "beauty_vip.db"
 RULES_PATH = BASE_DIR / "rules.json"
 
 APP_VERSION = "1.4.0"
+SPA_PAX_OPTIONS = ("1", "2")
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("APP_SECRET_KEY", "beauty-vip-demo")
@@ -1761,6 +1762,12 @@ def get_cached_action_board_summary() -> dict[str, Any]:
             app.logger.exception("Action Board summary failed")
             g.action_board_summary = empty_action_board_summary()
     return g.action_board_summary
+
+
+@app.context_processor
+def inject_app_version() -> dict[str, str]:
+    """所有頁面共用單一版本來源，避免各 route 漏傳 version 時退回舊字串。"""
+    return {"version": APP_VERSION}
 
 
 @app.context_processor
@@ -4226,6 +4233,20 @@ def spa_booking():
     stores = db.execute("SELECT id, name FROM stores ORDER BY name").fetchall()
     return render_template("spa_booking.html", stores=stores)
 
+@app.route("/api/spa/slots")
+def spa_slots():
+    """後台新增預約用：回傳與顧客端相同的單一後端時段政策（需登入，見 require_main_auth）。"""
+    store_id = request.args.get("store_id", "").strip()
+    day_str = request.args.get("date", "").strip()
+    try:
+        booking_day = datetime.strptime(day_str, "%Y-%m-%d").date()
+    except ValueError:
+        return {"error": "日期格式錯誤"}, 400
+    if not get_db().execute("SELECT 1 FROM stores WHERE id=?", (store_id,)).fetchone():
+        return {"error": "分店錯誤"}, 400
+    return {"slots": list(get_spa_slots(store_id, booking_day))}
+
+
 @app.route("/api/spa/availability")
 def spa_availability():
     store_id = request.args.get("store_id", "").strip()
@@ -4323,14 +4344,11 @@ def spa_book():
     service_type = request.form.get("service_type", "").strip()
     note = request.form.get("note", "").strip()
     pax_str = request.form.get("pax", "1").strip()
-    
-    try:
-        pax = int(pax_str)
-        if pax < 1 or pax > 2:
-            pax = 1
-    except ValueError:
-        pax = 1
-    
+
+    if pax_str not in SPA_PAX_OPTIONS:
+        return {"error": "預約人數僅限 1 或 2 位"}, 400
+    pax = int(pax_str)
+
     if not all([store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type]):
         return {"error": "請填寫完整資料"}, 400
     if customer_type not in {"existing", "new"}:
