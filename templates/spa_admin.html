@@ -115,8 +115,17 @@
       <input type="date" name="booking_date" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;">
     </div>
     <div style="margin-bottom:8px;">
-      <label style="display:block; font-size:14px; font-weight:600;">時間 (例如 09:00)</label>
-      <input type="time" name="booking_time" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;">
+      <label style="display:block; font-size:14px; font-weight:600;">時段</label>
+      <select name="booking_time" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;">
+        <option value="">請先選擇分店與日期</option>
+      </select>
+    </div>
+    <div style="margin-bottom:8px;">
+      <label style="display:block; font-size:14px; font-weight:600;">人數</label>
+      <select name="pax" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;">
+        <option value="1" selected>1 人</option>
+        <option value="2">2 人</option>
+      </select>
     </div>
     <div style="margin-bottom:8px;">
       <label style="display:block; font-size:14px; font-weight:600;">客戶姓名</label>
@@ -469,8 +478,37 @@ function deleteBooking(id) {
 }
 
 function openAddBookingModal() {
+  document.getElementById('addBookingForm').reset();
+  loadAddBookingSlots();
   document.getElementById('addBookingModal').showModal();
 }
+
+let addSlotsRequestId = 0;
+function loadAddBookingSlots() {
+  const requestId = ++addSlotsRequestId;
+  const form = document.getElementById('addBookingForm');
+  const timeSelect = form.elements['booking_time'];
+  const storeId = form.elements['store_id'].value;
+  const dateVal = form.elements['booking_date'].value;
+  const setMessage = (text) => { timeSelect.innerHTML = ''; timeSelect.add(new Option(text, '')); };
+
+  if(!storeId || !dateVal) { setMessage('請先選擇分店與日期'); return; }
+  setMessage('載入中...');
+  fetch(`/api/spa/slots?store_id=${encodeURIComponent(storeId)}&date=${encodeURIComponent(dateVal)}`)
+    .then(res => res.json().then(data => ({ ok: res.ok, data })))
+    .then(({ ok, data }) => {
+      if(requestId !== addSlotsRequestId) return;
+      if(!ok) { setMessage(data.error || '載入失敗'); return; }
+      if(data.slots.length === 0) { setMessage('當日不開放預約'); return; }
+      timeSelect.innerHTML = '';
+      timeSelect.add(new Option('請選擇時段', ''));
+      data.slots.forEach(slot => timeSelect.add(new Option(slot, slot)));
+    })
+    .catch(() => { if(requestId === addSlotsRequestId) setMessage('載入失敗'); });
+}
+
+document.getElementById('addBookingForm').elements['store_id'].addEventListener('change', loadAddBookingSlots);
+document.getElementById('addBookingForm').elements['booking_date'].addEventListener('change', loadAddBookingSlots);
 
 function submitAddBooking(e) {
   e.preventDefault();
