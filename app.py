@@ -332,7 +332,8 @@ def init_db() -> None:
             service_type TEXT NOT NULL,
             note TEXT DEFAULT '',
             status TEXT NOT NULL DEFAULT 'pending',
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            updated_at TEXT DEFAULT NULL
         );
 
         CREATE TABLE IF NOT EXISTS spa_capacity_overrides (
@@ -491,6 +492,8 @@ def init_db() -> None:
         ("customers", "merged_at", "TEXT DEFAULT NULL"),
         # 2026美咖會員制度V3 Phase 2：退款回溯完整化，tier_upgrades 也記錄非「達標升等」的事件。
         ("tier_upgrades", "event_type", "TEXT NOT NULL DEFAULT 'upgrade'"),
+        # 預約後台顯示最後異動時間；舊資料保留 NULL，畫面回退顯示建立時間，不做回填。
+        ("spa_bookings", "updated_at", "TEXT DEFAULT NULL"),
     ]:
         try:
             cur.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typedef}")
@@ -4626,20 +4629,20 @@ def _process_spa_booking(*, allow_same_day_multi: bool):
     # Insert main booker
     db.execute(
         """
-        INSERT INTO spa_bookings (store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type, note, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+        INSERT INTO spa_bookings (store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type, note, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
         """,
-        (store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type, note, now_str)
+        (store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type, note, now_str, now_str)
     )
     
     # Insert companion if pax == 2
     if pax == 2:
         db.execute(
             """
-            INSERT INTO spa_bookings (store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type, note, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+            INSERT INTO spa_bookings (store_id, booking_date, booking_time, customer_name, customer_phone, customer_type, service_type, note, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
             """,
-            (store_id, booking_date, booking_time, f"{customer_name} (同行)", customer_phone, customer_type, service_type, note, now_str)
+            (store_id, booking_date, booking_time, f"{customer_name} (同行)", customer_phone, customer_type, service_type, note, now_str, now_str)
         )
         
     db.commit()
@@ -4661,9 +4664,12 @@ def spa_admin_bookings():
         where.append("store_id = ?")
         params.append(store_id)
         
-    if status:
+    if status in {"pending", "confirmed", "cancelled"}:
         where.append("status = ?")
         params.append(status)
+    elif status != "all":
+        # 預設不列出取消項次；仍可用篩選查看，保留營運稽核紀錄。
+        where.append("status != 'cancelled'")
         
     query = f"""
         SELECT sb.*, s.name as store_name
@@ -4682,8 +4688,8 @@ def spa_admin_confirm(booking_id):
         return {"error": "Unauthorized"}, 403
     db = get_db()
     result = db.execute(
-        "UPDATE spa_bookings SET status = 'confirmed' WHERE id = ? AND status='pending'",
-        (booking_id,),
+        "UPDATE spa_bookings SET status = 'confirmed', updated_at = ? WHERE id = ? AND status='pending'",
+        (datetime.now().isoformat(timespec="seconds"), booking_id),
     )
     if result.rowcount == 0:
         return {"error": "Booking not found or not pending"}, 404
@@ -4728,7 +4734,10 @@ def spa_admin_update_time(booking_id):
     ).fetchone()
     if count >= (int(cap["capacity"]) if cap else 2):
         return {"error": "該時段已額滿"}, 409
-    db.execute("UPDATE spa_bookings SET booking_date=?, booking_time=? WHERE id=?", (new_date, new_time, booking_id))
+    db.execute(
+        "UPDATE spa_bookings SET booking_date=?, booking_time=?, updated_at=? WHERE id=?",
+        (new_date, new_time, datetime.now().isoformat(timespec="seconds"), booking_id),
+    )
     db.commit()
     return {"status": "success"}
 
@@ -4739,8 +4748,8 @@ def spa_admin_delete(booking_id):
     db = get_db()
     # 預約資料屬營運紀錄，取消時保留原始內容，不做不可追溯的硬刪除。
     result = db.execute(
-        "UPDATE spa_bookings SET status='cancelled' WHERE id=? AND status!='cancelled'",
-        (booking_id,),
+        "UPDATE spa_bookings SET status='cancelled', updated_at=? WHERE id=? AND status!='cancelled'",
+        (datetime.now().isoformat(timespec="seconds"), booking_id),
     )
     if result.rowcount == 0:
         return {"error": "Booking not found or already cancelled"}, 404

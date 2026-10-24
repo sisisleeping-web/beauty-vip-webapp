@@ -19,9 +19,11 @@
     <div>
       <label>篩選狀態</label>
       <select name="status" style="max-width:120px;">
-        <option value="">全部狀態</option>
+        <option value="" {% if not status %}selected{% endif %}>進行中</option>
         <option value="pending" {% if status == 'pending' %}selected{% endif %}>待確認</option>
         <option value="confirmed" {% if status == 'confirmed' %}selected{% endif %}>已確認</option>
+        <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>已取消</option>
+        <option value="all" {% if status == 'all' %}selected{% endif %}>全部狀態</option>
       </select>
     </div>
     <div style="align-self:flex-end;">
@@ -45,6 +47,7 @@
         <th>服務項目</th>
         <th>備註</th>
         <th>狀態</th>
+        <th>建立／最後修改</th>
         <th>操作</th>
       </tr>
     </thead>
@@ -81,6 +84,10 @@
         <span class="badge-pill badge-pill-warning">⏳ 待確認</span>
         {% endif %}
       </td>
+      <td style="font-size:0.8rem; color:#666; white-space:nowrap;">
+        <div>建：{{ b.created_at }}</div>
+        <div>改：{{ b.updated_at or b.created_at }}</div>
+      </td>
       <td>
         {% if b.status == 'pending' %}
         <button onclick="confirmBooking({{ b.id }})" style="background:var(--success);color:#fff;border:none;border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;cursor:pointer;margin-bottom:4px;box-shadow:none;min-height:unset;">確認</button>
@@ -91,7 +98,7 @@
     </tr>
     {% else %}
     <tr>
-      <td colspan="10" class="text-muted" style="text-align:center; padding:2rem;">尚無預約資料</td>
+      <td colspan="11" class="text-muted" style="text-align:center; padding:2rem;">尚無預約資料</td>
     </tr>
     {% endfor %}
     </tbody>
