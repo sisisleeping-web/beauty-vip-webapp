@@ -549,8 +549,11 @@ document.getElementById('addBookingForm').elements['booking_date'].addEventListe
 function submitAddBooking(e) {
   e.preventDefault();
   const form = e.target;
+  const btn = form.querySelector('button[type="submit"]');
+  if (btn.disabled) return;  // 防連點重送；失敗時才重新開放，且不會自動重試
+  btn.disabled = true;
   const fd = new URLSearchParams(new FormData(form));
-  
+
   fetch('/api/spa/admin/book', { method: 'POST', body: fd })
     .then(res => res.json().then(
       data => ({ ok: res.ok, status: res.status, data }),
@@ -560,11 +563,19 @@ function submitAddBooking(e) {
       if (ok && data && data.status === 'success') {
         alert('新增預約成功！');
         location.reload();
+        return;
+      }
+      btn.disabled = false;
+      if (status === 401) {
+        alert((data && data.error) || '登入已逾時，請重新整理頁面並輸入 PIN 後再試');
       } else {
         alert((data && data.error) || `新增失敗（伺服器回應 ${status}），預約未建立`);
       }
     })
-    .catch(() => alert('網路異常，預約未建立，請稍後再試'));
+    .catch(() => {
+      btn.disabled = false;
+      alert('網路異常，預約未建立，請稍後再試');
+    });
 }
 </script>
 {% endblock %}

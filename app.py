@@ -25,6 +25,7 @@ RULES_PATH = BASE_DIR / "rules.json"
 
 APP_VERSION = "1.4.0"
 SPA_PAX_OPTIONS = ("1", "2")
+SPA_API_PREFIX = "/api/spa/"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("APP_SECRET_KEY", "beauty-vip-demo")
@@ -138,8 +139,9 @@ def require_main_auth():
     if session.get("main_authed") or session.get("manager_authed"):
         return
 
-    if request.method == "POST" and request.path.startswith("/api/"):
-        # 寫入型 API 在登入逾時時不可回 200 的 PIN 鎖頁 HTML，否則前端 res.json() 失敗只會顯示「發生錯誤」。
+    if request.method == "POST" and request.path.startswith(SPA_API_PREFIX):
+        # 預約 fetch API 逾時不可回 200 的 PIN 鎖頁 HTML，否則前端 res.json() 失敗只會顯示「發生錯誤」。
+        # 範圍刻意限縮在 /api/spa/：會員／點數等傳統表單 POST 仍維持原本的鎖頁行為。
         return {"error": "登入已逾時，請重新整理頁面並輸入 PIN 後再試"}, 401
 
     return render_template("main_lock.html", error=None)
@@ -207,10 +209,9 @@ def get_db() -> sqlite3.Connection:
 
 @app.errorhandler(500)
 def api_json_server_error(_err: Exception):
-    """/api/ 路徑的未預期錯誤回 JSON，前端才能顯示原因；TESTING/PROPAGATE 時仍照 Flask 規則往外拋。"""
-    if not request.path.startswith("/api/"):
+    """預約 API 的未預期錯誤回 JSON，前端才能顯示原因；TESTING/PROPAGATE 時仍照 Flask 規則往外拋。"""
+    if not request.path.startswith(SPA_API_PREFIX):
         return _err
-    app.logger.exception("API 未預期錯誤 %s %s", request.method, request.path)
     return {"error": "伺服器錯誤，請稍後再試或聯繫管理員"}, 500
 
 

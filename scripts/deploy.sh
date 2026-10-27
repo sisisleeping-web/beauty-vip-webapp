@@ -78,6 +78,24 @@ then
     exit 1
 fi
 
+# 預約 updated_at：app.py 的 INSERT 依賴此欄位。同樣先同步 migration，缺欄位則停止、不上傳 app.py。
+echo "==> 同步預約 updated_at 遷移腳本"
+sync_file scripts/migrate_spa_bookings_updated_at.py
+if ! python3 - "$BACKUP_DIR/data/beauty_vip.db" <<'PY'
+import sqlite3
+import sys
+
+with sqlite3.connect(sys.argv[1]) as db:
+    columns = {row[1] for row in db.execute("PRAGMA table_info(spa_bookings)")}
+sys.exit(0 if "updated_at" in columns else 1)
+PY
+then
+    echo "spa_bookings.updated_at 尚未套用：遷移腳本已同步，但本次不會上傳 app.py 或 reload。" >&2
+    echo "請在 PA 對正式 DB 先執行 scripts/migrate_spa_bookings_updated_at.py --check，再 --apply，" >&2
+    echo "再用 --check 驗證後，重新執行部署。" >&2
+    exit 1
+fi
+
 echo "==> 同步 PythonAnywhere 程式檔"
 git ls-files -z -- app.py rules.json requirements.txt Procfile 'templates/*.html' \
     | while IFS= read -r -d '' FILE; do
@@ -91,4 +109,4 @@ test "$RELOAD_CODE" = "200" || { echo "Reload 失敗（HTTP $RELOAD_CODE）" >&2
 STATUS=$(curl -sS -o /dev/null -w '%{http_code}' "https://${PYTHONANYWHERE_DOMAIN}/spa/booking")
 test "$STATUS" = "200" || { echo "正式站驗證失敗（HTTP $STATUS）" >&2; exit 1; }
 echo "==> 部署完成：https://${PYTHONANYWHERE_DOMAIN}"
-echo "注意：若本次新增 DB schema，須先在 PA console 執行對應 migration（例：python3 scripts/migrate_spa_bookings_updated_at.py --check，缺欄位再 --apply）再 reload。"
+echo "注意：若本次新增 DB schema，須先在 PA console 執行對應 migration 再 reload（本腳本已對 B1-01 與 updated_at 設閘）。"
