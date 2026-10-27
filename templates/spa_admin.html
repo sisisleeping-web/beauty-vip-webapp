@@ -552,16 +552,19 @@ function submitAddBooking(e) {
   const fd = new URLSearchParams(new FormData(form));
   
   fetch('/api/spa/admin/book', { method: 'POST', body: fd })
-    .then(res => res.json())
-    .then(data => {
-      if(data.status === 'success' || !data.error) {
+    .then(res => res.json().then(
+      data => ({ ok: res.ok, status: res.status, data }),
+      () => ({ ok: false, status: res.status, data: null })
+    ))
+    .then(({ ok, status, data }) => {
+      if (ok && data && data.status === 'success') {
         alert('新增預約成功！');
         location.reload();
       } else {
-        alert(data.error || '新增失敗');
+        alert((data && data.error) || `新增失敗（伺服器回應 ${status}），預約未建立`);
       }
     })
-    .catch(err => alert('發生錯誤'));
+    .catch(() => alert('網路異常，預約未建立，請稍後再試'));
 }
 </script>
 {% endblock %}

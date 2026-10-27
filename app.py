@@ -137,7 +137,11 @@ def require_main_auth():
     
     if session.get("main_authed") or session.get("manager_authed"):
         return
-        
+
+    if request.method == "POST" and request.path.startswith("/api/"):
+        # 寫入型 API 在登入逾時時不可回 200 的 PIN 鎖頁 HTML，否則前端 res.json() 失敗只會顯示「發生錯誤」。
+        return {"error": "登入已逾時，請重新整理頁面並輸入 PIN 後再試"}, 401
+
     return render_template("main_lock.html", error=None)
 
 @app.route("/main_unlock", methods=["POST"])
@@ -193,12 +197,39 @@ def load_rules() -> dict[str, Any]:
         return json.load(f)
 
 
+_SPA_SCHEMA_CHECKED: set[str] = set()
+
+
+def ensure_spa_bookings_schema(conn: sqlite3.Connection) -> None:
+    """正式環境 WSGI 不會呼叫 init_db()，補欄位遷移不能只靠它；缺 updated_at 時新增預約會 500。
+
+    僅做冪等的加欄位（ADD COLUMN），不改動既有資料；資料表尚未建立時略過。
+    """
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(spa_bookings)")}
+    if cols and "updated_at" not in cols:
+        conn.execute("ALTER TABLE spa_bookings ADD COLUMN updated_at TEXT DEFAULT NULL")
+        conn.commit()
+
+
 def get_db() -> sqlite3.Connection:
     if "db" not in g:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
+        key = str(DB_PATH)
+        if key not in _SPA_SCHEMA_CHECKED:
+            ensure_spa_bookings_schema(conn)
+            _SPA_SCHEMA_CHECKED.add(key)
         g.db = conn
     return g.db
+
+
+@app.errorhandler(500)
+def api_json_server_error(_err: Exception):
+    """/api/ 路徑的未預期錯誤回 JSON，前端才能顯示原因；TESTING/PROPAGATE 時仍照 Flask 規則往外拋。"""
+    if not request.path.startswith("/api/"):
+        return _err
+    app.logger.exception("API 未預期錯誤 %s %s", request.method, request.path)
+    return {"error": "伺服器錯誤，請稍後再試或聯繫管理員"}, 500
 
 
 @app.teardown_appcontext
