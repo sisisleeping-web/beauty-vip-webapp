@@ -91,4 +91,4 @@ test "$RELOAD_CODE" = "200" || { echo "Reload 失敗（HTTP $RELOAD_CODE）" >&2
 STATUS=$(curl -sS -o /dev/null -w '%{http_code}' "https://${PYTHONANYWHERE_DOMAIN}/spa/booking")
 test "$STATUS" = "200" || { echo "正式站驗證失敗（HTTP $STATUS）" >&2; exit 1; }
 echo "==> 部署完成：https://${PYTHONANYWHERE_DOMAIN}"
-echo "注意：若本次 app.py 新增 DB schema，仍須先在 PA console 執行 app.init_db() 再 reload。"
+echo "注意：若本次新增 DB schema，須先在 PA console 執行對應 migration（例：python3 scripts/migrate_spa_bookings_updated_at.py --check，缺欄位再 --apply）再 reload。"

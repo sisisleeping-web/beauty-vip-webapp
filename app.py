@@ -197,28 +197,10 @@ def load_rules() -> dict[str, Any]:
         return json.load(f)
 
 
-_SPA_SCHEMA_CHECKED: set[str] = set()
-
-
-def ensure_spa_bookings_schema(conn: sqlite3.Connection) -> None:
-    """正式環境 WSGI 不會呼叫 init_db()，補欄位遷移不能只靠它；缺 updated_at 時新增預約會 500。
-
-    僅做冪等的加欄位（ADD COLUMN），不改動既有資料；資料表尚未建立時略過。
-    """
-    cols = {row[1] for row in conn.execute("PRAGMA table_info(spa_bookings)")}
-    if cols and "updated_at" not in cols:
-        conn.execute("ALTER TABLE spa_bookings ADD COLUMN updated_at TEXT DEFAULT NULL")
-        conn.commit()
-
-
 def get_db() -> sqlite3.Connection:
     if "db" not in g:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
-        key = str(DB_PATH)
-        if key not in _SPA_SCHEMA_CHECKED:
-            ensure_spa_bookings_schema(conn)
-            _SPA_SCHEMA_CHECKED.add(key)
         g.db = conn
     return g.db
 
