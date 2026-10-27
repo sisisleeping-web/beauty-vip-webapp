@@ -125,10 +125,10 @@ class AdminMultiSlotTests(unittest.TestCase):
         self._assert_flags_never_grant_exception()
 
     def test_admin_endpoint_requires_server_side_admin_session(self) -> None:
-        self.assertEqual(self._book(0).get_json(silent=True), None)  # 未登入只拿到鎖定頁
+        self.assertEqual(self._book(0).status_code, 401)  # 未登入被鎖定，回 JSON 401
         self.assertEqual(self._active(), 0)
         self.assertEqual(self._cust(0).status_code, 200)
-        self.assertEqual(self._book(1, source="admin", is_admin="1").get_json(silent=True), None)
+        self.assertEqual(self._book(1, source="admin", is_admin="1").status_code, 401)
         self.assertEqual(self._active(), 1)
 
     def test_admin_logout_restores_restrictions(self) -> None:
@@ -136,7 +136,7 @@ class AdminMultiSlotTests(unittest.TestCase):
         self.assertEqual(self._book(0).status_code, 200)
         self.client.get("/main_logout")
         self.assertEqual(self._cust(1).status_code, 400)
-        self.assertEqual(self._book(1).get_json(silent=True), None)
+        self.assertEqual(self._book(1).status_code, 401)
         self.assertEqual(self._active(), 1)
 
     def test_ui_wiring_admin_form_uses_admin_endpoint_customer_page_does_not(self) -> None:
