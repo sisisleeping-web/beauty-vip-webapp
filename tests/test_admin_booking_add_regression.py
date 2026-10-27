@@ -23,10 +23,11 @@ URL = "/api/spa/admin/book"
 class AdminBookingAddRegressionTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
+        original_db_path = beauty.DB_PATH
         beauty.DB_PATH = Path(self.tmp.name) / "beauty_vip.db"
         saved = {k: beauty.app.config.get(k) for k in ("TESTING", "PROPAGATE_EXCEPTIONS", "SESSION_COOKIE_SECURE")}
         self.addCleanup(beauty.app.config.update, saved)  # 還原，避免污染其他測試檔
-        self.addCleanup(setattr, beauty, "DB_PATH", beauty.DB_PATH)
+        self.addCleanup(setattr, beauty, "DB_PATH", original_db_path)
         beauty.app.config.update(TESTING=False, PROPAGATE_EXCEPTIONS=False, SESSION_COOKIE_SECURE=False)
         beauty._auth_failures.clear()
         beauty.init_db()
